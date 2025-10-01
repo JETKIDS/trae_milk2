@@ -1,0 +1,142 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* 印刷用スタイル */
+@media print {
+  /* ページ設定 */
+  @page {
+    margin: 1cm;
+    size: A4;
+  }
+
+  /* 印刷時に非表示にする要素 */
+  .no-print,
+  .print-header-hide,
+  .MuiButton-root,
+  .MuiTabs-root,
+  .MuiFormControl-root,
+  .MuiTextField-root,
+  .MuiAlert-root,
+  .MuiCircularProgress-root,
+  header,
+  nav,
+  .MuiAppBar-root,
+  .MuiDrawer-root {
+    display: none !important;
+  }
+
+  /* メインコンテンツのマージンをリセット */
+  main,
+  [role="main"],
+  .main-content {
+    margin: 0 !important;
+    margin-left: 0 !important;
+    margin-top: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* 印刷時のテーブルスタイル */
+  .MuiTableContainer-root {
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+  }
+
+  .MuiTable-root {
+    border-collapse: collapse !important;
+  }
+
+  .MuiTableCell-root {
+    border: 1px solid #000 !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+  }
+
+  .MuiTableHead-root .MuiTableCell-root {
+    background-color: #f5f5f5 !important;
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* アコーディオンを展開状態で印刷 */
+  .MuiAccordion-root {
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    margin-bottom: 20px !important;
+  }
+
+  .MuiAccordionSummary-root {
+    background-color: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .MuiAccordionDetails-root {
+    padding: 10px !important;
+  }
+
+  /* ページ区切りの制御 */
+  .print-page-break {
+    page-break-before: always !important;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+  }
+
+  /* 印刷時のタイトル */
+  .print-title {
+    font-size: 18px !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    margin-bottom: 20px !important;
+  }
+
+  /* 印刷時の統計情報 */
+  .print-summary {
+    margin-bottom: 15px !important;
+    padding: 10px !important;
+    border: 1px solid #000 !important;
+    background-color: #f9f9f9 !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* カードのスタイル調整 */
+  .MuiCard-root {
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    margin-bottom: 10px !important;
+  }
+
+  .MuiCardContent-root {
+    padding: 10px !important;
+  }
+
+  /* 余白の調整 */
+  .MuiBox-root {
+    margin: 0 !important;
+  }
+
+  /* 文字色を黒に統一 */
+  * {
+    color: #000 !important;
+  }
+}

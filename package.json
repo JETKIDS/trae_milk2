@@ -1,0 +1,19 @@
+{
+  "name": "milk-delivery-management",
+  "version": "1.0.0",
+  "description": "牛乳配達顧客管理システム",
+  "scripts": {
+    "setup": "npm install && cd server && npm install && cd ../client && npm install",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["milk", "delivery", "management", "react", "nodejs"],
+  "author": "",
+  "license": "MIT"
+}
