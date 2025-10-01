@@ -72,7 +72,7 @@ code {
     background-color: #f5f5f5 !important;
     font-weight: bold !important;
     -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* アコーディオンを展開状態で印刷 */
@@ -85,7 +85,7 @@ code {
   .MuiAccordionSummary-root {
     background-color: #f0f0f0 !important;
     -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .MuiAccordionDetails-root {
@@ -116,7 +116,44 @@ code {
     border: 1px solid #000 !important;
     background-color: #f9f9f9 !important;
     -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 商品合計表の印刷時調整 */
+  .print-hide-amount {
+    display: none !important;
+  }
+
+  .print-summary-compact .MuiCardContent-root {
+    padding: 8px !important;
+  }
+
+  .print-summary-compact .MuiSvgIcon-root {
+    fontSize: 24px !important;
+  }
+
+  .print-summary-compact .MuiTypography-h6 {
+    font-size: 14px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .print-summary-compact .MuiTypography-h4 {
+    font-size: 18px !important;
+  }
+
+  /* 印刷時の合計行のcolspan調整 */
+  .print-total-row {
+    /* 金額列が非表示になるため、colspanを3に調整 */
+  }
+
+  /* コース別ページ分割 */
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  /* 最初のコースはページ分割しない */
+  .print-page-break:first-child {
+    page-break-before: auto;
   }
 
   /* カードのスタイル調整 */

@@ -112,31 +112,59 @@ const ProductSummaryTab: React.FC = () => {
     setError(null);
     try {
       const endDate = calculateEndDate(startDate, days);
-      const courseParam = selectedCourse === 'all' ? '' : `&courseId=${selectedCourse}`;
       const manufacturerParam = selectedManufacturer === 'all' ? '' : `&manufacturer=${selectedManufacturer}`;
       
-      // 実際のAPIエンドポイントを呼び出し
-      const response = await fetch(`http://localhost:9000/api/delivery/products/summary?startDate=${startDate}&endDate=${endDate}${courseParam}${manufacturerParam}`);
-      
-      if (!response.ok) {
-        throw new Error('商品合計データの取得に失敗しました');
+      // コース別表示モードかどうかで使用するAPIエンドポイントを切り替え
+      if (selectedCourse === 'all-by-course') {
+        // コース別商品合計データを取得
+        const response = await fetch(`http://localhost:9000/api/delivery/products/summary-by-course?startDate=${startDate}&endDate=${endDate}${manufacturerParam}`);
+        
+        if (!response.ok) {
+          throw new Error('コース別商品合計データの取得に失敗しました');
+        }
+        
+        const data = await response.json();
+        
+        // コース別データの形式に合わせてデータを整形
+        const formattedData = {
+          startDate: data.startDate,
+          endDate: data.endDate,
+          days: days,
+          course: 'all-by-course',
+          manufacturer: data.manufacturer,
+          courses: data.courses || [],
+          total_quantity: data.overall_summary?.total_quantity || 0,
+          total_amount: data.overall_summary?.total_amount || 0,
+          isByCourse: true // コース別表示フラグ
+        };
+        
+        setSummaryData(formattedData);
+      } else {
+        // 通常の商品合計データを取得
+        const courseParam = selectedCourse === 'all' ? '' : `&courseId=${selectedCourse}`;
+        const response = await fetch(`http://localhost:9000/api/delivery/products/summary?startDate=${startDate}&endDate=${endDate}${courseParam}${manufacturerParam}`);
+        
+        if (!response.ok) {
+          throw new Error('商品合計データの取得に失敗しました');
+        }
+        
+        const data = await response.json();
+        
+        // APIレスポンスの形式に合わせてデータを整形
+        const formattedData = {
+          startDate: data.startDate,
+          endDate: data.endDate,
+          days: days,
+          course: data.courseId,
+          manufacturer: data.manufacturer,
+          products: data.products || [],
+          total_quantity: data.summary?.total_quantity || 0,
+          total_amount: data.summary?.total_amount || 0,
+          isByCourse: false // 通常表示フラグ
+        };
+        
+        setSummaryData(formattedData);
       }
-      
-      const data = await response.json();
-      
-      // APIレスポンスの形式に合わせてデータを整形
-      const formattedData = {
-        startDate: data.startDate,
-        endDate: data.endDate,
-        days: days,
-        course: data.courseId,
-        manufacturer: data.manufacturer,
-        products: data.products || [],
-        total_quantity: data.summary?.total_quantity || 0,
-        total_amount: data.summary?.total_amount || 0
-      };
-      
-      setSummaryData(formattedData);
     } catch (error: any) {
       console.error('商品合計データの取得エラー:', error);
       setError('商品合計データの取得に失敗しました。');
@@ -307,7 +335,8 @@ const ProductSummaryTab: React.FC = () => {
               label="配達コース"
               onChange={(e) => handleCourseChange(e.target.value)}
             >
-              <MenuItem value="all">全コース</MenuItem>
+              <MenuItem value="all">全コース（合計）</MenuItem>
+              <MenuItem value="all-by-course">全コース（コース別）</MenuItem>
               {courses.map((course) => (
                 <MenuItem key={course.id} value={course.id.toString()}>
                   {course.course_name}
@@ -385,8 +414,8 @@ const ProductSummaryTab: React.FC = () => {
         <>
           {/* サマリーカード */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={6}>
-              <Card>
+            <Grid item xs={12} md={6} className="print-hide-amount">
+              <Card className="print-summary-compact">
                 <CardContent sx={{ textAlign: 'center' }}>
                   <LocalShipping color="primary" sx={{ fontSize: 40, mb: 1 }} />
                   <Typography variant="h6" color="primary">
@@ -398,7 +427,7 @@ const ProductSummaryTab: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={6} className="print-hide-amount">
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <AttachMoney color="primary" sx={{ fontSize: 40, mb: 1 }} />
@@ -414,39 +443,84 @@ const ProductSummaryTab: React.FC = () => {
           </Grid>
 
           {/* 商品合計テーブル */}
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>商品名</TableCell>
-                  <TableCell>メーカー</TableCell>
-                  <TableCell>単位</TableCell>
-                  <TableCell align="right">合計数量</TableCell>
-                  <TableCell align="right">合計金額</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {summaryData.products.map((product: any, index: number) => (
-                  <TableRow key={index}>
-                    <TableCell>{product.product_name}</TableCell>
-                    <TableCell>{product.manufacturer_name}</TableCell>
-                    <TableCell>{product.unit}</TableCell>
-                    <TableCell align="right">{product.total_quantity}</TableCell>
-                    <TableCell align="right">{formatCurrency(product.total_amount)}</TableCell>
+          {summaryData.isByCourse ? (
+            // コース別表示モード
+            summaryData.courses.map((course: any, courseIndex: number) => (
+              <Box key={course.course_id} sx={{ mb: 4 }} className={courseIndex === 0 ? "" : "print-page-break"}>
+                <Typography variant="h5" sx={{ mb: 2, color: 'primary.main' }}>
+                  {course.course_name}
+                </Typography>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>商品名</TableCell>
+                        <TableCell>メーカー</TableCell>
+                        <TableCell>単位</TableCell>
+                        <TableCell align="right">合計数量</TableCell>
+                        <TableCell align="right" className="print-hide-amount">合計金額</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {course.products.map((product: any, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell>{product.product_name}</TableCell>
+                          <TableCell>{product.manufacturer_name}</TableCell>
+                          <TableCell>{product.unit}</TableCell>
+                          <TableCell align="right">{product.total_quantity}</TableCell>
+                          <TableCell align="right" className="print-hide-amount">{formatCurrency(product.total_amount)}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow sx={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
+                        <TableCell colSpan={3} sx={{ fontWeight: 'bold', '@media print': { colSpan: 3 } }}>合計</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                          {course.summary.total_quantity}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }} className="print-hide-amount">
+                          {formatCurrency(course.summary.total_amount)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            ))
+          ) : (
+            // 通常表示モード
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>商品名</TableCell>
+                    <TableCell>メーカー</TableCell>
+                    <TableCell>単位</TableCell>
+                    <TableCell align="right">合計数量</TableCell>
+                    <TableCell align="right" className="print-hide-amount">合計金額</TableCell>
                   </TableRow>
-                ))}
-                <TableRow sx={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
-                  <TableCell colSpan={3} sx={{ fontWeight: 'bold' }}>合計</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                    {summaryData.total_quantity}
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                    {formatCurrency(summaryData.total_amount)}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {summaryData.products.map((product: any, index: number) => (
+                    <TableRow key={index}>
+                      <TableCell>{product.product_name}</TableCell>
+                      <TableCell>{product.manufacturer_name}</TableCell>
+                      <TableCell>{product.unit}</TableCell>
+                      <TableCell align="right">{product.total_quantity}</TableCell>
+                      <TableCell align="right" className="print-hide-amount">{formatCurrency(product.total_amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow sx={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
+                    <TableCell colSpan={3} sx={{ fontWeight: 'bold', '@media print': { colSpan: 3 } }}>合計</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                      {summaryData.total_quantity}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold' }} className="print-hide-amount">
+                      {formatCurrency(summaryData.total_amount)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </>
       )}
     </Box>
@@ -612,7 +686,8 @@ const PeriodDeliveryListTab: React.FC = () => {
                   label="配達コース"
                   onChange={(e) => handleCourseChange(e.target.value)}
                 >
-                  <MenuItem value="all">全コース</MenuItem>
+                  <MenuItem value="all">全コース（合計）</MenuItem>
+                  <MenuItem value="all-by-course">全コース（コース別）</MenuItem>
                   {courses && courses.length > 0 ? courses.map((course) => (
                     <MenuItem key={course.id} value={course.id?.toString() || ''}>
                       {course.course_name || `コース${course.id}`}

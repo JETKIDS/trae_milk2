@@ -139,8 +139,8 @@ router.get('/period', (req, res) => {
     JOIN products p ON dp.product_id = p.id
     JOIN delivery_courses dc ON c.course_id = dc.id
     WHERE dp.is_active = 1
-      AND date(dp.start_date) <= date(?)
-      AND date(COALESCE(dp.end_date, '2099-12-31')) >= date(?)
+      AND dp.start_date <= ?
+      AND COALESCE(dp.end_date, '2099-12-31') >= ?
   `;
   
   // パラメータ順序: endDate, startDate
@@ -414,6 +414,174 @@ router.get('/products/summary', (req, res) => {
       products: products.length,
       totalQuantity,
       totalAmount
+    });
+    
+    res.json(result);
+  });
+  
+  db.close();
+});
+
+// コース別商品合計取得
+router.get('/products/summary-by-course', (req, res) => {
+  const db = getDB();
+  const { startDate, endDate, manufacturer } = req.query;
+  
+  if (!startDate || !endDate) {
+    res.status(400).json({ error: '開始日と終了日を指定してください' });
+    return;
+  }
+  
+  console.log('コース別商品合計取得:', { startDate, endDate, manufacturer });
+  
+  // コース情報を含む配達パターンデータを取得
+  let query = `
+    SELECT 
+      dp.id,
+      p.id as product_id,
+      p.product_name,
+      p.unit,
+      m.manufacturer_name,
+      dp.unit_price,
+      dp.delivery_days,
+      dp.daily_quantities,
+      dp.quantity,
+      c.course_id,
+      co.course_name
+    FROM delivery_patterns dp
+    JOIN customers c ON dp.customer_id = c.id
+    JOIN products p ON dp.product_id = p.id
+    JOIN manufacturers m ON p.manufacturer_id = m.id
+    JOIN delivery_courses co ON c.course_id = co.id
+    WHERE dp.is_active = 1
+      AND date(dp.start_date) <= date(?)
+      AND date(COALESCE(dp.end_date, '2099-12-31')) >= date(?)
+  `;
+  
+  let params = [endDate, startDate];
+  
+  // メーカー指定がある場合
+  if (manufacturer && manufacturer !== 'all') {
+    query += ` AND m.id = ?`;
+    params.push(manufacturer);
+  }
+  
+  query += ` ORDER BY co.course_name, m.manufacturer_name, p.product_name`;
+  
+  db.all(query, params, (err, rows) => {
+    if (err) {
+      console.error('コース別商品合計取得エラー:', err);
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    console.log('コース別商品合計データ取得完了:', rows.length, '件');
+    
+    // コース別に商品合計を計算
+    const coursesSummary = {};
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    
+    // 期間内の各日付をループして正確な数量を計算
+    for (let currentDate = new Date(startDateObj); currentDate <= endDateObj; currentDate.setDate(currentDate.getDate() + 1)) {
+      const dayOfWeek = currentDate.getDay(); // 0=日曜, 1=月曜, ..., 6=土曜
+      
+      rows.forEach(row => {
+        try {
+          const deliveryDays = JSON.parse(row.delivery_days || '[]');
+          let quantity = 0;
+          
+          // daily_quantitiesがある場合はそれを使用
+          if (row.daily_quantities) {
+            const dailyQuantities = JSON.parse(row.daily_quantities);
+            quantity = dailyQuantities[dayOfWeek] || 0;
+          } else {
+            // 従来の方式（後方互換性）
+            if (deliveryDays.includes(dayOfWeek)) {
+              quantity = row.quantity || 0;
+            }
+          }
+          
+          if (quantity > 0) {
+            const courseId = row.course_id;
+            const courseName = row.course_name;
+            
+            // コースが存在しない場合は初期化
+            if (!coursesSummary[courseId]) {
+              coursesSummary[courseId] = {
+                course_id: courseId,
+                course_name: courseName,
+                products: {},
+                summary: {
+                  total_quantity: 0,
+                  total_amount: 0,
+                  product_count: 0
+                }
+              };
+            }
+            
+            const productKey = `${row.product_id}_${row.manufacturer_name}`;
+            if (!coursesSummary[courseId].products[productKey]) {
+              coursesSummary[courseId].products[productKey] = {
+                product_id: row.product_id,
+                product_name: row.product_name,
+                unit: row.unit,
+                manufacturer_name: row.manufacturer_name,
+                total_quantity: 0,
+                unit_price: row.unit_price,
+                total_amount: 0
+              };
+            }
+            
+            coursesSummary[courseId].products[productKey].total_quantity += quantity;
+            coursesSummary[courseId].products[productKey].total_amount += quantity * row.unit_price;
+          }
+        } catch (parseError) {
+          console.error('JSON解析エラー:', parseError, 'データ:', row);
+        }
+      });
+    }
+    
+    // 各コースの商品データを配列に変換し、合計を計算
+    const courses = Object.values(coursesSummary).map(course => {
+      const products = Object.values(course.products).filter(product => product.total_quantity > 0);
+      const totalQuantity = products.reduce((sum, product) => sum + product.total_quantity, 0);
+      const totalAmount = products.reduce((sum, product) => sum + product.total_amount, 0);
+      
+      return {
+        course_id: course.course_id,
+        course_name: course.course_name,
+        products,
+        summary: {
+          total_quantity: totalQuantity,
+          total_amount: totalAmount,
+          product_count: products.length
+        }
+      };
+    }).filter(course => course.products.length > 0);
+    
+    // 全体の合計を計算
+    const overallTotalQuantity = courses.reduce((sum, course) => sum + course.summary.total_quantity, 0);
+    const overallTotalAmount = courses.reduce((sum, course) => sum + course.summary.total_amount, 0);
+    const overallProductCount = courses.reduce((sum, course) => sum + course.summary.product_count, 0);
+    
+    const result = {
+      startDate,
+      endDate,
+      manufacturer: manufacturer || 'all',
+      courses,
+      overall_summary: {
+        total_quantity: overallTotalQuantity,
+        total_amount: overallTotalAmount,
+        product_count: overallProductCount,
+        course_count: courses.length
+      }
+    };
+    
+    console.log('コース別商品合計結果:', {
+      courses: courses.length,
+      overallTotalQuantity,
+      overallTotalAmount
     });
     
     res.json(result);
