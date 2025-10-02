@@ -30,7 +30,7 @@ import {
   Checkbox,
   FormControlLabel
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, LocalShipping, Person, AttachMoney, Print, GetApp, ExpandMore } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, LocalShipping, Person, Print, GetApp, ExpandMore } from '@mui/icons-material';
 import { deliveryService, DeliveryCustomer } from '../services/deliveryService';
 
 // Course型の定義
@@ -65,7 +65,11 @@ const ProductSummaryTab: React.FC = () => {
   const [summaryData, setSummaryData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [autoFetch, setAutoFetch] = useState<boolean>(true);
+  // ローカルストレージから自動計算設定を読み込み
+  const [autoFetch, setAutoFetch] = useState<boolean>(() => {
+    const saved = localStorage.getItem('deliveryList_autoFetch');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
 
   // メーカー一覧を取得
   const fetchManufacturers = async () => {
@@ -179,6 +183,11 @@ const ProductSummaryTab: React.FC = () => {
     fetchSummaryData();
   };
 
+  // autoFetchの状態をローカルストレージに保存
+  useEffect(() => {
+    localStorage.setItem('deliveryList_autoFetch', JSON.stringify(autoFetch));
+  }, [autoFetch]);
+
   // 初回読み込み（自動取得が有効な場合のみ）
   useEffect(() => {
     fetchCourses(); // コース一覧を取得
@@ -193,7 +202,6 @@ const ProductSummaryTab: React.FC = () => {
     const today = getTodayString();
     setStartDate(today);
     setDays(1);
-    setAutoFetch(false); // 手動モードに切り替え
   };
 
   // 期間を1週間に設定
@@ -201,33 +209,28 @@ const ProductSummaryTab: React.FC = () => {
     const today = getTodayString();
     setStartDate(today);
     setDays(7);
-    setAutoFetch(false); // 手動モードに切り替え
   };
 
   // 開始日変更時の処理
   const handleStartDateChange = (value: string) => {
     setStartDate(value);
-    setAutoFetch(false); // 手動モードに切り替え
   };
 
   // 日数変更時の処理
   const handleDaysChange = (value: number) => {
     if (value > 0 && value <= 365) { // 1日以上365日以下の制限
       setDays(value);
-      setAutoFetch(false); // 手動モードに切り替え
     }
   };
 
   // コース変更時の処理
   const handleCourseChange = (value: string) => {
     setSelectedCourse(value);
-    setAutoFetch(false); // 手動モードに切り替え
   };
 
   // メーカー変更時の処理
   const handleManufacturerChange = (value: string) => {
     setSelectedManufacturer(value);
-    setAutoFetch(false); // 手動モードに切り替え
   };
 
   // 金額をフォーマット
@@ -430,7 +433,18 @@ const ProductSummaryTab: React.FC = () => {
             <Grid item xs={12} md={6} className="print-hide-amount">
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
-                  <AttachMoney color="primary" sx={{ fontSize: 40, mb: 1 }} />
+                  <Typography 
+                    variant="h2" 
+                    color="primary" 
+                    sx={{ 
+                      fontSize: 40, 
+                      mb: 1, 
+                      fontWeight: 'bold',
+                      lineHeight: 1
+                    }}
+                  >
+                    ¥
+                  </Typography>
                   <Typography variant="h6" color="primary">
                     合計金額
                   </Typography>
@@ -546,7 +560,11 @@ const PeriodDeliveryListTab: React.FC = () => {
   const [deliverySummary, setDeliverySummary] = useState<any>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [autoFetch, setAutoFetch] = useState<boolean>(true); // 自動取得フラグ
+  // ローカルストレージから自動計算設定を読み込み（配達リストタブ用）
+  const [autoFetch, setAutoFetch] = useState<boolean>(() => {
+    const saved = localStorage.getItem('deliveryListTab_autoFetch');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   // シンプル表示フラグ（localStorageから復元）
   const [isSimpleDisplay, setIsSimpleDisplay] = useState<boolean>(() => {
     const saved = localStorage.getItem('deliveryList_simpleDisplay');
@@ -607,6 +625,11 @@ const PeriodDeliveryListTab: React.FC = () => {
     fetchDeliveryData();
   };
 
+  // autoFetchの状態をローカルストレージに保存（配達リストタブ用）
+  useEffect(() => {
+    localStorage.setItem('deliveryListTab_autoFetch', JSON.stringify(autoFetch));
+  }, [autoFetch]);
+
   // 初回読み込み（自動取得が有効な場合のみ）
   useEffect(() => {
     fetchCourses(); // コース一覧を取得
@@ -620,7 +643,6 @@ const PeriodDeliveryListTab: React.FC = () => {
     const today = getTodayString();
     setStartDate(today);
     setDays(1);
-    setAutoFetch(false); // 手動モードに切り替え
   };
 
   // 期間を1週間に設定
@@ -628,27 +650,23 @@ const PeriodDeliveryListTab: React.FC = () => {
     const today = getTodayString();
     setStartDate(today);
     setDays(7);
-    setAutoFetch(false); // 手動モードに切り替え
   };
 
   // 日付変更時の処理
   const handleStartDateChange = (value: string) => {
     setStartDate(value);
-    setAutoFetch(false); // 手動モードに切り替え
   };
 
   // 日数変更時の処理
   const handleDaysChange = (value: number) => {
     if (value > 0 && value <= 365) { // 1日以上365日以下の制限
       setDays(value);
-      setAutoFetch(false); // 手動モードに切り替え
     }
   };
 
   // コース変更時の処理
   const handleCourseChange = (value: string) => {
     setSelectedCourse(value);
-    setAutoFetch(false); // 手動モードに切り替え
   };
 
   return (
