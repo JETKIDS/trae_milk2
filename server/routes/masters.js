@@ -150,4 +150,105 @@ router.get('/manufacturers', (req, res) => {
   db.close();
 });
 
+// 会社情報取得
+router.get('/company', (req, res) => {
+  const db = getDB();
+  db.get('SELECT * FROM company_info WHERE id = 1', [], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!row) {
+      // 会社情報が存在しない場合はデフォルト値を返す
+      const defaultCompanyInfo = {
+        id: 1,
+        company_name: '',
+        postal_code: '',
+        address: '',
+        phone: '',
+        fax: '',
+        email: '',
+        representative: '',
+        business_hours: '',
+        established_date: '',
+        capital: '',
+        business_description: ''
+      };
+      res.json(defaultCompanyInfo);
+      return;
+    }
+    res.json(row);
+  });
+  db.close();
+});
+
+// 会社情報更新・作成
+router.post('/company', (req, res) => {
+  const db = getDB();
+  const {
+    company_name,
+    postal_code,
+    address,
+    phone,
+    fax,
+    email,
+    representative,
+    business_hours,
+    established_date,
+    capital,
+    business_description
+  } = req.body;
+
+  // まず既存のレコードがあるかチェック
+  db.get('SELECT id FROM company_info WHERE id = 1', [], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    if (row) {
+      // 更新
+      const updateQuery = `
+        UPDATE company_info 
+        SET company_name = ?, postal_code = ?, address = ?, phone = ?, fax = ?, 
+            email = ?, representative = ?, business_hours = ?, established_date = ?, 
+            capital = ?, business_description = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1
+      `;
+      
+      db.run(updateQuery, [
+        company_name, postal_code, address, phone, fax, email, 
+        representative, business_hours, established_date, capital, business_description
+      ], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: '会社情報が正常に更新されました' });
+      });
+    } else {
+      // 新規作成
+      const insertQuery = `
+        INSERT INTO company_info (
+          id, company_name, postal_code, address, phone, fax, email, 
+          representative, business_hours, established_date, capital, business_description
+        ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      db.run(insertQuery, [
+        company_name, postal_code, address, phone, fax, email, 
+        representative, business_hours, established_date, capital, business_description
+      ], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: '会社情報が正常に作成されました' });
+      });
+    }
+  });
+  
+  db.close();
+});
+
 module.exports = router;
