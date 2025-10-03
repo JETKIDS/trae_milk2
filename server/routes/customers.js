@@ -65,8 +65,9 @@ router.get('/', (req, res) => {
     // custom_id（4桁ゼロパディング前提）で昇順
     query += ` ORDER BY c.custom_id ASC`;
   } else if (sortKey === 'course') {
-    // コース名で昇順、同一コース内は yomi 優先
-    query += ` ORDER BY dc.course_name ASC, CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END ASC`;
+    // コース名で昇順、同一コース内は「配達順（delivery_order）」を優先し、その後 yomi/名前
+    // ユーザー要望: コース順選択時はコース内の順位（配達順）を参照
+    query += ` ORDER BY dc.course_name ASC, c.delivery_order ASC, CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END ASC`;
   } else {
     // yomi（または名前）で昇順
     query += ` ORDER BY CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END ASC`;
