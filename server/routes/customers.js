@@ -36,9 +36,10 @@ router.get('/', (req, res) => {
   if (searchName && searchName.trim() !== '') {
     const nameTerm = searchName.trim();
     // 顧客名は「よみがな（ひらがな）」でも検索可能にする
-    // customer_name も yomi も部分一致対象
+    // 先頭一致（prefix）で検索：入力値で始まる顧客のみ抽出
+    // 例）"いと" → "いとう" はヒット、"さいとう" は非ヒット
     whereConditions.push('(c.customer_name LIKE ? OR c.yomi LIKE ?)');
-    params.push(`%${nameTerm}%`, `%${nameTerm}%`);
+    params.push(`${nameTerm}%`, `${nameTerm}%`);
   }
   
   // 住所で検索
