@@ -28,7 +28,6 @@ interface Customer {
   address: string;
   phone: string;
   course_name: string;
-  staff_name: string;
   contract_start_date: string;
 }
 
@@ -212,7 +211,6 @@ const CustomerList: React.FC = () => {
               <TableCell>住所</TableCell>
               <TableCell>電話番号</TableCell>
               <TableCell>配達コース</TableCell>
-              <TableCell>担当スタッフ</TableCell>
               <TableCell>契約開始日</TableCell>
               <TableCell>操作</TableCell>
             </TableRow>
@@ -238,7 +236,6 @@ const CustomerList: React.FC = () => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>{customer.staff_name || '未設定'}</TableCell>
                 <TableCell>{customer.contract_start_date}</TableCell>
                 <TableCell>
                   <Button

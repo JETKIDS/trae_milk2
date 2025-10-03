@@ -7,10 +7,6 @@ import {
   TextField,
   Button,
   Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Box,
   Typography,
 } from '@mui/material';
@@ -26,7 +22,6 @@ interface Customer {
   phone: string;
   email?: string;
   course_id: number;
-  staff_id?: number;
   contract_start_date: string;
   notes?: string;
 }
@@ -37,11 +32,7 @@ interface Course {
   description?: string;
 }
 
-interface Staff {
-  id: number;
-  staff_name: string;
-  course_id: number;
-}
+// スタッフ連携は廃止
 
 interface CustomerFormProps {
   open: boolean;
@@ -65,24 +56,20 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
     phone: '',
     email: '',
     course_id: 0,
-    staff_id: 0,
     contract_start_date: new Date().toISOString().split('T')[0],
     notes: '',
   });
   const [courses, setCourses] = useState<Course[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (open) {
       fetchCourses();
-      fetchStaff();
       if (customer && isEdit) {
         setFormData({
           ...customer,
           course_id: customer.course_id || 0,
-          staff_id: customer.staff_id || 0,
         });
       } else {
         setFormData({
@@ -92,7 +79,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
           phone: '',
           email: '',
           course_id: 0,
-          staff_id: 0,
           contract_start_date: new Date().toISOString().split('T')[0],
           notes: '',
         });
@@ -110,14 +96,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
     }
   };
 
-  const fetchStaff = async () => {
-    try {
-      const response = await axios.get('/api/masters/staff');
-      setStaff(response.data);
-    } catch (error) {
-      console.error('スタッフ情報の取得に失敗しました:', error);
-    }
-  };
+  // スタッフ取得は不要
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -177,19 +156,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
 
   const handleCourseChange = (courseId: number) => {
     setFormData({ ...formData, course_id: courseId });
-    // コースに対応するスタッフをフィルタリング
-    const courseStaff = staff.filter(s => s.course_id === courseId);
-    if (courseStaff.length === 1) {
-      // コースに1人しかスタッフがいない場合は自動選択
-      setFormData(prev => ({ ...prev, course_id: courseId, staff_id: courseStaff[0].id }));
-    } else {
-      setFormData(prev => ({ ...prev, course_id: courseId, staff_id: 0 }));
-    }
   };
-
-  const getFilteredStaff = () => {
-    return staff.filter(s => s.course_id === formData.course_id);
-  };
+  
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -286,26 +254,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
                 )}
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>担当スタッフ</InputLabel>
-                <Select
-                  value={formData.staff_id || ''}
-                  onChange={(e) => setFormData({ ...formData, staff_id: Number(e.target.value) })}
-                  label="担当スタッフ"
-                  disabled={!formData.course_id}
-                >
-                  <MenuItem value={0}>
-                    スタッフを選択してください
-                  </MenuItem>
-                  {getFilteredStaff().map((staffMember) => (
-                    <MenuItem key={staffMember.id} value={staffMember.id}>
-                      {staffMember.staff_name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+            {/* 担当スタッフ欄は廃止 */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth

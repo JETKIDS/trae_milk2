@@ -37,9 +37,7 @@ interface Customer {
   phone: string;
   email?: string;
   course_id: number;
-  staff_id?: number;
   course_name: string;
-  staff_name: string;
   contract_start_date: string;
   notes?: string;
   delivery_order?: number;
