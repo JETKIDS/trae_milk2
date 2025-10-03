@@ -34,8 +34,11 @@ router.get('/', (req, res) => {
   
   // 名前で検索
   if (searchName && searchName.trim() !== '') {
-    whereConditions.push('c.customer_name LIKE ?');
-    params.push(`%${searchName.trim()}%`);
+    const nameTerm = searchName.trim();
+    // 顧客名は「よみがな（ひらがな）」でも検索可能にする
+    // customer_name も yomi も部分一致対象
+    whereConditions.push('(c.customer_name LIKE ? OR c.yomi LIKE ?)');
+    params.push(`%${nameTerm}%`, `%${nameTerm}%`);
   }
   
   // 住所で検索
@@ -55,7 +58,8 @@ router.get('/', (req, res) => {
     query += ` WHERE ${whereConditions.join(' AND ')}`;
   }
   
-  query += ` ORDER BY c.customer_name`;
+  // よみがながある場合は yomi を優先して並び替え
+  query += ` ORDER BY CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END`;
   
   db.all(query, params, (err, rows) => {
     if (err) {

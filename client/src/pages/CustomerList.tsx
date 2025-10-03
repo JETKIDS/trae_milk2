@@ -155,7 +155,7 @@ const CustomerList: React.FC = () => {
             <TextField
               fullWidth
               label="顧客名"
-              placeholder="顧客名で検索"
+              placeholder="ひらがな（よみがな）でも検索できます"
               value={searchName}
               onChange={handleSearchNameChange}
               InputProps={{
