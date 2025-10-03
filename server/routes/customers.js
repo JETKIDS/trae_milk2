@@ -121,7 +121,7 @@ router.get('/:id', (req, res) => {
 // 顧客登録
 router.post('/', (req, res) => {
   const db = getDB();
-  const { custom_id, customer_name, address, phone, email, course_id, staff_id, contract_start_date, notes, delivery_order } = req.body;
+  const { custom_id, customer_name, yomi, address, phone, email, course_id, staff_id, contract_start_date, notes, delivery_order } = req.body;
   
   // custom_idが指定されていない場合は自動生成（4桁形式）
   const generateCustomId = (callback) => {
@@ -165,11 +165,11 @@ router.post('/', (req, res) => {
       }
       
       const query = `
-        INSERT INTO customers (custom_id, customer_name, address, phone, email, course_id, staff_id, contract_start_date, notes, delivery_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO customers (custom_id, customer_name, yomi, address, phone, email, course_id, staff_id, contract_start_date, notes, delivery_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
-      db.run(query, [finalCustomId, customer_name, address, phone, email, course_id, staff_id, contract_start_date, notes, finalDeliveryOrder], function(err) {
+      db.run(query, [finalCustomId, customer_name, yomi || null, address, phone, email, course_id, staff_id, contract_start_date, notes, finalDeliveryOrder], function(err) {
           if (err) {
             if (err.message.includes('UNIQUE constraint failed')) {
               res.status(400).json({ error: 'このIDは既に使用されています' });
@@ -320,15 +320,15 @@ router.put('/move-course', (req, res) => {
 router.put('/:id', (req, res) => {
   const db = getDB();
   const customerId = req.params.id;
-  const { custom_id, customer_name, address, phone, email, course_id, staff_id, contract_start_date, notes, delivery_order } = req.body;
+  const { custom_id, customer_name, yomi, address, phone, email, course_id, staff_id, contract_start_date, notes, delivery_order } = req.body;
   
   const query = `
     UPDATE customers 
-    SET custom_id = ?, customer_name = ?, address = ?, phone = ?, email = ?, course_id = ?, staff_id = ?, contract_start_date = ?, notes = ?, delivery_order = ?
+    SET custom_id = ?, customer_name = ?, yomi = ?, address = ?, phone = ?, email = ?, course_id = ?, staff_id = ?, contract_start_date = ?, notes = ?, delivery_order = ?
     WHERE id = ?
   `;
   
-  db.run(query, [custom_id, customer_name, address, phone, email, course_id, staff_id, contract_start_date, notes, delivery_order, customerId], function(err) {
+  db.run(query, [custom_id, customer_name, yomi || null, address, phone, email, course_id, staff_id, contract_start_date, notes, delivery_order, customerId], function(err) {
     if (err) {
       if (err.message.includes('UNIQUE constraint failed')) {
         res.status(400).json({ error: 'このIDは既に使用されています' });

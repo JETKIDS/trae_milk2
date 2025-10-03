@@ -24,6 +24,7 @@ interface Customer {
   id: number;
   custom_id?: string;
   customer_name: string;
+  yomi?: string;
   address: string;
   phone: string;
   course_name: string;
@@ -207,6 +208,7 @@ const CustomerList: React.FC = () => {
             <TableRow>
               <TableCell>ID</TableCell>
               <TableCell>顧客名</TableCell>
+              <TableCell>よみがな</TableCell>
               <TableCell>住所</TableCell>
               <TableCell>電話番号</TableCell>
               <TableCell>配達コース</TableCell>
@@ -226,6 +228,7 @@ const CustomerList: React.FC = () => {
                   />
                 </TableCell>
                 <TableCell>{customer.customer_name}</TableCell>
+                <TableCell>{customer.yomi || '-'}</TableCell>
                 <TableCell>{customer.address}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
                 <TableCell>

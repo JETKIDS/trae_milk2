@@ -32,6 +32,7 @@ interface Customer {
   id: number;
   custom_id?: string;
   customer_name: string;
+  yomi?: string;
   address: string;
   phone: string;
   email?: string;
@@ -310,6 +311,11 @@ const CustomerDetail: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h5" component="h1">
               {customer.customer_name} 様
+              {customer.yomi ? (
+                <Typography variant="body2" component="span" sx={{ ml: 2, color: 'text.secondary' }}>
+                  （{customer.yomi}）
+                </Typography>
+              ) : null}
             </Typography>
             <Button startIcon={<EditIcon />} variant="outlined" onClick={handleOpenEditForm}>
               編集

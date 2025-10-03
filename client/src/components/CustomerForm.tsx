@@ -21,6 +21,7 @@ interface Customer {
   id?: number;
   custom_id?: string;
   customer_name: string;
+  yomi?: string;
   address: string;
   phone: string;
   email?: string;
@@ -59,6 +60,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<Customer>({
     customer_name: '',
+    yomi: '',
     address: '',
     phone: '',
     email: '',
@@ -85,6 +87,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
       } else {
         setFormData({
           customer_name: '',
+          yomi: '',
           address: '',
           phone: '',
           email: '',
@@ -121,6 +124,11 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
 
     if (!formData.customer_name.trim()) {
       newErrors.customer_name = '顧客名は必須です';
+    }
+
+    // よみがなは任意だが、入力されている場合はひらがなのみを推奨
+    if (formData.yomi && /[^\u3040-\u309F\s・ー]/.test(formData.yomi)) {
+      newErrors.yomi = 'よみがなはひらがなで入力してください';
     }
 
     if (!formData.address.trim()) {
@@ -202,16 +210,26 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                required
-                label="顧客名"
-                value={formData.customer_name}
-                onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                error={!!errors.customer_name}
-                helperText={errors.customer_name}
-              />
-            </Grid>
+          <TextField
+            fullWidth
+            required
+            label="顧客名"
+            value={formData.customer_name}
+            onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+            error={!!errors.customer_name}
+            helperText={errors.customer_name}
+          />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="よみがな（ひらがな）"
+              value={formData.yomi || ''}
+              onChange={(e) => setFormData({ ...formData, yomi: e.target.value })}
+              error={!!errors.yomi}
+              helperText={errors.yomi || '例：たなかたろう'}
+            />
+          </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
