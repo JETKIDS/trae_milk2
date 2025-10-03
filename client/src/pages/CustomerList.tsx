@@ -15,6 +15,7 @@ import {
   TextField,
   InputAdornment,
   Grid,
+  MenuItem,
 } from '@mui/material';
 import { Add as AddIcon, Visibility as VisibilityIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -38,6 +39,7 @@ const CustomerList: React.FC = () => {
   const [searchName, setSearchName] = useState('');
   const [searchAddress, setSearchAddress] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
+  const [sortKey, setSortKey] = useState<'id' | 'yomi' | 'course'>('yomi');
   const [openCustomerForm, setOpenCustomerForm] = useState(false);
   const navigate = useNavigate();
 
@@ -49,6 +51,7 @@ const CustomerList: React.FC = () => {
         if (searchName) params.searchName = searchName;
         if (searchAddress) params.searchAddress = searchAddress;
         if (searchPhone) params.searchPhone = searchPhone;
+        if (sortKey) params.sort = sortKey;
         
         const response = await axios.get('/api/customers', { params });
         setCustomers(response.data);
@@ -60,7 +63,7 @@ const CustomerList: React.FC = () => {
     };
 
     fetchCustomers();
-  }, [searchId, searchName, searchAddress, searchPhone]);
+  }, [searchId, searchName, searchAddress, searchPhone, sortKey]);
 
   const handleSearchIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchId(event.target.value);
@@ -99,6 +102,7 @@ const CustomerList: React.FC = () => {
         if (searchName) params.searchName = searchName;
         if (searchAddress) params.searchAddress = searchAddress;
         if (searchPhone) params.searchPhone = searchPhone;
+        if (sortKey) params.sort = sortKey;
         
         const response = await axios.get('/api/customers', { params });
         setCustomers(response.data);
@@ -128,10 +132,10 @@ const CustomerList: React.FC = () => {
         </Button>
       </Box>
 
-      {/* 検索フィールド */}
+      {/* 検索・並び順フィールド */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
-          検索条件
+          検索条件・並び順
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={3}>
@@ -197,6 +201,20 @@ const CustomerList: React.FC = () => {
                 ),
               }}
             />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              select
+              label="並び順"
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as 'id' | 'yomi' | 'course')}
+              helperText="ID順 / フリガナ順 / コース順"
+            >
+              <MenuItem value="id">ID順</MenuItem>
+              <MenuItem value="yomi">フリガナ順</MenuItem>
+              <MenuItem value="course">コース順</MenuItem>
+            </TextField>
           </Grid>
         </Grid>
       </Box>

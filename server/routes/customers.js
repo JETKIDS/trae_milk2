@@ -6,7 +6,7 @@ const moment = require('moment');
 // 顧客一覧取得（複数検索条件対応）
 router.get('/', (req, res) => {
   const db = getDB();
-  const { searchId, searchName, searchAddress, searchPhone } = req.query;
+  const { searchId, searchName, searchAddress, searchPhone, sort } = req.query;
   
   let query = `
     SELECT c.*, dc.course_name, ds.staff_name 
@@ -58,9 +58,19 @@ router.get('/', (req, res) => {
   if (whereConditions.length > 0) {
     query += ` WHERE ${whereConditions.join(' AND ')}`;
   }
-  
-  // よみがながある場合は yomi を優先して並び替え
-  query += ` ORDER BY CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END`;
+
+  // 並び順の選択（id / yomi / course）。デフォルトは yomi
+  const sortKey = (sort || 'yomi').toLowerCase();
+  if (sortKey === 'id') {
+    // custom_id（4桁ゼロパディング前提）で昇順
+    query += ` ORDER BY c.custom_id ASC`;
+  } else if (sortKey === 'course') {
+    // コース名で昇順、同一コース内は yomi 優先
+    query += ` ORDER BY dc.course_name ASC, CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END ASC`;
+  } else {
+    // yomi（または名前）で昇順
+    query += ` ORDER BY CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END ASC`;
+  }
   
   db.all(query, params, (err, rows) => {
     if (err) {
