@@ -55,6 +55,16 @@ interface Customer {
   contract_start_date: string;
 }
 
+interface Staff {
+  id: number;
+  staff_name: string;
+  phone?: string;
+  email?: string;
+  course_id?: number | null;
+  course_name?: string | null;
+  all_course_names?: string | null;
+}
+
 const CourseManagement: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -62,6 +72,15 @@ const CourseManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  // 新規コース追加モーダル用状態
+  const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [newCourseCustomId, setNewCourseCustomId] = useState('');
+  const [newCourseName, setNewCourseName] = useState('');
+  const [selectedStaffId, setSelectedStaffId] = useState<number | ''>('');
+  const [newCourseDescription, setNewCourseDescription] = useState('');
+  const [creatingCourse, setCreatingCourse] = useState(false);
+  const [staffOptions, setStaffOptions] = useState<Staff[]>([]);
 
   // コース一覧を取得
   const fetchCourses = async () => {
@@ -109,6 +128,88 @@ const CourseManagement: React.FC = () => {
   // コース選択
   const handleCourseSelect = (course: Course) => {
     setSelectedCourse(course);
+  };
+
+  // 3桁ID生成：現在登録済みのID以外で最小の数値（001〜999）
+  const generateThreeDigitId = (): string => {
+    const used = new Set(
+      courses
+        .map(c => c.custom_id)
+        .filter((id): id is string => typeof id === 'string' && /^\d{3}$/.test(id))
+    );
+    for (let n = 1; n <= 999; n++) {
+      const candidate = n.toString().padStart(3, '0');
+      if (!used.has(candidate)) return candidate;
+    }
+    // 万一すべて使用済みの場合は安全側で '999' を返す
+    return '999';
+  };
+
+  const openNewCourseDialog = () => {
+    setNewCourseCustomId(generateThreeDigitId());
+    setNewCourseName('');
+    setSelectedStaffId('');
+    setNewCourseDescription('');
+    setNewDialogOpen(true);
+    // 担当者一覧の取得
+    fetchStaffOptions();
+  };
+
+  const closeNewCourseDialog = () => {
+    if (creatingCourse) return;
+    setNewDialogOpen(false);
+  };
+
+  const fetchStaffOptions = async () => {
+    try {
+      const res = await axios.get('/api/masters/staff');
+      setStaffOptions(res.data);
+    } catch (err) {
+      console.error('スタッフ一覧の取得に失敗しました:', err);
+      setSnackbar({ open: true, message: 'スタッフ一覧の取得に失敗しました', severity: 'error' });
+    }
+  };
+
+  const handleCreateCourse = async () => {
+    if (!newCourseName.trim()) {
+      setSnackbar({ open: true, message: 'コース名を入力してください', severity: 'error' });
+      return;
+    }
+    setCreatingCourse(true);
+    try {
+      const payload = {
+        custom_id: newCourseCustomId,
+        course_name: newCourseName.trim(),
+        description: newCourseDescription.trim() || undefined,
+      };
+      const res = await axios.post('/api/masters/courses', payload);
+
+      // 既存スタッフの割り当て（選択されている場合）
+      const createdCourseId = res.data?.id;
+      try {
+        await axios.post(`/api/masters/courses/${createdCourseId}/staff-assign`, { staff_id: selectedStaffId ? Number(selectedStaffId) : null });
+      } catch (e) {
+        console.error('担当者割り当てに失敗:', e);
+        setSnackbar({ open: true, message: 'コースは作成しましたが、担当者の割り当てに失敗しました', severity: 'error' });
+      }
+
+      await fetchCourses();
+      const newC: Course = {
+        id: res.data?.id,
+        custom_id: res.data?.custom_id || newCourseCustomId,
+        course_name: newCourseName.trim(),
+        description: newCourseDescription.trim() || undefined,
+      };
+      setSelectedCourse(newC);
+      setSnackbar({ open: true, message: '新規コースを作成しました', severity: 'success' });
+      setNewDialogOpen(false);
+    } catch (err: any) {
+      console.error('コース作成に失敗:', err);
+      const msg = err?.response?.data?.error || 'コース作成に失敗しました';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setCreatingCourse(false);
+    }
   };
 
   // ドラッグ&ドロップ処理
@@ -183,6 +284,12 @@ const CourseManagement: React.FC = () => {
       <Typography variant="h4" component="h1" gutterBottom>
         コース管理
       </Typography>
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={openNewCourseDialog}>
+          新規コース追加
+        </Button>
+      </Box>
 
       <Grid container spacing={3}>
         {/* コース一覧 */}
@@ -318,8 +425,70 @@ const CourseManagement: React.FC = () => {
               </CardContent>
             </Card>
           )}
-        </Grid>
       </Grid>
+    </Grid>
+
+    {/* 新規コース追加モーダル */}
+    <Dialog open={newDialogOpen} onClose={closeNewCourseDialog} fullWidth maxWidth="sm">
+      <DialogTitle>新規コースの作成</DialogTitle>
+      <DialogContent>
+        <Grid container spacing={2} sx={{ mt: 0.5 }}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="コースID (3桁)"
+              value={newCourseCustomId}
+              onChange={(e) => setNewCourseCustomId(e.target.value.replace(/\D/g, '').slice(0, 3))}
+              helperText="未使用の最小3桁IDを自動生成。必要に応じて編集可"
+              fullWidth
+              inputProps={{ maxLength: 3 }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="コース名"
+              value={newCourseName}
+              onChange={(e) => setNewCourseName(e.target.value)}
+              required
+              fullWidth
+            />
+          </Grid>
+      <Grid item xs={12}>
+            <FormControl fullWidth>
+              <InputLabel id="staff-select-label">担当者</InputLabel>
+              <Select
+                labelId="staff-select-label"
+                label="担当者"
+                value={selectedStaffId}
+                onChange={(e) => setSelectedStaffId(e.target.value as number | '')}
+              >
+                <MenuItem value="">選択しない</MenuItem>
+                {staffOptions.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {s.staff_name}{(s.all_course_names || s.course_name) ? `（${s.all_course_names || s.course_name}）` : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              label="説明"
+              value={newCourseDescription}
+              onChange={(e) => setNewCourseDescription(e.target.value)}
+              fullWidth
+              multiline
+              minRows={2}
+            />
+          </Grid>
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={closeNewCourseDialog} startIcon={<CancelIcon />} disabled={creatingCourse}>キャンセル</Button>
+        <Button onClick={handleCreateCourse} variant="contained" startIcon={<SaveIcon />} disabled={creatingCourse}>
+          {creatingCourse ? '作成中...' : '作成する'}
+        </Button>
+      </DialogActions>
+    </Dialog>
 
       {/* スナックバー */}
       <Snackbar

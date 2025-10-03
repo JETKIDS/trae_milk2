@@ -1,7 +1,11 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Box, Theme } from '@mui/material';
+import { useCompany } from '../contexts/CompanyContext';
 
 const Header: React.FC = () => {
+  const { companyInfo } = useCompany();
+  const companyName = companyInfo?.company_name || '金沢牛乳店';
+
   return (
     <AppBar position="fixed" sx={{ zIndex: (theme: Theme) => theme.zIndex.drawer + 1 }}>
       <Toolbar>
@@ -10,7 +14,7 @@ const Header: React.FC = () => {
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Typography variant="body2" sx={{ mr: 2 }}>
-            店舗名: 金沢牛乳店
+            店舗名: {companyName}
           </Typography>
         </Box>
       </Toolbar>

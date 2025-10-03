@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import axios from 'axios';
+// 日本語入力の拡張（ローマ字変換）は撤去し、標準のTextFieldに戻します
 
 interface Customer {
   id?: number;

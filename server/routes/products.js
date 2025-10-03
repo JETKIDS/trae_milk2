@@ -83,18 +83,41 @@ router.get('/:id', (req, res) => {
 // 商品登録
 router.post('/', async (req, res) => {
   const db = getDB();
-  const { custom_id, product_name, manufacturer_id, unit_price, unit, description } = req.body;
+  const { 
+    custom_id, 
+    product_name, 
+    product_name_short,
+    manufacturer_id, 
+    order_code,
+    jan_code,
+    sort_order,
+    sort_type,
+    unit_price, 
+    purchase_price,
+    unit, 
+    description,
+    include_in_invoice,
+    sales_tax_type,
+    purchase_tax_type
+  } = req.body;
   
   // custom_idが指定されていない場合は自動生成（4桁形式）
   const generateCustomId = () => {
     return new Promise((resolve, reject) => {
-      const query = 'SELECT MAX(CAST(custom_id AS INTEGER)) as max_id FROM products WHERE custom_id REGEXP "^[0-9]+$"';
+      // 数値のみのcustom_idを取得（4桁の0埋め形式）
+      const query = `
+        SELECT custom_id FROM products 
+        WHERE custom_id GLOB '[0-9][0-9][0-9][0-9]' 
+        ORDER BY CAST(custom_id AS INTEGER) DESC 
+        LIMIT 1
+      `;
       db.get(query, [], (err, row) => {
         if (err) {
           reject(err);
           return;
         }
-        const nextId = (row.max_id || 0) + 1;
+        const maxId = row ? parseInt(row.custom_id, 10) : 0;
+        const nextId = maxId + 1;
         const paddedId = nextId.toString().padStart(4, '0');
         resolve(paddedId);
       });
@@ -105,75 +128,139 @@ router.post('/', async (req, res) => {
     const finalCustomId = custom_id || await generateCustomId();
     
     const query = `
-      INSERT INTO products (custom_id, product_name, manufacturer_id, unit_price, unit, description)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO products (
+        custom_id, product_name, product_name_short, manufacturer_id, 
+        order_code, jan_code, sort_order, sort_type, unit_price, purchase_price,
+        unit, description, include_in_invoice, sales_tax_type, purchase_tax_type
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
-    db.run(query, [finalCustomId, product_name, manufacturer_id, unit_price, unit, description], function(err) {
+    db.run(query, [
+      finalCustomId, product_name, product_name_short, manufacturer_id,
+      order_code, jan_code, sort_order || 0, sort_type || 'id', unit_price, purchase_price || 0,
+      unit || '本', description, include_in_invoice ? 1 : 0, sales_tax_type || 'inclusive', purchase_tax_type || 'reduced'
+    ], function(err) {
       if (err) {
+        console.error('❌ 商品登録エラー:', err.message);
+        console.error('📦 リクエストデータ:', req.body);
         if (err.message.includes('UNIQUE constraint failed')) {
+          db.close();
           res.status(400).json({ error: 'このIDは既に使用されています' });
         } else {
+          db.close();
           res.status(500).json({ error: err.message });
         }
         return;
       }
+      db.close();
       res.json({ id: this.lastID, custom_id: finalCustomId, message: '商品が正常に登録されました' });
     });
   } catch (error) {
+    console.error('❌ 商品登録例外エラー:', error.message);
+    console.error('📦 リクエストデータ:', req.body);
+    db.close();
     res.status(500).json({ error: error.message });
   }
-  
-  db.close();
 });
 
 // 商品更新
 router.put('/:id', (req, res) => {
   const db = getDB();
   const productId = req.params.id;
-  const { custom_id, product_name, manufacturer_id, unit_price, unit, description } = req.body;
+  const { 
+    custom_id, 
+    product_name, 
+    product_name_short,
+    manufacturer_id, 
+    order_code,
+    jan_code,
+    sort_order,
+    sort_type,
+    unit_price, 
+    purchase_price,
+    unit, 
+    description,
+    include_in_invoice,
+    sales_tax_type,
+    purchase_tax_type
+  } = req.body;
   
   const query = `
     UPDATE products 
-    SET custom_id = ?, product_name = ?, manufacturer_id = ?, unit_price = ?, unit = ?, description = ?
+    SET custom_id = ?, product_name = ?, product_name_short = ?, manufacturer_id = ?, 
+        order_code = ?, jan_code = ?, sort_order = ?, sort_type = ?, unit_price = ?, purchase_price = ?,
+        unit = ?, description = ?, include_in_invoice = ?, sales_tax_type = ?, purchase_tax_type = ?
     WHERE id = ?
   `;
   
-  db.run(query, [custom_id, product_name, manufacturer_id, unit_price, unit, description, productId], function(err) {
+  db.run(query, [
+    custom_id, product_name, product_name_short, manufacturer_id,
+    order_code, jan_code, sort_order || 0, sort_type || 'id', unit_price, purchase_price || 0,
+    unit || '本', description, include_in_invoice ? 1 : 0, sales_tax_type || 'inclusive', purchase_tax_type || 'reduced',
+    productId
+  ], function(err) {
     if (err) {
+      console.error('❌ 商品更新エラー:', err.message);
+      console.error('📦 リクエストデータ:', req.body);
       if (err.message.includes('UNIQUE constraint failed')) {
+        db.close();
         res.status(400).json({ error: 'このIDは既に使用されています' });
       } else {
+        db.close();
         res.status(500).json({ error: err.message });
       }
       return;
     }
+    db.close();
     res.json({ message: '商品情報が正常に更新されました' });
   });
-  
-  db.close();
 });
 
 // 商品削除
 router.delete('/:id', (req, res) => {
   const db = getDB();
   const productId = req.params.id;
-  
-  const query = `DELETE FROM products WHERE id = ?`;
-  
-  db.run(query, [productId], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    if (this.changes === 0) {
-      res.status(404).json({ error: '商品が見つかりません' });
-      return;
-    }
-    res.json({ message: '商品が正常に削除されました' });
+
+  // 依存関係チェック：契約（配達パターン）や臨時変更で使用されている場合は削除不可
+  db.serialize(() => {
+    db.get('SELECT COUNT(*) AS cnt FROM delivery_patterns WHERE product_id = ? AND is_active = 1', [productId], (err1, row1) => {
+      if (err1) {
+        res.status(500).json({ error: err1.message });
+        db.close();
+        return;
+      }
+      db.get('SELECT COUNT(*) AS cnt FROM temporary_changes WHERE product_id = ?', [productId], (err2, row2) => {
+        if (err2) {
+          res.status(500).json({ error: err2.message });
+          db.close();
+          return;
+        }
+        const refCount = (row1?.cnt || 0) + (row2?.cnt || 0);
+        if (refCount > 0) {
+          res.status(409).json({ error: 'この商品は顧客の契約や臨時変更で使用されているため削除できません' });
+          db.close();
+          return;
+        }
+        // 依存なしのため削除実行
+        const query = `DELETE FROM products WHERE id = ?`;
+        db.run(query, [productId], function(errDel) {
+          if (errDel) {
+            res.status(500).json({ error: errDel.message });
+            db.close();
+            return;
+          }
+          if (this.changes === 0) {
+            res.status(404).json({ error: '商品が見つかりません' });
+            db.close();
+            return;
+          }
+          res.json({ message: '商品が正常に削除されました' });
+          db.close();
+        });
+      });
+    });
   });
-  
-  db.close();
 });
 
 module.exports = router;

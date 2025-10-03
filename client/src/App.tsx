@@ -12,8 +12,8 @@ import CustomerDetail from './pages/CustomerDetail';
 import DeliveryList from './pages/DeliveryList';
 import ProductList from './pages/ProductList';
 import CourseList from './pages/CourseList';
-
 import MasterManagement from './pages/MasterManagement';
+import { CompanyProvider } from './contexts/CompanyContext';
 
 const theme = createTheme({
   palette: {
@@ -33,36 +33,38 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true,
-        }}
-      >
-        <Box sx={{ display: 'flex' }}>
-          <Header />
-          <Sidebar />
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              p: 3,
-              mt: 8, // ヘッダーの高さ分のマージン
-              ml: 30, // サイドバーの幅分のマージン
-            }}
-          >
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/customers" element={<CustomerList />} />
-              <Route path="/customers/:id" element={<CustomerDetail />} />
-              <Route path="/delivery" element={<DeliveryList />} />
-              <Route path="/products" element={<ProductList />} />
-              <Route path="/courses" element={<CourseList />} />
-            <Route path="/masters" element={<MasterManagement />} />
-            </Routes>
+      <CompanyProvider>
+        <Router
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          <Box sx={{ display: 'flex' }}>
+            <Header />
+            <Sidebar />
+            <Box
+              component="main"
+              sx={{
+                flexGrow: 1,
+                p: 3,
+                mt: 8, // ヘッダーの高さ分のマージン
+                ml: 30, // サイドバーの幅分のマージン
+              }}
+            >
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/customers" element={<CustomerList />} />
+                <Route path="/customers/:id" element={<CustomerDetail />} />
+                <Route path="/delivery" element={<DeliveryList />} />
+                <Route path="/products" element={<ProductList />} />
+                <Route path="/courses" element={<CourseList />} />
+              <Route path="/masters" element={<MasterManagement />} />
+              </Routes>
+            </Box>
           </Box>
-        </Box>
-      </Router>
+        </Router>
+      </CompanyProvider>
     </ThemeProvider>
   );
 }

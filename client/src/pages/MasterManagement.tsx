@@ -22,14 +22,16 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
-import { Add as AddIcon, Save as SaveIcon } from '@mui/icons-material';
+import { Add as AddIcon, Save as SaveIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import axios from 'axios';
+import { useCompany } from '../contexts/CompanyContext';
 
 interface Staff {
   id: number;
   staff_name: string;
   phone: string;
-  course_name: string;
+  course_name?: string; // 単一割り当ての表示用（後方互換）
+  all_course_names?: string; // 複数担当コースの表示用
 }
 
 interface Manufacturer {
@@ -49,8 +51,6 @@ interface CompanyInfo {
   representative: string;
   business_hours: string;
   established_date: string;
-  capital: string;
-  business_description: string;
 }
 
 interface TabPanelProps {
@@ -87,6 +87,7 @@ function a11yProps(index: number) {
 }
 
 const MasterManagement: React.FC = () => {
+  const { updateCompanyInfo } = useCompany();
   const [tabValue, setTabValue] = useState(0);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
@@ -101,8 +102,6 @@ const MasterManagement: React.FC = () => {
     representative: '',
     business_hours: '',
     established_date: '',
-    capital: '',
-    business_description: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -147,10 +146,60 @@ const MasterManagement: React.FC = () => {
     }));
   };
 
+  const refreshStaff = async () => {
+    try {
+      const res = await axios.get('/api/masters/staff');
+      setStaff(res.data);
+    } catch (error) {
+      console.error('スタッフ一覧更新に失敗しました:', error);
+      setSnackbar({ open: true, message: 'スタッフ一覧の更新に失敗しました', severity: 'error' });
+    }
+  };
+
+  const refreshManufacturers = async () => {
+    try {
+      const res = await axios.get('/api/masters/manufacturers');
+      setManufacturers(res.data);
+    } catch (error) {
+      console.error('メーカー一覧更新に失敗しました:', error);
+      setSnackbar({ open: true, message: 'メーカー一覧の更新に失敗しました', severity: 'error' });
+    }
+  };
+
+  const handleDeleteStaff = async (member: Staff) => {
+    const ok = window.confirm(`スタッフ「${member.staff_name}」を削除します。よろしいですか？`);
+    if (!ok) return;
+    try {
+      await axios.delete(`/api/masters/staff/${member.id}`);
+      await refreshStaff();
+      setSnackbar({ open: true, message: 'スタッフを削除しました', severity: 'success' });
+    } catch (error: any) {
+      console.error('スタッフ削除に失敗しました:', error);
+      const msg = error?.response?.data?.error || 'スタッフ削除に失敗しました';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    }
+  };
+
+  const handleDeleteManufacturer = async (manufacturer: Manufacturer) => {
+    const ok = window.confirm(`メーカー「${manufacturer.manufacturer_name}」を削除します。よろしいですか？`);
+    if (!ok) return;
+    try {
+      await axios.delete(`/api/masters/manufacturers/${manufacturer.id}`);
+      await refreshManufacturers();
+      setSnackbar({ open: true, message: 'メーカーを削除しました', severity: 'success' });
+    } catch (error: any) {
+      console.error('メーカー削除に失敗しました:', error);
+      const msg = error?.response?.data?.error || 'メーカー削除に失敗しました';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    }
+  };
+
   const handleSaveCompanyInfo = async () => {
     try {
       setSaving(true);
       await axios.post('/api/masters/company', companyInfo);
+      // コンテキストの状態も更新
+      updateCompanyInfo(companyInfo);
       setSnackbar({ open: true, message: '会社情報を保存しました', severity: 'success' });
     } catch (error) {
       console.error('会社情報の保存に失敗しました:', error);
@@ -192,6 +241,7 @@ const MasterManagement: React.FC = () => {
                     <TableCell>スタッフ名</TableCell>
                     <TableCell>電話番号</TableCell>
                     <TableCell>担当コース</TableCell>
+                    <TableCell>操作</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -199,7 +249,17 @@ const MasterManagement: React.FC = () => {
                     <TableRow key={member.id} hover>
                       <TableCell>{member.staff_name}</TableCell>
                       <TableCell>{member.phone}</TableCell>
-                      <TableCell>{member.course_name || '未設定'}</TableCell>
+                      <TableCell>{member.all_course_names || member.course_name || '未設定'}</TableCell>
+                      <TableCell>
+                        <Button 
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => handleDeleteStaff(member)}
+                        >
+                          削除
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -222,6 +282,7 @@ const MasterManagement: React.FC = () => {
                   <TableRow>
                     <TableCell>メーカー名</TableCell>
                     <TableCell>連絡先</TableCell>
+                    <TableCell>操作</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -229,6 +290,16 @@ const MasterManagement: React.FC = () => {
                     <TableRow key={manufacturer.id} hover>
                       <TableCell>{manufacturer.manufacturer_name}</TableCell>
                       <TableCell>{manufacturer.contact_info || '-'}</TableCell>
+                      <TableCell>
+                        <Button 
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => handleDeleteManufacturer(manufacturer)}
+                        >
+                          削除
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -340,27 +411,6 @@ const MasterManagement: React.FC = () => {
                   InputLabelProps={{
                     shrink: true,
                   }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="資本金"
-                  value={companyInfo.capital}
-                  onChange={(e) => handleCompanyInfoChange('capital', e.target.value)}
-                  margin="normal"
-                  placeholder="1,000万円"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="事業内容"
-                  multiline
-                  rows={4}
-                  value={companyInfo.business_description}
-                  onChange={(e) => handleCompanyInfoChange('business_description', e.target.value)}
-                  margin="normal"
                 />
               </Grid>
             </Grid>

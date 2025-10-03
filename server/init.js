@@ -104,8 +104,6 @@ db.serialize(() => {
     representative TEXT,
     business_hours TEXT,
     established_date DATE,
-    capital TEXT,
-    business_description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
@@ -158,8 +156,8 @@ db.serialize(() => {
     (3, '2025-02-05', 'modify', 3, 3, 190, '数量変更')`);
 
   // 会社情報のサンプルデータ
-  db.run(`INSERT OR IGNORE INTO company_info (id, company_name, postal_code, address, phone, fax, email, representative, business_hours, established_date, capital, business_description) VALUES 
-    (1, '金沢牛乳配達サービス株式会社', '920-0000', '石川県金沢市本町1-1-1', '076-123-4567', '076-123-4568', 'info@kanazawa-milk.co.jp', '金沢 太郎', '8:00-18:00', '1990-04-01', '1,000万円', '牛乳・乳製品の宅配サービス業')`);
+  db.run(`INSERT OR IGNORE INTO company_info (id, company_name, postal_code, address, phone, fax, email, representative, business_hours, established_date) VALUES 
+    (1, '金沢牛乳配達サービス株式会社', '920-0000', '石川県金沢市本町1-1-1', '076-123-4567', '076-123-4568', 'info@kanazawa-milk.co.jp', '金沢 太郎', '8:00-18:00', '1990-04-01')`);
 
   console.log('データベースの初期化が完了しました！');
 });

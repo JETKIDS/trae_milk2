@@ -129,7 +129,7 @@ code {
   }
 
   .print-summary-compact .MuiSvgIcon-root {
-    fontSize: 24px !important;
+    font-size: 24px !important;
   }
 
   .print-summary-compact .MuiTypography-h6 {
@@ -139,11 +139,6 @@ code {
 
   .print-summary-compact .MuiTypography-h4 {
     font-size: 18px !important;
-  }
-
-  /* 印刷時の合計行のcolspan調整 */
-  .print-total-row {
-    /* 金額列が非表示になるため、colspanを3に調整 */
   }
 
   /* コース別ページ分割 */

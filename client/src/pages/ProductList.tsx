@@ -15,18 +15,25 @@ import {
   InputAdornment,
   Grid,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
+import ProductForm from '../components/ProductForm';
 
 interface Product {
-  id: number;
+  id?: number;
   custom_id?: string;
   product_name: string;
-  manufacturer_name: string;
+  product_name_short?: string;
+  manufacturer_id: number;
+  manufacturer_name?: string;
+  order_code?: string;
+  jan_code?: string;
+  sort_order?: number;
   unit_price: number;
-  unit: string;
-  description: string;
-  category?: string;
+  description?: string;
+  include_in_invoice: boolean; // 請求書記載チェック
+  sales_tax_type: 'inclusive' | 'standard' | 'reduced'; // 税込み、標準10%、軽減8%
+  purchase_tax_type: 'inclusive' | 'standard' | 'reduced'; // 税込み、標準10%、軽減8%
 }
 
 const ProductList: React.FC = () => {
@@ -34,23 +41,25 @@ const ProductList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchId, setSearchId] = useState('');
   const [searchName, setSearchName] = useState('');
+  const [openProductForm, setOpenProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const fetchProducts = async (): Promise<void> => {
+    try {
+      const params: any = {};
+      if (searchId) params.searchId = searchId;
+      if (searchName) params.searchName = searchName;
+      
+      const response = await axios.get('http://localhost:9000/api/products', { params });
+      setProducts(response.data);
+    } catch (error) {
+      console.error('商品データの取得に失敗しました:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProducts = async (): Promise<void> => {
-      try {
-        const params: any = {};
-        if (searchId) params.searchId = searchId;
-        if (searchName) params.searchName = searchName;
-        
-        const response = await axios.get('/api/products', { params });
-        setProducts(response.data);
-      } catch (error) {
-        console.error('商品データの取得に失敗しました:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProducts();
   }, [searchId, searchName]);
 
@@ -60,6 +69,40 @@ const ProductList: React.FC = () => {
 
   const handleSearchNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchName(event.target.value);
+  };
+
+  const handleOpenProductForm = () => {
+    setEditingProduct(null);
+    setOpenProductForm(true);
+  };
+
+  const handleCloseProductForm = () => {
+    setOpenProductForm(false);
+    setEditingProduct(null);
+  };
+
+  const handleSaveProduct = async () => {
+    await fetchProducts();
+    setOpenProductForm(false);
+    setEditingProduct(null);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setOpenProductForm(true);
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    if (!product.id) return;
+    const ok = window.confirm(`商品「${product.product_name}」を削除します。よろしいですか？`);
+    if (!ok) return;
+    try {
+      await axios.delete(`http://localhost:9000/api/products/${product.id}`);
+      await fetchProducts();
+    } catch (error: any) {
+      console.error('商品削除に失敗しました:', error);
+      alert(error?.response?.data?.error || '商品削除に失敗しました');
+    }
   };
 
   if (loading) {
@@ -75,7 +118,7 @@ const ProductList: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => {/* TODO: 新規商品登録画面へ */}}
+          onClick={handleOpenProductForm}
         >
           新規商品登録
         </Button>
@@ -130,7 +173,6 @@ const ProductList: React.FC = () => {
               <TableCell>商品名</TableCell>
               <TableCell>メーカー</TableCell>
               <TableCell align="right">単価</TableCell>
-              <TableCell>単位</TableCell>
               <TableCell>説明</TableCell>
               <TableCell>操作</TableCell>
             </TableRow>
@@ -148,11 +190,23 @@ const ProductList: React.FC = () => {
                 <TableCell>{product.product_name}</TableCell>
                 <TableCell>{product.manufacturer_name}</TableCell>
                 <TableCell align="right">¥{product.unit_price.toLocaleString()}</TableCell>
-                <TableCell>{product.unit}</TableCell>
                 <TableCell>{product.description || '-'}</TableCell>
                 <TableCell>
-                  <Button size="small" startIcon={<EditIcon />}>
+                  <Button 
+                    size="small" 
+                    startIcon={<EditIcon />}
+                    onClick={() => handleEditProduct(product)}
+                  >
                     編集
+                  </Button>
+                  <Button 
+                    size="small" 
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => handleDeleteProduct(product)}
+                    sx={{ ml: 1 }}
+                  >
+                    削除
                   </Button>
                 </TableCell>
               </TableRow>
@@ -168,6 +222,13 @@ const ProductList: React.FC = () => {
           </Typography>
         </Box>
       )}
+
+      <ProductForm
+        open={openProductForm}
+        onClose={handleCloseProductForm}
+        onSave={handleSaveProduct}
+        product={editingProduct}
+      />
     </Box>
   );
 };
