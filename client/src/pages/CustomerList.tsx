@@ -39,7 +39,14 @@ const CustomerList: React.FC = () => {
   const [searchName, setSearchName] = useState('');
   const [searchAddress, setSearchAddress] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
-  const [sortKey, setSortKey] = useState<'id' | 'yomi' | 'course'>('yomi');
+  // 並び順の保持（画面切替後も維持）
+  const SORT_STORAGE_KEY = 'customers.sortKey';
+  const [sortKey, setSortKey] = useState<'id' | 'yomi' | 'course'>(
+    () => {
+      const saved = window.localStorage.getItem(SORT_STORAGE_KEY);
+      return saved === 'id' || saved === 'yomi' || saved === 'course' ? saved : 'yomi';
+    }
+  );
   const [openCustomerForm, setOpenCustomerForm] = useState(false);
   const navigate = useNavigate();
 
@@ -64,6 +71,16 @@ const CustomerList: React.FC = () => {
 
     fetchCustomers();
   }, [searchId, searchName, searchAddress, searchPhone, sortKey]);
+
+  // 並び順のローカル保存
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SORT_STORAGE_KEY, sortKey);
+    } catch (e) {
+      // localStorageが使用不可の場合は何もしない
+      console.warn('並び順の保存に失敗しました:', e);
+    }
+  }, [sortKey]);
 
   const handleSearchIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchId(event.target.value);
