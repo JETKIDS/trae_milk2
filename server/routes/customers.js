@@ -141,15 +141,17 @@ router.post('/', (req, res) => {
   
   // custom_idが指定されていない場合は自動生成（4桁形式）
   const generateCustomId = (callback) => {
-    // 既存の数値IDの最大値を取得
-    const maxIdQuery = `SELECT custom_id FROM customers WHERE LENGTH(custom_id) = 4 AND custom_id GLOB '[0-9][0-9][0-9][0-9]' ORDER BY CAST(custom_id AS INTEGER) DESC LIMIT 1`;
-    db.get(maxIdQuery, (err, result) => {
+    // 既存の4桁数値IDを取得し、未使用の最小値を返す
+    const allIdQuery = `SELECT custom_id FROM customers WHERE LENGTH(custom_id) = 4 AND custom_id GLOB '[0-9][0-9][0-9][0-9]'`;
+    db.all(allIdQuery, [], (err, rows) => {
       if (err) {
         callback(err, null);
         return;
       }
-      const nextId = result ? (parseInt(result.custom_id) + 1) : 1;
-      const newCustomId = nextId.toString().padStart(4, '0');
+      const used = new Set(rows.map(r => parseInt(r.custom_id, 10)).filter(n => !isNaN(n)));
+      let candidate = 1;
+      while (candidate <= 9999 && used.has(candidate)) candidate++;
+      const newCustomId = candidate <= 9999 ? candidate.toString().padStart(4, '0') : null;
       callback(null, newCustomId);
     });
   };
@@ -213,6 +215,25 @@ router.post('/', (req, res) => {
       insertCustomer(newCustomId);
     });
   }
+});
+
+// 次の顧客ID（未使用の最小4桁ID）を返す
+router.get('/next-id', (req, res) => {
+  const db = getDB();
+  const query = `SELECT custom_id FROM customers WHERE LENGTH(custom_id) = 4 AND custom_id GLOB '[0-9][0-9][0-9][0-9]'`;
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    const used = new Set(rows.map(r => parseInt(r.custom_id, 10)).filter(n => !isNaN(n)));
+    let candidate = 1;
+    while (candidate <= 9999 && used.has(candidate)) candidate++;
+    const nextId = candidate <= 9999 ? candidate.toString().padStart(4, '0') : null;
+    res.json({ custom_id: nextId });
+    db.close();
+  });
 });
 
 // 顧客コース移動（具体的なルートを先に配置）

@@ -86,6 +86,17 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
           contract_start_date: new Date().toISOString().split('T')[0],
           notes: '',
         });
+        // 新規登録のときは未使用の最小4桁IDを取得して表示
+        (async () => {
+          try {
+            const res = await axios.get('/api/customers/next-id');
+            if (res.data?.custom_id) {
+              setFormData(prev => ({ ...prev, custom_id: res.data.custom_id }));
+            }
+          } catch (e) {
+            console.warn('次の顧客IDの取得に失敗しました:', e);
+          }
+        })();
       }
       setErrors({});
     }
