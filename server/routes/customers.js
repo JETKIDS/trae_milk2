@@ -84,6 +84,101 @@ router.get('/', (req, res) => {
   db.close();
 });
 
+// ページング版 顧客一覧取得（items + total 返却）
+router.get('/paged', (req, res) => {
+  const db = getDB();
+  const { searchId, searchName, searchAddress, searchPhone, sort, page = '1', pageSize = '50' } = req.query;
+
+  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+  const sizeNum = Math.min(Math.max(parseInt(pageSize, 10) || 50, 1), 200);
+  const offset = (pageNum - 1) * sizeNum;
+
+  let whereConditions = [];
+  let params = [];
+
+  // IDで検索
+  if (searchId && String(searchId).trim() !== '') {
+    const idTerm = String(searchId).trim();
+    const isNumeric = /^\d+$/.test(idTerm);
+    if (isNumeric) {
+      const paddedId = idTerm.padStart(4, '0');
+      whereConditions.push('c.custom_id = ?');
+      params.push(paddedId);
+    } else {
+      whereConditions.push('c.custom_id LIKE ?');
+      params.push(`%${idTerm}%`);
+    }
+  }
+
+  // 名前で検索（よみがな先頭一致も）
+  if (searchName && String(searchName).trim() !== '') {
+    const nameTerm = String(searchName).trim();
+    whereConditions.push('(c.customer_name LIKE ? OR c.yomi LIKE ?)');
+    params.push(`${nameTerm}%`, `${nameTerm}%`);
+  }
+
+  // 住所で検索
+  if (searchAddress && String(searchAddress).trim() !== '') {
+    whereConditions.push('c.address LIKE ?');
+    params.push(`%${String(searchAddress).trim()}%`);
+  }
+
+  // 電話番号で検索
+  if (searchPhone && String(searchPhone).trim() !== '') {
+    whereConditions.push('c.phone LIKE ?');
+    params.push(`%${String(searchPhone).trim()}%`);
+  }
+
+  // 件数カウント用クエリ（JOIN不要）
+  let countQuery = `SELECT COUNT(*) AS total FROM customers c`;
+  if (whereConditions.length > 0) {
+    countQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+  }
+
+  // データ取得用クエリ
+  let dataQuery = `
+    SELECT c.*, dc.course_name, ds.staff_name 
+    FROM customers c
+    LEFT JOIN delivery_courses dc ON c.course_id = dc.id
+    LEFT JOIN delivery_staff ds ON c.staff_id = ds.id
+  `;
+
+  if (whereConditions.length > 0) {
+    dataQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+  }
+
+  const sortKey = (String(sort || 'yomi')).toLowerCase();
+  if (sortKey === 'id') {
+    dataQuery += ` ORDER BY c.custom_id ASC`;
+  } else if (sortKey === 'course') {
+    dataQuery += ` ORDER BY dc.course_name ASC, c.delivery_order ASC, CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END ASC`;
+  } else {
+    dataQuery += ` ORDER BY CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END ASC`;
+  }
+
+  dataQuery += ` LIMIT ? OFFSET ?`;
+  const dataParams = [...params, sizeNum, offset];
+
+  db.get(countQuery, params, (countErr, countRow) => {
+    if (countErr) {
+      res.status(500).json({ error: countErr.message });
+      db.close();
+      return;
+    }
+    const total = countRow?.total || 0;
+
+    db.all(dataQuery, dataParams, (dataErr, rows) => {
+      if (dataErr) {
+        res.status(500).json({ error: dataErr.message });
+        db.close();
+        return;
+      }
+      res.json({ items: rows, total });
+      db.close();
+    });
+  });
+});
+
 // 次の顧客ID（未使用の最小4桁ID）を返す - 動的ルートより前に定義
 router.get('/next-id', (req, res) => {
   const db = getDB();

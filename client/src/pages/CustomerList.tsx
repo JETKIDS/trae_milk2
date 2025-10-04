@@ -47,6 +47,12 @@ const CustomerList: React.FC = () => {
       return saved === 'id' || saved === 'yomi' || saved === 'course' ? saved : 'yomi';
     }
   );
+  // ページング
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
+  const [total, setTotal] = useState(0);
+  // コース折りたたみ状態
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [openCustomerForm, setOpenCustomerForm] = useState(false);
   const navigate = useNavigate();
 
@@ -59,9 +65,21 @@ const CustomerList: React.FC = () => {
         if (searchAddress) params.searchAddress = searchAddress;
         if (searchPhone) params.searchPhone = searchPhone;
         if (sortKey) params.sort = sortKey;
-        
-        const response = await axios.get('/api/customers', { params });
-        setCustomers(response.data);
+        params.page = page;
+        params.pageSize = PAGE_SIZE;
+
+        const response = await axios.get('/api/customers/paged', { params });
+        const { items, total } = response.data;
+        setCustomers(items || []);
+        setTotal(total || 0);
+
+        // 折りたたみ初期値（デフォルト閉）
+        const nextOpen: Record<string, boolean> = {};
+        (items || []).forEach((c: Customer) => {
+          const key = c.course_name || '未設定';
+          if (!(key in nextOpen)) nextOpen[key] = false;
+        });
+        setOpenGroups(nextOpen);
       } catch (error) {
         console.error('顧客データの取得に失敗しました:', error);
       } finally {
@@ -69,8 +87,9 @@ const CustomerList: React.FC = () => {
       }
     };
 
+    setLoading(true);
     fetchCustomers();
-  }, [searchId, searchName, searchAddress, searchPhone, sortKey]);
+  }, [searchId, searchName, searchAddress, searchPhone, sortKey, page]);
 
   // 並び順のローカル保存
   useEffect(() => {
@@ -120,9 +139,13 @@ const CustomerList: React.FC = () => {
         if (searchAddress) params.searchAddress = searchAddress;
         if (searchPhone) params.searchPhone = searchPhone;
         if (sortKey) params.sort = sortKey;
-        
-        const response = await axios.get('/api/customers', { params });
-        setCustomers(response.data);
+        params.page = page;
+        params.pageSize = PAGE_SIZE;
+
+        const response = await axios.get('/api/customers/paged', { params });
+        const { items, total } = response.data;
+        setCustomers(items || []);
+        setTotal(total || 0);
       } catch (error) {
         console.error('顧客データの取得に失敗しました:', error);
       }
@@ -133,6 +156,21 @@ const CustomerList: React.FC = () => {
   if (loading) {
     return <Typography>読み込み中...</Typography>;
   }
+
+  // グルーピング
+  const groups = customers.reduce((acc, c) => {
+    const key = c.course_name || '未設定';
+    (acc[key] ||= []).push(c);
+    return acc;
+  }, {} as Record<string, Customer[]>);
+
+  const groupKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'ja'));
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // 検索や並び替え時はページを1に戻す
+  useEffect(() => {
+    setPage(1);
+  }, [searchId, searchName, searchAddress, searchPhone, sortKey]);
 
   return (
     <Box>
@@ -250,40 +288,70 @@ const CustomerList: React.FC = () => {
               <TableCell>操作</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
-            {customers.map((customer: Customer) => (
-              <TableRow key={customer.id} hover>
-                <TableCell>
-                  <Chip 
-                    label={customer.custom_id || `#${customer.id}`} 
-                    variant="outlined"
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{customer.customer_name}</TableCell>
-                <TableCell>{customer.yomi || '-'}</TableCell>
-                <TableCell>{customer.address}</TableCell>
-                <TableCell>{customer.phone}</TableCell>
-                <TableCell>
-                  <Chip 
-                    label={customer.course_name || '未設定'} 
-                    color={customer.course_name ? 'primary' : 'default'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{customer.contract_start_date}</TableCell>
-                <TableCell>
-                  <Button
-                    size="small"
-                    startIcon={<VisibilityIcon />}
-                    onClick={() => handleViewCustomer(customer.id)}
-                  >
-                    詳細
-                  </Button>
+      <TableBody>
+        {groupKeys.map((key) => {
+          const isOpen = !!openGroups[key];
+          const items = groups[key];
+
+          return (
+            <React.Fragment key={`grp-${key}`}>
+              {/* グループヘッダ行 */}
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Button
+                        size="small"
+                        startIcon={isOpen ? <span>&#9650;</span> : <span>&#9660;</span>}
+                        onClick={() => setOpenGroups((prev) => ({ ...prev, [key]: !isOpen }))}
+                      >
+                        {key}
+                      </Button>
+                      <Chip label={`${items.length}件`} size="small" sx={{ ml: 1 }} />
+                    </Box>
+                    <Typography variant="caption">ページ {page} / {pageCount}</Typography>
+                  </Box>
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
+
+              {/* グループ本文（折りたたみ） */}
+              {isOpen &&
+                items.map((customer: Customer) => (
+                  <TableRow key={customer.id} hover>
+                    <TableCell>
+                      <Chip
+                        label={customer.custom_id || `#${customer.id}`}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>{customer.customer_name}</TableCell>
+                    <TableCell>{customer.yomi || '-'}</TableCell>
+                    <TableCell>{customer.address}</TableCell>
+                    <TableCell>{customer.phone}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={customer.course_name || '未設定'}
+                        color={customer.course_name ? 'primary' : 'default'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>{customer.contract_start_date}</TableCell>
+                    <TableCell>
+                      <Button
+                        size="small"
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => handleViewCustomer(customer.id)}
+                      >
+                        詳細
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </React.Fragment>
+          );
+        })}
+      </TableBody>
         </Table>
       </TableContainer>
 
@@ -294,6 +362,29 @@ const CustomerList: React.FC = () => {
           </Typography>
         </Box>
       )}
+
+      {/* ページャ */}
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+        <Button
+          size="small"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          sx={{ mr: 1 }}
+        >
+          前へ
+        </Button>
+        <Typography variant="body2" sx={{ mx: 1 }}>
+          {page} / {pageCount}
+        </Typography>
+        <Button
+          size="small"
+          disabled={page >= pageCount}
+          onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+          sx={{ ml: 1 }}
+        >
+          次へ
+        </Button>
+      </Box>
 
       {/* 新規顧客登録フォーム */}
       <CustomerForm
