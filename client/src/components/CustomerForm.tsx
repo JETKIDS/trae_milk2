@@ -187,9 +187,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
                 fullWidth
                 label="顧客ID"
                 value={formData.custom_id || ''}
-                onChange={(e) => setFormData({ ...formData, custom_id: e.target.value })}
-                placeholder="空白の場合は自動生成されます"
-                helperText="4桁の数字（例: 0001）"
+                InputProps={{ readOnly: true }}
+                helperText="最小未使用の4桁IDが自動設定されます（編集不可）"
               />
             </Grid>
             <Grid item xs={12} md={6}>
