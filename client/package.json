@@ -15,8 +15,10 @@
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.1"
+    "react-router-dom": "^6.8.1",
+    "react-window": "^1.8.9"
   },
+  "overrides": {},
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

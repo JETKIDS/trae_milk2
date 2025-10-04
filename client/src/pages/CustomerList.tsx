@@ -2,12 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Paper,
   Button,
   Box,
@@ -19,6 +13,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Visibility as VisibilityIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
+import { FixedSizeList, ListOnItemsRenderedProps } from 'react-window';
 import CustomerForm from '../components/CustomerForm';
 
 interface Customer {
@@ -47,49 +42,41 @@ const CustomerList: React.FC = () => {
       return saved === 'id' || saved === 'yomi' || saved === 'course' ? saved : 'yomi';
     }
   );
-  // ページング
+  // ページング（無限スクロール用）
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 50;
   const [total, setTotal] = useState(0);
-  // コース折りたたみ状態
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [openCustomerForm, setOpenCustomerForm] = useState(false);
   const navigate = useNavigate();
 
+  // 初回ロード & フィルター変更時の再ロード（ページを1に戻す）
   useEffect(() => {
-    const fetchCustomers = async (): Promise<void> => {
+    const fetchFirstPage = async (): Promise<void> => {
       try {
+        setLoading(true);
         const params: any = {};
         if (searchId) params.searchId = searchId;
         if (searchName) params.searchName = searchName;
         if (searchAddress) params.searchAddress = searchAddress;
         if (searchPhone) params.searchPhone = searchPhone;
         if (sortKey) params.sort = sortKey;
-        params.page = page;
+        params.page = 1;
         params.pageSize = PAGE_SIZE;
 
         const response = await axios.get('/api/customers/paged', { params });
         const { items, total } = response.data;
         setCustomers(items || []);
         setTotal(total || 0);
-
-        // 折りたたみ初期値（デフォルト閉）
-        const nextOpen: Record<string, boolean> = {};
-        (items || []).forEach((c: Customer) => {
-          const key = c.course_name || '未設定';
-          if (!(key in nextOpen)) nextOpen[key] = false;
-        });
-        setOpenGroups(nextOpen);
+        setPage(1);
       } catch (error) {
         console.error('顧客データの取得に失敗しました:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    setLoading(true);
-    fetchCustomers();
-  }, [searchId, searchName, searchAddress, searchPhone, sortKey, page]);
+    fetchFirstPage();
+  }, [searchId, searchName, searchAddress, searchPhone, sortKey]);
 
   // 並び順のローカル保存
   useEffect(() => {
@@ -158,19 +145,8 @@ const CustomerList: React.FC = () => {
     fetchCustomers();
   };
 
-  if (loading) {
-    return <Typography>読み込み中...</Typography>;
-  }
-
-  // グルーピング
-  const groups = customers.reduce((acc, c) => {
-    const key = c.course_name || '未設定';
-    (acc[key] ||= []).push(c);
-    return acc;
-  }, {} as Record<string, Customer[]>);
-
-  const groupKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'ja'));
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // 無限スクロール用の表示件数（末尾にローディング行を追加する場合がある）
+  const itemCount = customers.length + (customers.length < total ? 1 : 0);
 
   return (
     <Box>
@@ -274,117 +250,72 @@ const CustomerList: React.FC = () => {
         </Grid>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>顧客名</TableCell>
-              <TableCell>よみがな</TableCell>
-              <TableCell>住所</TableCell>
-              <TableCell>電話番号</TableCell>
-              <TableCell>配達コース</TableCell>
-              <TableCell>契約開始日</TableCell>
-              <TableCell>操作</TableCell>
-            </TableRow>
-          </TableHead>
-      <TableBody>
-        {groupKeys.map((key) => {
-          const isOpen = !!openGroups[key];
-          const items = groups[key];
+      <Paper sx={{ height: 600 }}>
+        <FixedSizeList
+          height={600}
+          width="100%"
+          itemSize={64}
+          itemCount={itemCount}
+          onItemsRendered={(info: ListOnItemsRenderedProps) => {
+            const nearEnd = info.visibleStopIndex >= customers.length - 1;
+            if (nearEnd) {
+              // 末尾まで到達したら次ページを読み込む
+              loadMore();
+            }
+          }}
+        >
+          {({ index, style }) => {
+            if (index >= customers.length) {
+              // ローディング行
+              return (
+                <Box style={style} sx={{ px: 2, display: 'flex', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {isLoadingMore ? '読み込み中…' : customers.length < total ? 'さらに読み込む…' : '全件表示済み'}
+                  </Typography>
+                </Box>
+              );
+            }
 
-          return (
-            <React.Fragment key={`grp-${key}`}>
-              {/* グループヘッダ行 */}
-              <TableRow>
-                <TableCell colSpan={8}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Button
-                        size="small"
-                        startIcon={isOpen ? <span>&#9650;</span> : <span>&#9660;</span>}
-                        onClick={() => setOpenGroups((prev) => ({ ...prev, [key]: !isOpen }))}
-                      >
-                        {key}
-                      </Button>
-                      <Chip label={`${items.length}件`} size="small" sx={{ ml: 1 }} />
-                    </Box>
-                    <Typography variant="caption">ページ {page} / {pageCount}</Typography>
-                  </Box>
-                </TableCell>
-              </TableRow>
+            const customer = customers[index];
+            return (
+              <Box style={style} sx={{ px: 2, display: 'grid', gridTemplateColumns: '120px 1fr 150px 1fr 140px 140px 100px', alignItems: 'center', borderBottom: '1px solid #eee' }}>
+                <Box>
+                  <Chip label={customer.custom_id || `#${customer.id}`} variant="outlined" size="small" />
+                </Box>
+                <Box>
+                  <Typography variant="body2">{customer.customer_name}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">{customer.yomi || '-'}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2">{customer.address}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2">{customer.phone}</Typography>
+                </Box>
+                <Box>
+                  <Chip label={customer.course_name || '未設定'} color={customer.course_name ? 'primary' : 'default'} size="small" />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2">{customer.contract_start_date}</Typography>
+                  <Button size="small" startIcon={<VisibilityIcon />} onClick={() => handleViewCustomer(customer.id)}>
+                    詳細
+                  </Button>
+                </Box>
+              </Box>
+            );
+          }}
+        </FixedSizeList>
+      </Paper>
 
-              {/* グループ本文（折りたたみ） */}
-              {isOpen &&
-                items.map((customer: Customer) => (
-                  <TableRow key={customer.id} hover>
-                    <TableCell>
-                      <Chip
-                        label={customer.custom_id || `#${customer.id}`}
-                        variant="outlined"
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{customer.customer_name}</TableCell>
-                    <TableCell>{customer.yomi || '-'}</TableCell>
-                    <TableCell>{customer.address}</TableCell>
-                    <TableCell>{customer.phone}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={customer.course_name || '未設定'}
-                        color={customer.course_name ? 'primary' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{customer.contract_start_date}</TableCell>
-                    <TableCell>
-                      <Button
-                        size="small"
-                        startIcon={<VisibilityIcon />}
-                        onClick={() => handleViewCustomer(customer.id)}
-                      >
-                        詳細
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </React.Fragment>
-          );
-        })}
-      </TableBody>
-        </Table>
-      </TableContainer>
-
-      {customers.length === 0 && (
+      {customers.length === 0 && !loading && (
         <Box sx={{ textAlign: 'center', mt: 4 }}>
           <Typography variant="body1" color="textSecondary">
             登録されている顧客がありません。
           </Typography>
         </Box>
       )}
-
-      {/* ページャ */}
-      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-        <Button
-          size="small"
-          disabled={page <= 1}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          sx={{ mr: 1 }}
-        >
-          前へ
-        </Button>
-        <Typography variant="body2" sx={{ mx: 1 }}>
-          {page} / {pageCount}
-        </Typography>
-        <Button
-          size="small"
-          disabled={page >= pageCount}
-          onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-          sx={{ ml: 1 }}
-        >
-          次へ
-        </Button>
-      </Box>
 
       {/* 新規顧客登録フォーム */}
       <CustomerForm
