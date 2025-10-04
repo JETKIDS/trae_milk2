@@ -84,6 +84,25 @@ router.get('/', (req, res) => {
   db.close();
 });
 
+// 次の顧客ID（未使用の最小4桁ID）を返す - 動的ルートより前に定義
+router.get('/next-id', (req, res) => {
+  const db = getDB();
+  const query = `SELECT custom_id FROM customers WHERE LENGTH(custom_id) = 4 AND custom_id GLOB '[0-9][0-9][0-9][0-9]'`;
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    const used = new Set(rows.map(r => parseInt(r.custom_id, 10)).filter(n => !isNaN(n)));
+    let candidate = 1;
+    while (candidate <= 9999 && used.has(candidate)) candidate++;
+    const nextId = candidate <= 9999 ? candidate.toString().padStart(4, '0') : null;
+    res.json({ custom_id: nextId });
+    db.close();
+  });
+});
+
 // 特定顧客の詳細情報と配達パターン取得
 router.get('/:id', (req, res) => {
   const db = getDB();
@@ -217,24 +236,7 @@ router.post('/', (req, res) => {
   }
 });
 
-// 次の顧客ID（未使用の最小4桁ID）を返す
-router.get('/next-id', (req, res) => {
-  const db = getDB();
-  const query = `SELECT custom_id FROM customers WHERE LENGTH(custom_id) = 4 AND custom_id GLOB '[0-9][0-9][0-9][0-9]'`;
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      db.close();
-      return;
-    }
-    const used = new Set(rows.map(r => parseInt(r.custom_id, 10)).filter(n => !isNaN(n)));
-    let candidate = 1;
-    while (candidate <= 9999 && used.has(candidate)) candidate++;
-    const nextId = candidate <= 9999 ? candidate.toString().padStart(4, '0') : null;
-    res.json({ custom_id: nextId });
-    db.close();
-  });
-});
+ 
 
 // 顧客コース移動（具体的なルートを先に配置）
 router.put('/move-course', (req, res) => {
