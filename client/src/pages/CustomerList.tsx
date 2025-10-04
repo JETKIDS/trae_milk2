@@ -101,6 +101,11 @@ const CustomerList: React.FC = () => {
     }
   }, [sortKey]);
 
+  // 検索や並び替え時はページを1に戻す（常にトップレベルで宣言）
+  useEffect(() => {
+    setPage(1);
+  }, [searchId, searchName, searchAddress, searchPhone, sortKey]);
+
   const handleSearchIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchId(event.target.value);
   };
@@ -166,11 +171,6 @@ const CustomerList: React.FC = () => {
 
   const groupKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'ja'));
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  // 検索や並び替え時はページを1に戻す
-  useEffect(() => {
-    setPage(1);
-  }, [searchId, searchName, searchAddress, searchPhone, sortKey]);
 
   return (
     <Box>
