@@ -141,8 +141,35 @@ const CustomerList: React.FC = () => {
       } catch (error) {
         console.error('顧客データの取得に失敗しました:', error);
       }
-    };
-    fetchCustomers();
+  };
+  fetchCustomers();
+  };
+
+  // 追加ページ読み込み（無限スクロール）
+  const loadMore = async () => {
+    if (isLoadingMore) return;
+    if (customers.length >= total) return; // 全件読み込み済み
+    try {
+      setIsLoadingMore(true);
+      const nextPage = page + 1;
+      const params: any = {};
+      if (searchId) params.searchId = searchId;
+      if (searchName) params.searchName = searchName;
+      if (searchAddress) params.searchAddress = searchAddress;
+      if (searchPhone) params.searchPhone = searchPhone;
+      if (sortKey) params.sort = sortKey;
+      params.page = nextPage;
+      params.pageSize = PAGE_SIZE;
+
+      const response = await axios.get('/api/customers/paged', { params });
+      const { items } = response.data;
+      setCustomers((prev) => [...prev, ...(items || [])]);
+      setPage(nextPage);
+    } catch (error) {
+      console.error('追加読み込みに失敗しました:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   // 無限スクロール用の表示件数（末尾にローディング行を追加する場合がある）
