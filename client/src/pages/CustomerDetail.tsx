@@ -141,6 +141,15 @@ const CustomerDetail: React.FC = () => {
   const [selectedCell, setSelectedCell] = useState<{ date: string; productName: string; quantity?: number } | null>(null);
   const [openQuantityDialog, setOpenQuantityDialog] = useState(false);
   const [editQuantityValue, setEditQuantityValue] = useState<number | ''>('');
+  // 休配（期間）入力用の状態（開始・終了）
+  const [skipStartDate, setSkipStartDate] = useState<string>('');
+  const [skipEndDate, setSkipEndDate] = useState<string>('');
+  // 休配解除（期間）入力用の状態（開始・終了）
+  const [unskipStartDate, setUnskipStartDate] = useState<string>('');
+  const [unskipEndDate, setUnskipEndDate] = useState<string>('');
+  // 休配・休配解除の期間入力ダイアログ
+  const [openSkipDialog, setOpenSkipDialog] = useState<boolean>(false);
+  const [openUnskipDialog, setOpenUnskipDialog] = useState<boolean>(false);
 
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -249,7 +258,9 @@ const CustomerDetail: React.FC = () => {
       return;
     }
     closeCellMenu();
-    dpManagerRef.current?.openForPattern(pattern);
+    // 開始日の初期値をクリックしたセルの日付に設定
+    const defaultStart = selectedCell ? selectedCell.date : undefined;
+    dpManagerRef.current?.openForPattern(pattern, defaultStart);
   };
 
   const handleOpenEditForm = () => {
@@ -289,6 +300,11 @@ const CustomerDetail: React.FC = () => {
   ) => {
     setSelectedCell({ productName, date, quantity });
     setCellMenuAnchor(event.currentTarget);
+    // 期間入力の初期値を選択日に合わせる
+    setSkipStartDate(date);
+    setSkipEndDate('');
+    setUnskipStartDate(date);
+    setUnskipEndDate('');
   };
 
   const closeCellMenu = () => {
@@ -310,7 +326,8 @@ const CustomerDetail: React.FC = () => {
   // 臨時変更API呼び出し（modify/skip/add）
   const postTemporaryChange = async (
     change_type: 'modify' | 'skip' | 'add',
-    payload: { product_id: number | null; quantity?: number; unit_price?: number }
+    payload: { product_id: number | null; quantity?: number; unit_price?: number },
+    overrideDate?: string
   ) => {
     if (!selectedCell) return;
     const product_id = payload.product_id ?? getProductIdByName(selectedCell.productName);
@@ -321,7 +338,7 @@ const CustomerDetail: React.FC = () => {
     try {
       await axios.post('/api/temporary-changes', {
         customer_id: Number(id),
-        change_date: selectedCell.date,
+        change_date: overrideDate || selectedCell.date,
         change_type,
         product_id,
         quantity: payload.quantity ?? null,
@@ -345,6 +362,86 @@ const CustomerDetail: React.FC = () => {
   // 休配（当日0本に上書き）
   const applySkipForDay = async () => {
     await postTemporaryChange('skip', { product_id: null, quantity: 0 });
+  };
+
+  // 日付範囲の配列を生成（開始日含む、終了日含む）
+  const enumerateDates = (start: string, end: string): string[] => {
+    const s = moment(start);
+    const e = moment(end);
+    const dates: string[] = [];
+    for (let d = s.clone(); d.isSameOrBefore(e); d.add(1, 'day')) {
+      dates.push(d.format('YYYY-MM-DD'));
+    }
+    return dates;
+  };
+
+  // 指定商品の配達予定日かどうか（定期パターンで判定）
+  const isScheduledDeliveryDay = (productId: number, dateStr: string): boolean => {
+    const date = moment(dateStr);
+    const dow = date.day();
+    const pattern = patterns.find(p =>
+      p.product_id === productId && p.is_active &&
+      date.isSameOrAfter(moment(p.start_date)) &&
+      (!p.end_date || date.isSameOrBefore(moment(p.end_date)))
+    );
+    if (!pattern) return false;
+    const deliveryDaysArr = Array.isArray(pattern.delivery_days)
+      ? pattern.delivery_days
+      : typeof pattern.delivery_days === 'string'
+        ? (() => { try { return JSON.parse(pattern.delivery_days as unknown as string); } catch { return []; } })()
+        : [];
+    if (!deliveryDaysArr.includes(dow)) return false;
+    const dq = typeof pattern.daily_quantities === 'string'
+      ? (() => { try { return JSON.parse(pattern.daily_quantities as unknown as string); } catch { return {}; } })()
+      : (pattern.daily_quantities || {});
+    const baseQty = (dq as any)[dow];
+    const qty = (typeof baseQty === 'number' ? baseQty : pattern.quantity) || 0;
+    return qty > 0;
+  };
+
+  // 休配（期間）：開始日は選択日、終了日が空なら当日のみ、指定されていれば範囲で適用
+  const applySkipForPeriod = async () => {
+    if (!selectedCell) return;
+    const start = skipStartDate || selectedCell.date;
+    const end = skipEndDate || start;
+    const productId = getProductIdByName(selectedCell.productName);
+    if (!productId) return;
+
+    const dates = enumerateDates(start, end);
+    for (const ds of dates) {
+      if (isScheduledDeliveryDay(productId, ds)) {
+        await postTemporaryChange('skip', { product_id: productId, quantity: 0 }, ds);
+      }
+    }
+    setSkipStartDate('');
+    setSkipEndDate('');
+    await fetchCalendarData();
+  };
+
+  // 休配解除：開始日〜終了日の範囲で、この商品の skip を削除（終了日が空なら当日のみ）
+  const cancelSkipForPeriod = async () => {
+    if (!selectedCell) return;
+    const start = unskipStartDate || selectedCell.date;
+    const end = unskipEndDate || start;
+    const productId = getProductIdByName(selectedCell.productName);
+    if (!productId) return;
+
+    try {
+      const res = await axios.get(`/api/temporary-changes/customer/${id}/period/${start}/${end}`);
+      const rows: TemporaryChange[] = res.data || [];
+      const targets = rows.filter(tc => tc.change_type === 'skip' && tc.product_id === productId);
+      for (const t of targets) {
+        if (t.id) {
+          await axios.delete(`/api/temporary-changes/${t.id}`);
+        }
+      }
+      setUnskipStartDate('');
+      setUnskipEndDate('');
+      closeCellMenu();
+      await fetchCalendarData();
+    } catch (err) {
+      console.error('休配解除に失敗しました:', err);
+    }
   };
 
   const calculateDayTotal = (day: CalendarDay): number => {
@@ -440,22 +537,56 @@ const CustomerDetail: React.FC = () => {
   // 商品別カレンダーデータを生成
   const generateProductCalendarData = (): ProductCalendarData[] => {
     const productMap: { [key: string]: ProductCalendarData } = {};
-    
-    // 全ての商品を初期化（通常の配達パターンから）
+    const monthStart = currentDate.clone().startOf('month');
+    const monthEnd = currentDate.clone().endOf('month');
+
+    // 当月に有効期間が重なる定期パターンの商品を初期化（翌月以降、配達が完全に終了した商品は表示しない）
+    const overlappedPatternProductNames = new Set<string>();
     patterns.forEach(pattern => {
-      if (pattern.product_name) {
-        productMap[pattern.product_name] = {
-          productName: pattern.product_name,
-          specification: `${pattern.unit || ''}`,
-          dailyQuantities: {}
-        };
+      const startsBeforeOrOnMonthEnd = moment(pattern.start_date).isSameOrBefore(monthEnd, 'day');
+      const endsOnOrAfterMonthStart = !pattern.end_date || moment(pattern.end_date).isSameOrAfter(monthStart, 'day');
+      if (startsBeforeOrOnMonthEnd && endsOnOrAfterMonthStart && pattern.product_name) {
+        overlappedPatternProductNames.add(pattern.product_name);
       }
     });
 
-    // カレンダーデータから商品別の数量を設定（通常配達と臨時配達の両方）
+    // カレンダーデータ（当月の実際の配達）から商品を初期化（臨時商品も含める）
+    const deliveredProductNames = new Set<string>();
+    calendar.forEach(day => {
+      day.products.forEach(p => {
+        deliveredProductNames.add(p.productName);
+      });
+    });
+
+    // 表示対象商品は「当月に定期パターンが重なる商品」または「当月に実配達が発生した商品」の和集合
+    const visibleProductNames = new Set<string>();
+    overlappedPatternProductNames.forEach((n) => visibleProductNames.add(n));
+    deliveredProductNames.forEach((n) => visibleProductNames.add(n));
+
+    // 初期化
+    visibleProductNames.forEach(name => {
+      // unit は当月カレンダーのデータに合わせる（存在しない場合は空）
+      const anyUnit = (() => {
+        for (let i = 0; i < calendar.length; i++) {
+          const day = calendar[i];
+          const found = day.products.find(p => p.productName === name);
+          if (found) return found.unit || '';
+        }
+        // カレンダーデータにない場合はパターンから取得
+        const pat = patterns.find(p => p.product_name === name);
+        return (pat?.unit) || '';
+      })();
+
+      productMap[name] = {
+        productName: name,
+        specification: anyUnit,
+        dailyQuantities: {}
+      };
+    });
+
+    // 当月の配達数量を設定（通常配達と臨時配達の両方）
     calendar.forEach(day => {
       day.products.forEach(product => {
-        // 商品が存在しない場合は初期化
         if (!productMap[product.productName]) {
           productMap[product.productName] = {
             productName: product.productName,
@@ -639,31 +770,40 @@ const CustomerDetail: React.FC = () => {
                     <TableBody>
                       {generateProductCalendarData().map((product, productIndex) => (
                         <TableRow key={productIndex}>
-                          <TableCell 
-                             sx={{ 
-                               backgroundColor: '#f5f5f5',
-                               fontWeight: 'bold',
-                               width: 250,
-                               minWidth: 250,
-                               height: 40,
-                               verticalAlign: 'middle',
-                               padding: '6px 12px'
-                             }}
-                           >
-                             <Typography 
-                               variant="body2" 
-                               sx={{ 
-                                 fontSize: '14px', 
-                                 fontWeight: 'bold',
-                                 whiteSpace: 'nowrap',
-                                 overflow: 'hidden',
-                                 textOverflow: 'ellipsis'
-                               }}
-                             >
-                               {product.productName}
-                             </Typography>
-                           </TableCell>
+                          {/* 行全体の色分け判定（臨時商品） */}
+                          {(() => { return null; })()}
+                          {(() => {
+                            const isTemporaryProduct = /^（臨時）/.test(product.productName);
+                            const nameCellBg = isTemporaryProduct ? '#e8f5e9' : '#f5f5f5'; // 臨時商品は薄い緑
+                            return (
+                              <TableCell 
+                                 sx={{ 
+                                   backgroundColor: nameCellBg,
+                                   fontWeight: 'bold',
+                                   width: 250,
+                                   minWidth: 250,
+                                   height: 40,
+                                   verticalAlign: 'middle',
+                                   padding: '6px 12px'
+                                 }}
+                               >
+                                 <Typography 
+                                   variant="body2" 
+                                   sx={{ 
+                                     fontSize: '14px', 
+                                     fontWeight: 'bold',
+                                     whiteSpace: 'nowrap',
+                                     overflow: 'hidden',
+                                     textOverflow: 'ellipsis'
+                                   }}
+                                 >
+                                   {product.productName}
+                                 </Typography>
+                               </TableCell>
+                            );
+                          })()}
                           {days.map((day) => {
+                            const isTemporaryProduct = /^（臨時）/.test(product.productName);
                             const quantity = product.dailyQuantities[day.date];
                             const pid = getProductIdByName(product.productName);
                             const hasSkip = (() => {
@@ -677,13 +817,24 @@ const CustomerDetail: React.FC = () => {
                             // 解約マーカー：前日が定期パターンの終了日（is_active=true）なら当日に赤い「解」を表示
                             const hasCancel = (() => {
                               if (!pid || !patterns) return false;
-                              return patterns.some(p =>
+                              // 「解」マーカーは、翌日に同一商品の別アクティブパターンが再開しない場合のみ表示（真の解約）
+                              const endsPrevDay = patterns.some(p =>
                                 p.product_id === pid && p.is_active && !!p.end_date &&
                                 moment(p.end_date).add(1, 'day').format('YYYY-MM-DD') === day.date
                               );
+                              if (!endsPrevDay) return false;
+                              const restartsToday = patterns.some(p =>
+                                p.product_id === pid && p.is_active &&
+                                moment(p.start_date).format('YYYY-MM-DD') === day.date
+                              );
+                              return endsPrevDay && !restartsToday;
                             })();
                             const baseBgColor = day.isToday ? '#fff3e0' : (day.dayOfWeek === 0 ? '#ffe6e6' : (day.dayOfWeek === 6 ? '#e6f3ff' : '#ffffff'));
-                            const cellBgColor = (!hasSkip && hasModify) ? '#fffde7' : baseBgColor; // modify時は薄い黄色
+                            let cellBgColor = (!hasSkip && hasModify) ? '#fffde7' : baseBgColor; // modify時は薄い黄色
+                            // 行全体を薄い緑に（臨時商品のとき）
+                            if (isTemporaryProduct) {
+                              cellBgColor = '#e8f5e9';
+                            }
                             return (
                               <TableCell 
                                   key={day.date}
@@ -810,14 +961,24 @@ const CustomerDetail: React.FC = () => {
         </CardContent>
       </Card>
 
-        {/* 配達パターン設定 */}
-        <DeliveryPatternManager
-          ref={dpManagerRef}
-          customerId={Number(id)}
-          patterns={patterns}
-          onPatternsChange={handlePatternsChange}
-          onTemporaryChangesUpdate={handleTemporaryChangesUpdate}
-        />
+        {/* 配達パターン設定（当月に有効期間が重なるもののみ表示） */}
+        {(() => {
+          const monthStart = currentDate.clone().startOf('month');
+          const monthEnd = currentDate.clone().endOf('month');
+          const visiblePatterns = patterns.filter(p =>
+            moment(p.start_date).isSameOrBefore(monthEnd, 'day') &&
+            (!p.end_date || moment(p.end_date).isSameOrAfter(monthStart, 'day'))
+          );
+          return (
+            <DeliveryPatternManager
+              ref={dpManagerRef}
+              customerId={Number(id)}
+              patterns={visiblePatterns}
+              onPatternsChange={handlePatternsChange}
+              onTemporaryChangesUpdate={handleTemporaryChangesUpdate}
+            />
+          );
+        })()}
 
         {/* 臨時変更管理 */}
         <TemporaryChangeManager
@@ -1006,25 +1167,102 @@ const CustomerDetail: React.FC = () => {
           <Typography variant="subtitle2" sx={{ px: 1, py: 0.5 }}>
             {selectedCell ? `${selectedCell.productName} / ${selectedCell.date}` : ''}
           </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, p: 1 }}>
             <Button size="small" onClick={() => { closeCellMenu(); openChangeQuantity(); }}>
               本数変更（当日）
             </Button>
-            <Button size="small" onClick={() => { applySkipForDay(); }}>
-              休配（当日）
+            <Button size="small" onClick={() => { closeCellMenu(); setOpenSkipDialog(true); }}>
+              休配処理
             </Button>
-            <Button size="small" onClick={handleCancelFromSelectedDate}>
+            <Button size="small" color="primary" onClick={() => { closeCellMenu(); setOpenUnskipDialog(true); }}>
+              休配解除
+            </Button>
+            <Button size="small" color="error" onClick={handleCancelFromSelectedDate}>
               解約（この日以降）
             </Button>
             <Button size="small" onClick={handleOpenPatternChange}>
               パターン変更
             </Button>
-            <Button size="small" onClick={() => { closeCellMenu(); if (selectedCell) tempChangeManagerRef.current?.openAddForDate(selectedCell.date); }}>
-              臨時商品追加（当日）
+            <Button size="small" onClick={() => { 
+              closeCellMenu(); 
+              if (selectedCell) {
+                // 配達パターン管理ダイアログを開く（開始日/臨時日を当日で初期化）
+                dpManagerRef.current?.openForPattern(undefined, selectedCell.date);
+              }
+            }}>
+              商品追加（当日）
             </Button>
           </Box>
         </Box>
       </Popover>
+
+      {/* 休配処理ダイアログ（期間入力） */}
+      <Dialog open={openSkipDialog} onClose={() => setOpenSkipDialog(false)} fullWidth maxWidth="xs">
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>休配処理（期間）</Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            {selectedCell ? `${selectedCell.productName} / 開始: ${skipStartDate || selectedCell.date}` : ''}
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <TextField
+              label="開始日"
+              type="date"
+              value={skipStartDate || (selectedCell ? selectedCell.date : '')}
+              onChange={(e) => setSkipStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+            <TextField
+              label="終了日（空=開始日のみ）"
+              type="date"
+              value={skipEndDate}
+              onChange={(e) => setSkipEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+            <Button onClick={() => setOpenSkipDialog(false)}>キャンセル</Button>
+            <Button variant="contained" onClick={async () => { await applySkipForPeriod(); setOpenSkipDialog(false); }}>
+              適用
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
+
+      {/* 休配解除ダイアログ（期間入力） */}
+      <Dialog open={openUnskipDialog} onClose={() => setOpenUnskipDialog(false)} fullWidth maxWidth="xs">
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>休配解除（期間）</Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            {selectedCell ? `${selectedCell.productName} / 開始: ${unskipStartDate || selectedCell.date}` : ''}
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <TextField
+              label="開始日"
+              type="date"
+              value={unskipStartDate || (selectedCell ? selectedCell.date : '')}
+              onChange={(e) => setUnskipStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+            <TextField
+              label="終了日（空=開始日のみ）"
+              type="date"
+              value={unskipEndDate}
+              onChange={(e) => setUnskipEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+            <Button onClick={() => setOpenUnskipDialog(false)}>キャンセル</Button>
+            <Button variant="contained" color="primary" onClick={async () => { await cancelSkipForPeriod(); setOpenUnskipDialog(false); }}>
+              解除
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
 
       {/* 本数変更ダイアログ */}
       <Dialog open={openQuantityDialog} onClose={closeChangeQuantity} fullWidth maxWidth="xs">

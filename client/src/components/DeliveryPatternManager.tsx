@@ -75,8 +75,8 @@ interface DeliveryPatternManagerProps {
 }
 
 export interface DeliveryPatternManagerHandle {
-  // 指定パターンの編集ダイアログを開く
-  openForPattern: (pattern?: DeliveryPattern) => void;
+  // 指定パターンの編集ダイアログを開く（defaultStartDate を指定可能）
+  openForPattern: (pattern?: DeliveryPattern, defaultStartDate?: string) => void;
 }
 
 const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, DeliveryPatternManagerProps>(({ 
@@ -118,7 +118,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
     }
   };
 
-  const handleOpenDialog = (pattern?: DeliveryPattern) => {
+  const handleOpenDialog = (pattern?: DeliveryPattern, defaultStartDate?: string) => {
     if (pattern) {
       setEditingPattern(pattern);
       const deliveryDays = ensureArrayDays(pattern.delivery_days);
@@ -143,6 +143,8 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
         ...pattern,
         delivery_days: deliveryDays,
         daily_quantities: dailyQuantities,
+        // 開始日はセルクリック日を優先（指定があれば）
+        start_date: defaultStartDate || pattern.start_date,
       });
     } else {
       setEditingPattern(null);
@@ -153,17 +155,21 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
         unit_price: 0,
         delivery_days: [],
         daily_quantities: {},
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: defaultStartDate || new Date().toISOString().split('T')[0],
         is_active: true,
       });
+    }
+    // 臨時配達の場合の初期日付もセルクリック日を優先
+    if (defaultStartDate) {
+      setTemporaryDate(defaultStartDate);
     }
     setOpenDialog(true);
   };
 
   // 外部からダイアログを開くためのハンドル
   useImperativeHandle(ref, () => ({
-    openForPattern: (pattern?: DeliveryPattern) => {
-      handleOpenDialog(pattern);
+    openForPattern: (pattern?: DeliveryPattern, defaultStartDate?: string) => {
+      handleOpenDialog(pattern, defaultStartDate);
     },
   }));
 
@@ -197,6 +203,20 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
       delivery_days: newDays,
     });
   };
+
+  // 「今契約している商品（patterns内）」を除外して表示するためのリスト（通常モード時のみ適用）
+  const contractedProductIds = new Set<number>((patterns || []).filter(p => p.is_active).map(p => p.product_id));
+  const selectableProducts = isTemporaryMode
+    ? products
+    : products.filter(prod => !contractedProductIds.has(prod.id));
+
+  // モード切替時に、通常モードへ移行した場合は契約済み商品の選択を解除
+  useEffect(() => {
+    if (!isTemporaryMode && formData.product_id && contractedProductIds.has(formData.product_id)) {
+      setFormData({ ...formData, product_id: 0 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTemporaryMode]);
 
   const handleSave = async () => {
     try {
@@ -253,12 +273,67 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
         };
 
         if (editingPattern) {
-          await axios.put(`/api/delivery-patterns/${editingPattern.id}`, dataToSend);
-          setSnackbar({
-            open: true,
-            message: '配達パターンを更新しました。',
-            severity: 'success',
-          });
+          const originalStart = editingPattern.start_date;
+          const newStart = formData.start_date || originalStart;
+
+          // JSON文字列化のユーティリティ（既存/新規で二重JSONを避ける）
+          const toDaysString = (val: any): string => {
+            if (Array.isArray(val)) return JSON.stringify(val);
+            if (typeof val === 'string') return val;
+            return '[]';
+          };
+          const toDQString = (val: any): string | null => {
+            if (!val) return null;
+            if (typeof val === 'string') return val;
+            return JSON.stringify(val);
+          };
+
+          // 新しい開始日が元の開始日より後の場合は、過去分を保持するためにパターンを分割
+          if (newStart && originalStart && new Date(newStart) > new Date(originalStart)) {
+            const oldEndDate = new Date(new Date(newStart).getTime() - 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split('T')[0];
+
+            // 1) 既存パターンを分割開始前日で終了し、履歴として非アクティブ化
+            await axios.put(`/api/delivery-patterns/${editingPattern.id}`, {
+              product_id: editingPattern.product_id,
+              quantity: editingPattern.quantity,
+              unit_price: editingPattern.unit_price,
+              delivery_days: toDaysString(editingPattern.delivery_days),
+              daily_quantities: toDQString(editingPattern.daily_quantities),
+              start_date: editingPattern.start_date,
+              end_date: oldEndDate,
+              // 過去分をカレンダーで表示させるため、履歴も is_active=1 のまま保持
+              is_active: 1,
+            });
+
+            // 2) 新パターンを新開始日で作成（フォームの設定を適用）
+            await axios.post('/api/delivery-patterns', {
+              customer_id: editingPattern.customer_id,
+              product_id: formData.product_id,
+              quantity: formData.quantity,
+              unit_price: formData.unit_price,
+              delivery_days: toDaysString(formData.delivery_days),
+              daily_quantities: toDQString(formData.daily_quantities),
+              start_date: newStart,
+              end_date: formData.end_date || null,
+              is_active: 1,
+            });
+
+            setSnackbar({
+              open: true,
+              message: '配達パターンを分割して更新しました。',
+              severity: 'success',
+            });
+          } else {
+            // 従来通りの更新（開始日が同日または前倒しの場合）
+            await axios.put(`/api/delivery-patterns/${editingPattern.id}`, dataToSend);
+            setSnackbar({
+              open: true,
+              message: '配達パターンを更新しました。',
+              severity: 'success',
+            });
+          }
         } else {
           await axios.post('/api/delivery-patterns', dataToSend);
           setSnackbar({
@@ -450,7 +525,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                     onChange={(e) => handleProductChange(Number(e.target.value))}
                     label="商品"
                   >
-                    {products.map((product) => (
+                    {selectableProducts.map((product) => (
                       <MenuItem key={product.id} value={product.id}>
                         {product.manufacturer_name} - {product.product_name}
                       </MenuItem>
