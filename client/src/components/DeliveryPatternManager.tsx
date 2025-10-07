@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   Card,
@@ -74,12 +74,17 @@ interface DeliveryPatternManagerProps {
   onTemporaryChangesUpdate?: () => void;
 }
 
-const DeliveryPatternManager: React.FC<DeliveryPatternManagerProps> = ({
+export interface DeliveryPatternManagerHandle {
+  // 指定パターンの編集ダイアログを開く
+  openForPattern: (pattern?: DeliveryPattern) => void;
+}
+
+const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, DeliveryPatternManagerProps>(({ 
   customerId,
   patterns,
   onPatternsChange,
   onTemporaryChangesUpdate,
-}) => {
+}, ref) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingPattern, setEditingPattern] = useState<DeliveryPattern | null>(null);
@@ -116,12 +121,16 @@ const DeliveryPatternManager: React.FC<DeliveryPatternManagerProps> = ({
   const handleOpenDialog = (pattern?: DeliveryPattern) => {
     if (pattern) {
       setEditingPattern(pattern);
-      const deliveryDays = typeof pattern.delivery_days === 'string' 
-        ? JSON.parse(pattern.delivery_days) 
-        : pattern.delivery_days;
+      const deliveryDays = ensureArrayDays(pattern.delivery_days);
       
       // 既存データから曜日ごとの数量を復元（daily_quantitiesがない場合は従来のquantityを使用）
-      let dailyQuantities = pattern.daily_quantities || {};
+      let dailyQuantities: { [dayOfWeek: number]: number } = {};
+      if (pattern.daily_quantities) {
+        const dq = typeof pattern.daily_quantities === 'string' ? safeParse(pattern.daily_quantities) : pattern.daily_quantities;
+        if (dq && typeof dq === 'object') {
+          dailyQuantities = dq as { [dayOfWeek: number]: number };
+        }
+      }
       if (!pattern.daily_quantities && deliveryDays.length > 0) {
         // 従来のデータの場合、全ての配達日に同じ数量を設定
         dailyQuantities = {};
@@ -150,6 +159,13 @@ const DeliveryPatternManager: React.FC<DeliveryPatternManagerProps> = ({
     }
     setOpenDialog(true);
   };
+
+  // 外部からダイアログを開くためのハンドル
+  useImperativeHandle(ref, () => ({
+    openForPattern: (pattern?: DeliveryPattern) => {
+      handleOpenDialog(pattern);
+    },
+  }));
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
@@ -288,8 +304,29 @@ const DeliveryPatternManager: React.FC<DeliveryPatternManagerProps> = ({
     }
   };
 
+  const safeParse = (val: any) => {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return val;
+    }
+  };
+
+  const ensureArrayDays = (days: any): number[] => {
+    if (Array.isArray(days)) return days as number[];
+    if (typeof days === 'string') {
+      const parsed = safeParse(days);
+      if (Array.isArray(parsed)) return parsed as number[];
+      if (typeof parsed === 'string') {
+        const parsedTwice = safeParse(parsed);
+        if (Array.isArray(parsedTwice)) return parsedTwice as number[];
+      }
+    }
+    return [];
+  };
+
   const formatDeliveryDays = (days: string | number[]) => {
-    const dayArray = typeof days === 'string' ? JSON.parse(days) : days;
+    const dayArray = ensureArrayDays(days);
     return dayArray.map((day: number) => dayNames[day]).join(', ');
   };
 
@@ -568,6 +605,6 @@ const DeliveryPatternManager: React.FC<DeliveryPatternManagerProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
 
 export default DeliveryPatternManager;

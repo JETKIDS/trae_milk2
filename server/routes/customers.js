@@ -84,6 +84,60 @@ router.get('/', (req, res) => {
   db.close();
 });
 
+// 顧客の請求設定（請求方法・端数処理）を保存
+router.put('/:id/settings', (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const { billing_method, rounding_enabled } = req.body;
+
+  // テーブルが存在しなければ作成
+  const createTableSQL = `
+    CREATE TABLE IF NOT EXISTS customer_settings (
+      customer_id INTEGER PRIMARY KEY,
+      billing_method TEXT CHECK (billing_method IN ('collection','debit')),
+      rounding_enabled INTEGER DEFAULT 1,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES customers(id)
+    )
+  `;
+
+  db.exec(createTableSQL, (createErr) => {
+    if (createErr) {
+      return res.status(500).json({ error: createErr.message });
+    }
+
+    // 顧客の存在チェック
+    db.get('SELECT id FROM customers WHERE id = ?', [customerId], (custErr, custRow) => {
+      if (custErr) {
+        return res.status(500).json({ error: custErr.message });
+      }
+      if (!custRow) {
+        return res.status(404).json({ error: '顧客が見つかりません' });
+      }
+
+      // UPSERT（INSERT or UPDATE）
+      const upsertSQL = `
+        INSERT INTO customer_settings (customer_id, billing_method, rounding_enabled, updated_at)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(customer_id) DO UPDATE SET
+          billing_method = excluded.billing_method,
+          rounding_enabled = excluded.rounding_enabled,
+          updated_at = CURRENT_TIMESTAMP
+      `;
+
+      const method = billing_method === 'debit' ? 'debit' : 'collection';
+      const rounding = typeof rounding_enabled === 'number' ? rounding_enabled : (rounding_enabled ? 1 : 0);
+
+      db.run(upsertSQL, [customerId, method, rounding], function(upsertErr) {
+        if (upsertErr) {
+          return res.status(500).json({ error: upsertErr.message });
+        }
+        return res.json({ message: '設定を保存しました', customer_id: customerId, billing_method: method, rounding_enabled: rounding });
+      });
+    });
+  });
+});
+
 // ページング版 顧客一覧取得（items + total 返却）
 router.get('/paged', (req, res) => {
   const db = getDB();
@@ -214,7 +268,7 @@ router.get('/:id', (req, res) => {
   
   // 配達パターン
   const patternsQuery = `
-    SELECT dp.*, p.product_name, p.unit_price, p.unit, m.manufacturer_name
+    SELECT dp.*, p.product_name, p.unit, m.manufacturer_name
     FROM delivery_patterns dp
     JOIN products p ON dp.product_id = p.id
     JOIN manufacturers m ON p.manufacturer_id = m.id
@@ -224,28 +278,53 @@ router.get('/:id', (req, res) => {
   db.get(customerQuery, [customerId], (err, customer) => {
     if (err) {
       res.status(500).json({ error: err.message });
+      db.close();
       return;
     }
-    
+
     if (!customer) {
       res.status(404).json({ error: '顧客が見つかりません' });
+      db.close();
       return;
     }
-    
+
     db.all(patternsQuery, [customerId], (err, patterns) => {
       if (err) {
         res.status(500).json({ error: err.message });
+        db.close();
         return;
       }
-      
-      res.json({
-        customer,
-        patterns
+      // 顧客設定（請求方法・端数処理）も返却
+      const settingsQuery = `
+        CREATE TABLE IF NOT EXISTS customer_settings (
+          customer_id INTEGER PRIMARY KEY,
+          billing_method TEXT CHECK (billing_method IN ('collection','debit')),
+          rounding_enabled INTEGER DEFAULT 1,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (customer_id) REFERENCES customers(id)
+        )
+      `;
+
+      db.exec(settingsQuery, (createErr) => {
+        if (createErr) {
+          console.error('顧客設定テーブル作成エラー:', createErr);
+        }
+        db.get('SELECT billing_method, rounding_enabled FROM customer_settings WHERE customer_id = ?', [customerId], (settingsErr, settingsRow) => {
+          if (settingsErr) {
+            res.status(500).json({ error: settingsErr.message });
+            db.close();
+            return;
+          }
+          res.json({
+            customer,
+            patterns,
+            settings: settingsRow || null
+          });
+          db.close();
+        });
       });
     });
   });
-  
-  db.close();
 });
 
 // 顧客登録
@@ -551,21 +630,20 @@ router.get('/:id/calendar/:year/:month', (req, res) => {
   
   // 指定月の配達パターンを取得
   const patternsQuery = `
-    SELECT dp.*, p.product_name, p.unit_price, p.unit, m.manufacturer_name
+    SELECT dp.*, p.product_name, p.unit, m.manufacturer_name
     FROM delivery_patterns dp
     JOIN products p ON dp.product_id = p.id
     JOIN manufacturers m ON p.manufacturer_id = m.id
     WHERE dp.customer_id = ? AND dp.is_active = 1
   `;
   
-  // 指定月の臨時配達を取得（当月のみ）
+  // 指定月の臨時変更を取得（当月のみ、add/modify/skip すべて）
   const temporaryQuery = `
     SELECT tc.*, p.product_name, p.unit_price, p.unit, m.manufacturer_name
     FROM temporary_changes tc
     JOIN products p ON tc.product_id = p.id
     JOIN manufacturers m ON p.manufacturer_id = m.id
     WHERE tc.customer_id = ? 
-      AND tc.change_type = 'add'
       AND strftime('%Y', tc.change_date) = ?
       AND strftime('%m', tc.change_date) = ?
   `;
@@ -596,6 +674,34 @@ router.get('/:id/calendar/:year/:month', (req, res) => {
 
 // カレンダー生成ヘルパー関数
 function generateMonthlyCalendar(year, month, patterns, temporaryChanges = []) {
+  const safeParse = (val) => {
+    try { return JSON.parse(val); } catch { return val; }
+  };
+  const ensureArrayDays = (days) => {
+    if (Array.isArray(days)) return days;
+    if (typeof days === 'string') {
+      const p1 = safeParse(days);
+      if (Array.isArray(p1)) return p1;
+      if (typeof p1 === 'string') {
+        const p2 = safeParse(p1);
+        if (Array.isArray(p2)) return p2;
+      }
+    }
+    return [];
+  };
+  const ensureObject = (objStr) => {
+    if (!objStr) return {};
+    if (typeof objStr === 'object') return objStr || {};
+    if (typeof objStr === 'string') {
+      const p1 = safeParse(objStr);
+      if (p1 && typeof p1 === 'object') return p1;
+      if (typeof p1 === 'string') {
+        const p2 = safeParse(p1);
+        if (p2 && typeof p2 === 'object') return p2;
+      }
+    }
+    return {};
+  };
   const startDate = moment(`${year}-${month.toString().padStart(2, '0')}-01`);
   const endDate = startDate.clone().endOf('month');
   const calendar = [];
@@ -610,37 +716,68 @@ function generateMonthlyCalendar(year, month, patterns, temporaryChanges = []) {
       products: []
     };
     
-    // 定期配達パターンの処理
-    patterns.forEach(pattern => {
-      // 開始日チェック
+    // 定期配達パターンの処理（同一商品の重複パターンが同日に存在する場合は、開始日の新しいものを優先）
+    const validPatterns = patterns.filter(pattern => {
       if (pattern.start_date && moment(currentDateStr).isBefore(moment(pattern.start_date))) {
-        return; // 開始日前はスキップ
+        return false; // 開始日前は除外
       }
-      
-      // 終了日チェック
       if (pattern.end_date && moment(currentDateStr).isAfter(moment(pattern.end_date))) {
-        return; // 終了日後はスキップ
+        return false; // 終了日後は除外
       }
-      
+      return true;
+    });
+
+    const latestByProduct = new Map(); // product_id -> pattern（開始日が最も新しいもの）
+    validPatterns.forEach(p => {
+      const key = p.product_id;
+      const existing = latestByProduct.get(key);
+      if (!existing || moment(p.start_date).isAfter(moment(existing.start_date))) {
+        latestByProduct.set(key, p);
+      }
+    });
+
+    Array.from(latestByProduct.values()).forEach(pattern => {
       let quantity = 0;
-      
-      // daily_quantitiesがある場合はそれを使用
+
+      // daily_quantitiesがある場合はそれを使用（2重JSONにも対応）
       if (pattern.daily_quantities) {
-        try {
-          const dailyQuantities = JSON.parse(pattern.daily_quantities);
-          quantity = dailyQuantities[dayOfWeek] || 0;
-        } catch (e) {
-          console.error('daily_quantitiesのパースに失敗:', e);
-          quantity = 0;
-        }
+        const dailyQuantities = ensureObject(pattern.daily_quantities);
+        quantity = dailyQuantities[dayOfWeek] || 0;
       } else {
-        // 従来の方式（後方互換性）
-        const deliveryDays = JSON.parse(pattern.delivery_days || '[]');
+        // 従来の方式（後方互換性、2重JSONにも対応）
+        const deliveryDays = ensureArrayDays(pattern.delivery_days || []);
         if (deliveryDays.includes(dayOfWeek)) {
           quantity = pattern.quantity || 0;
         }
       }
-      
+
+      // 当日・該当商品の臨時変更を適用（skip/modify）
+      const dayChangesForProduct = temporaryChanges
+        .filter(tc => tc.change_date === currentDateStr && tc.product_id === pattern.product_id);
+
+      // skip が存在すれば数量は0（最優先）
+      const hasSkip = dayChangesForProduct.some(tc => tc.change_type === 'skip');
+      if (hasSkip) {
+        quantity = 0;
+      } else {
+        // 最新のmodify（created_atが新しいものを優先）を適用
+        const modifyChanges = dayChangesForProduct
+          .filter(tc => tc.change_type === 'modify' && tc.quantity !== null && tc.quantity !== undefined)
+          .sort((a, b) => {
+            const ad = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const bd = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return bd - ad; // desc
+          });
+        if (modifyChanges.length > 0) {
+          const latestModify = modifyChanges[0];
+          quantity = Number(latestModify.quantity) || 0;
+          // 単価の臨時変更がある場合はそれも適用（指定があれば）
+          if (latestModify.unit_price !== null && latestModify.unit_price !== undefined) {
+            pattern.unit_price = latestModify.unit_price;
+          }
+        }
+      }
+
       if (quantity > 0) {
         dayData.products.push({
           productName: pattern.product_name,
@@ -652,9 +789,13 @@ function generateMonthlyCalendar(year, month, patterns, temporaryChanges = []) {
       }
     });
     
-    // 臨時配達の処理（当月のみ）
+    // 臨時配達（add）の処理（当月のみ）：通常配達とは別枠で表示
     temporaryChanges.forEach(tempChange => {
-      if (tempChange.change_date === currentDateStr && tempChange.quantity > 0) {
+      if (
+        tempChange.change_date === currentDateStr &&
+        tempChange.change_type === 'add' &&
+        tempChange.quantity > 0
+      ) {
         dayData.products.push({
           productName: `（臨時）${tempChange.product_name}`,
           quantity: tempChange.quantity,

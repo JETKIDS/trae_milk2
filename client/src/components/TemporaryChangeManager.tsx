@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   Card,
@@ -69,11 +69,15 @@ interface TemporaryChangeManagerProps {
   onChangesUpdate: () => void;
 }
 
-const TemporaryChangeManager: React.FC<TemporaryChangeManagerProps> = ({
+export interface TemporaryChangeManagerHandle {
+  openAddForDate: (date: string) => void;
+}
+
+const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, TemporaryChangeManagerProps>(({ 
   customerId,
   changes,
   onChangesUpdate,
-}) => {
+}, ref) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingChange, setEditingChange] = useState<TemporaryChange | null>(null);
@@ -115,6 +119,21 @@ const TemporaryChangeManager: React.FC<TemporaryChangeManagerProps> = ({
     }
     setOpenDialog(true);
   };
+
+  // 外部から「臨時商品追加」ダイアログを開くためのハンドル
+  useImperativeHandle(ref, () => ({
+    openAddForDate: (date: string) => {
+      setEditingChange(null);
+      setFormData({
+        customer_id: customerId,
+        change_date: date,
+        change_type: 'add',
+        quantity: 1,
+        unit_price: 0,
+      });
+      setOpenDialog(true);
+    },
+  }));
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
@@ -427,6 +446,6 @@ const TemporaryChangeManager: React.FC<TemporaryChangeManagerProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
 
 export default TemporaryChangeManager;

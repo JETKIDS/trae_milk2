@@ -70,6 +70,11 @@ const ProductSummaryTab: React.FC = () => {
     const saved = localStorage.getItem('deliveryList_autoFetch');
     return saved !== null ? JSON.parse(saved) : true;
   });
+  // 休配反映フラグ（localStorageから復元）
+  const [reflectSkips, setReflectSkips] = useState<boolean>(() => {
+    const saved = localStorage.getItem('deliveryList_reflectSkips');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
 
   // メーカー一覧を取得
   const fetchManufacturers = async () => {
@@ -108,6 +113,52 @@ const ProductSummaryTab: React.FC = () => {
     }
   };
 
+  // 指定期間・対象顧客の臨時変更（休配等）を取得
+  const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
+    try {
+      const allChanges: any[] = [];
+      for (const cid of customerIds) {
+        const res = await fetch(`http://localhost:9000/api/temporary-changes/customer/${cid}/period/${start}/${end}`);
+        if (!res.ok) {
+          throw new Error(`顧客ID ${cid} の臨時変更取得に失敗しました`);
+        }
+        const rows = await res.json();
+        if (Array.isArray(rows)) {
+          allChanges.push(...rows);
+        }
+      }
+      return allChanges;
+    } catch (e) {
+      console.warn('臨時変更データの取得に失敗しました。休配反映はスキップされます:', e);
+      return [];
+    }
+  };
+
+  // 休配判定用のヘルパー
+  const buildSkipMap = (changes: any[]) => {
+    const map = new Map<string, Set<string>>();
+    changes.filter(c => c.change_type === 'skip').forEach((c: any) => {
+      const key = `${c.change_date}-${c.customer_id}`;
+      const set = map.get(key) || new Set<string>();
+      if (c.product_id && Number.isFinite(Number(c.product_id))) {
+        set.add(String(c.product_id));
+      } else {
+        set.add('ALL');
+      }
+      map.set(key, set);
+    });
+    return map;
+  };
+
+  const isSkipped = (skipMap: Map<string, Set<string>>, date: string, customerId: number, productId?: number) => {
+    const key = `${date}-${customerId}`;
+    const set = skipMap.get(key);
+    if (!set) return false;
+    if (set.has('ALL')) return true;
+    if (productId !== undefined && set.has(String(productId))) return true;
+    return false;
+  };
+
   // 商品合計データを取得
   const fetchSummaryData = async () => {
     if (!startDate || days <= 0) return;
@@ -119,55 +170,146 @@ const ProductSummaryTab: React.FC = () => {
       const manufacturerParam = selectedManufacturer === 'all' ? '' : `&manufacturer=${selectedManufacturer}`;
       
       // コース別表示モードかどうかで使用するAPIエンドポイントを切り替え
-      if (selectedCourse === 'all-by-course') {
-        // コース別商品合計データを取得
-        const response = await fetch(`http://localhost:9000/api/delivery/products/summary-by-course?startDate=${startDate}&endDate=${endDate}${manufacturerParam}`);
-        
-        if (!response.ok) {
-          throw new Error('コース別商品合計データの取得に失敗しました');
+      if (!reflectSkips) {
+        if (selectedCourse === 'all-by-course') {
+          const response = await fetch(`http://localhost:9000/api/delivery/products/summary-by-course?startDate=${startDate}&endDate=${endDate}${manufacturerParam}`);
+          if (!response.ok) throw new Error('コース別商品合計データの取得に失敗しました');
+          const data = await response.json();
+          const formattedData = {
+            startDate: data.startDate,
+            endDate: data.endDate,
+            days: days,
+            course: 'all-by-course',
+            manufacturer: data.manufacturer,
+            courses: data.courses || [],
+            total_quantity: data.overall_summary?.total_quantity || 0,
+            total_amount: data.overall_summary?.total_amount || 0,
+            isByCourse: true
+          };
+          setSummaryData(formattedData);
+        } else {
+          const courseParam = selectedCourse === 'all' ? '' : `&courseId=${selectedCourse}`;
+          const response = await fetch(`http://localhost:9000/api/delivery/products/summary?startDate=${startDate}&endDate=${endDate}${courseParam}${manufacturerParam}`);
+          if (!response.ok) throw new Error('商品合計データの取得に失敗しました');
+          const data = await response.json();
+          const formattedData = {
+            startDate: data.startDate,
+            endDate: data.endDate,
+            days: days,
+            course: data.courseId,
+            manufacturer: data.manufacturer,
+            products: data.products || [],
+            total_quantity: data.summary?.total_quantity || 0,
+            total_amount: data.summary?.total_amount || 0,
+            isByCourse: false
+          };
+          setSummaryData(formattedData);
         }
-        
-        const data = await response.json();
-        
-        // コース別データの形式に合わせてデータを整形
-        const formattedData = {
-          startDate: data.startDate,
-          endDate: data.endDate,
-          days: days,
-          course: 'all-by-course',
-          manufacturer: data.manufacturer,
-          courses: data.courses || [],
-          total_quantity: data.overall_summary?.total_quantity || 0,
-          total_amount: data.overall_summary?.total_amount || 0,
-          isByCourse: true // コース別表示フラグ
-        };
-        
-        setSummaryData(formattedData);
       } else {
-        // 通常の商品合計データを取得
-        const courseParam = selectedCourse === 'all' ? '' : `&courseId=${selectedCourse}`;
-        const response = await fetch(`http://localhost:9000/api/delivery/products/summary?startDate=${startDate}&endDate=${endDate}${courseParam}${manufacturerParam}`);
-        
-        if (!response.ok) {
-          throw new Error('商品合計データの取得に失敗しました');
+        const courseParam = selectedCourse === 'all' || selectedCourse === 'all-by-course' ? '' : `&courseId=${selectedCourse}`;
+        const periodRes = await fetch(`http://localhost:9000/api/delivery/period?startDate=${startDate}&endDate=${endDate}${courseParam}`);
+        if (!periodRes.ok) throw new Error('配達データの取得に失敗しました');
+        const periodData = await periodRes.json();
+        const deliveriesByCourse = periodData.deliveries || {};
+        // 期間内に含まれる顧客ID一覧を抽出
+        const customerIdSet = new Set<number>();
+        Object.values(deliveriesByCourse).forEach((courseData: any) => {
+          const dayArrays = Object.values(courseData) as any[];
+          dayArrays.forEach((dayData: any) => {
+            const customers = dayData as any[];
+            customers.forEach((customer: any) => {
+              if (customer && typeof customer.customer_id === 'number') {
+                customerIdSet.add(customer.customer_id);
+              }
+            });
+          });
+        });
+        const changes = await fetchTemporaryChangesInRange(startDate, endDate, Array.from(customerIdSet));
+        const skipMap = buildSkipMap(changes);
+
+        const aggregateAll = selectedCourse !== 'all-by-course';
+        const manufacturerFilter = selectedManufacturer === 'all' ? null : String(selectedManufacturer);
+        const overallSummary = { total_quantity: 0, total_amount: 0 };
+
+        if (aggregateAll) {
+          const productAgg = new Map<string, { product_name: string; manufacturer_name: string; unit: string; total_quantity: number; total_amount: number }>();
+          Object.entries(deliveriesByCourse).forEach(([courseName, courseData]: [string, any]) => {
+            Object.entries(courseData).forEach(([date, customers]: [string, any]) => {
+              customers.forEach((customer: any) => {
+                (customer.products || []).forEach((product: any) => {
+                  // メーカー絞り込みはサーバーのperiodレスポンスにメーカーIDが含まれていないため保留
+                  // （必要であれば別APIで製品→メーカー紐付けを取得してフィルタリングする）
+                  const skipped = isSkipped(skipMap, date, customer.customer_id, product.product_id);
+                  const qty = skipped ? 0 : (product.quantity || 0);
+                  const amount = skipped ? 0 : (product.amount || 0);
+                  const key = `${product.product_id}`;
+                  const prev = productAgg.get(key) || { product_name: product.product_name, manufacturer_name: product.manufacturer_name || '', unit: product.unit, total_quantity: 0, total_amount: 0 };
+                  prev.total_quantity += qty;
+                  prev.total_amount += amount;
+                  productAgg.set(key, prev);
+                  overallSummary.total_quantity += qty;
+                  overallSummary.total_amount += amount;
+                });
+              });
+            });
+          });
+          const products = Array.from(productAgg.values());
+          setSummaryData({
+            startDate,
+            endDate,
+            days,
+            course: selectedCourse,
+            manufacturer: selectedManufacturer,
+            products,
+            total_quantity: overallSummary.total_quantity,
+            total_amount: overallSummary.total_amount,
+            isByCourse: false
+          });
+        } else {
+          const coursesArr: any[] = [];
+          let overallQty = 0;
+          let overallAmt = 0;
+          Object.entries(deliveriesByCourse).forEach(([courseName, courseData]: [string, any]) => {
+            const productAgg = new Map<string, { product_name: string; manufacturer_name: string; unit: string; total_quantity: number; total_amount: number }>();
+            Object.entries(courseData).forEach(([date, customers]: [string, any]) => {
+              customers.forEach((customer: any) => {
+                (customer.products || []).forEach((product: any) => {
+                  // メーカー絞り込みはサーバーのperiodレスポンスにメーカーIDが含まれていないため保留
+                  const skipped = isSkipped(skipMap, date, customer.customer_id, product.product_id);
+                  const qty = skipped ? 0 : (product.quantity || 0);
+                  const amount = skipped ? 0 : (product.amount || 0);
+                  const key = `${product.product_id}`;
+                  const prev = productAgg.get(key) || { product_name: product.product_name, manufacturer_name: product.manufacturer_name || '', unit: product.unit, total_quantity: 0, total_amount: 0 };
+                  prev.total_quantity += qty;
+                  prev.total_amount += amount;
+                  productAgg.set(key, prev);
+                });
+              });
+            });
+            const products = Array.from(productAgg.values());
+            const courseTotalQty = products.reduce((sum, p) => sum + p.total_quantity, 0);
+            const courseTotalAmt = products.reduce((sum, p) => sum + p.total_amount, 0);
+            overallQty += courseTotalQty;
+            overallAmt += courseTotalAmt;
+            coursesArr.push({
+              course_id: null,
+              course_name: courseName,
+              products,
+              summary: { total_quantity: courseTotalQty, total_amount: courseTotalAmt }
+            });
+          });
+          setSummaryData({
+            startDate,
+            endDate,
+            days,
+            course: 'all-by-course',
+            manufacturer: selectedManufacturer,
+            courses: coursesArr,
+            total_quantity: overallQty,
+            total_amount: overallAmt,
+            isByCourse: true
+          });
         }
-        
-        const data = await response.json();
-        
-        // APIレスポンスの形式に合わせてデータを整形
-        const formattedData = {
-          startDate: data.startDate,
-          endDate: data.endDate,
-          days: days,
-          course: data.courseId,
-          manufacturer: data.manufacturer,
-          products: data.products || [],
-          total_quantity: data.summary?.total_quantity || 0,
-          total_amount: data.summary?.total_amount || 0,
-          isByCourse: false // 通常表示フラグ
-        };
-        
-        setSummaryData(formattedData);
       }
     } catch (error: any) {
       console.error('商品合計データの取得エラー:', error);
@@ -195,7 +337,7 @@ const ProductSummaryTab: React.FC = () => {
     if (autoFetch) {
       fetchSummaryData();
     }
-  }, [startDate, days, selectedCourse, selectedManufacturer, autoFetch]);
+  }, [startDate, days, selectedCourse, selectedManufacturer, autoFetch, reflectSkips]);
 
   // 今日の日付に設定
   const handleToday = () => {
@@ -316,6 +458,21 @@ const ProductSummaryTab: React.FC = () => {
                 />
               }
               label="自動集計"
+              sx={{ mr: 1 }}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={reflectSkips}
+                  onChange={(e) => {
+                    const v = e.target.checked;
+                    setReflectSkips(v);
+                    localStorage.setItem('deliveryList_reflectSkips', JSON.stringify(v));
+                  }}
+                  size="small"
+                />
+              }
+              label="休配反映"
               sx={{ mr: 1 }}
             />
             <Button
@@ -560,6 +717,7 @@ const PeriodDeliveryListTab: React.FC = () => {
   const [deliverySummary, setDeliverySummary] = useState<any>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [skipMap, setSkipMap] = useState<Map<string, Set<string>>>(new Map());
   // ローカルストレージから自動計算設定を読み込み（配達リストタブ用）
   const [autoFetch, setAutoFetch] = useState<boolean>(() => {
     const saved = localStorage.getItem('deliveryListTab_autoFetch');
@@ -593,6 +751,51 @@ const PeriodDeliveryListTab: React.FC = () => {
     }
   };
 
+  // 臨時変更を取得（期間・顧客ごと）
+  const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
+    try {
+      const changes: any[] = [];
+      for (const cid of customerIds) {
+        const res = await fetch(`http://localhost:9000/api/temporary-changes/customer/${cid}/period/${start}/${end}`);
+        if (!res.ok) {
+          throw new Error(`顧客ID ${cid} の臨時変更取得に失敗しました`);
+        }
+        const rows = await res.json();
+        if (Array.isArray(rows)) {
+          changes.push(...rows);
+        }
+      }
+      return changes;
+    } catch (e) {
+      console.warn('臨時変更データの取得に失敗しました。休配反映はスキップされます:', e);
+      return [];
+    }
+  };
+
+  const buildSkipMap = (changes: any[]) => {
+    const map = new Map<string, Set<string>>();
+    changes.filter(c => c.change_type === 'skip').forEach((c: any) => {
+      const key = `${c.change_date}-${c.customer_id}`;
+      const set = map.get(key) || new Set<string>();
+      if (c.product_id && Number.isFinite(Number(c.product_id))) {
+        set.add(String(c.product_id));
+      } else {
+        set.add('ALL');
+      }
+      map.set(key, set);
+    });
+    return map;
+  };
+
+  const isSkipped = (date: string, customerId: number, productId?: number) => {
+    const key = `${date}-${customerId}`;
+    const set = skipMap.get(key);
+    if (!set) return false;
+    if (set.has('ALL')) return true;
+    if (productId !== undefined && set.has(String(productId))) return true;
+    return false;
+  };
+
   // 配達データを取得する関数
   const fetchDeliveryData = async () => {
     if (!startDate || days <= 0) return;
@@ -610,8 +813,44 @@ const PeriodDeliveryListTab: React.FC = () => {
       }
 
       const data = await response.json();
-      setDeliveryData(data.deliveries || {});
-      setDeliverySummary(data.summary || {});
+      const deliveries = data.deliveries || {};
+      setDeliveryData(deliveries);
+      // 休配反映用に臨時変更を取得（対象顧客のみ）
+      const customerIdSet = new Set<number>();
+      Object.values(deliveries).forEach((courseData: any) => {
+        const dayArrays = Object.values(courseData) as any[];
+        dayArrays.forEach((dayData: any) => {
+          const customers = dayData as any[];
+          customers.forEach((customer: any) => {
+            if (customer && typeof customer.customer_id === 'number') {
+              customerIdSet.add(customer.customer_id);
+            }
+          });
+        });
+      });
+      const changes = await fetchTemporaryChangesInRange(startDate, endDate, Array.from(customerIdSet));
+      const newSkipMap = buildSkipMap(changes);
+      setSkipMap(newSkipMap);
+      // 休配を反映した総数量を再計算
+      let totalQty = 0;
+      Object.entries(deliveries).forEach(([courseName, courseData]: [string, any]) => {
+        Object.entries(courseData).forEach(([date, customers]: [string, any]) => {
+          customers.forEach((customer: any) => {
+            (customer.products || []).forEach((product: any) => {
+              const skipped = (() => {
+                const key = `${date}-${customer.customer_id}`;
+                const set = newSkipMap.get(key);
+                if (!set) return false;
+                if (set.has('ALL')) return true;
+                return set.has(String(product.product_id));
+              })();
+              const qty = skipped ? 0 : (product.quantity || 0);
+              totalQty += qty;
+            });
+          });
+        });
+      });
+      setDeliverySummary({ ...data.summary, total_quantity: totalQty });
     } catch (err) {
       console.error('配達データ取得エラー:', err);
       setError(err instanceof Error ? err.message : '配達データの取得に失敗しました');
@@ -925,9 +1164,12 @@ const PeriodDeliveryListTab: React.FC = () => {
                                 </TableCell>
                                 {allDates.map(date => {
                                   const quantity = customerProduct.dateQuantities[date];
+                                  const skipped = isSkipped(date, customerProduct.customer_id, customerProduct.product_id);
                                   return (
                                     <TableCell key={date} align="center">
-                                      {quantity ? (
+                                      {skipped ? (
+                                        <Chip label="休" size="small" sx={{ bgcolor: '#ffebee', color: 'red', border: '1px solid #ffcdd2' }} />
+                                      ) : quantity ? (
                                         <Typography variant="body2" fontWeight="bold">
                                           {quantity}
                                         </Typography>
