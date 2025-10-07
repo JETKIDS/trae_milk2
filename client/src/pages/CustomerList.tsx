@@ -305,7 +305,19 @@ const CustomerList: React.FC = () => {
 
             const customer = customers[index];
             return (
-              <Box style={style} sx={{ px: 2, display: 'grid', gridTemplateColumns: '120px 1fr 150px 1fr 140px 140px 100px', alignItems: 'center', borderBottom: '1px solid #eee' }}>
+              <Box
+                style={style}
+                sx={{
+                  px: 2,
+                  display: 'grid',
+                  gridTemplateColumns: '120px 1fr 150px 1fr 140px 140px 100px',
+                  alignItems: 'center',
+                  borderBottom: '1px solid #eee',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: '#f9f9f9' },
+                }}
+                onClick={() => handleViewCustomer(customer.id)}
+              >
                 <Box>
                   <Chip label={customer.custom_id || `#${customer.id}`} variant="outlined" size="small" />
                 </Box>
@@ -326,7 +338,14 @@ const CustomerList: React.FC = () => {
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="body2">{customer.contract_start_date}</Typography>
-                  <Button size="small" startIcon={<VisibilityIcon />} onClick={() => handleViewCustomer(customer.id)}>
+                  <Button
+                    size="small"
+                    startIcon={<VisibilityIcon />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewCustomer(customer.id);
+                    }}
+                  >
                     詳細
                   </Button>
                 </Box>

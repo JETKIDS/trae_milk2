@@ -72,6 +72,7 @@ interface DeliveryPatternManagerProps {
   patterns: DeliveryPattern[];
   onPatternsChange: () => void;
   onTemporaryChangesUpdate?: () => void;
+  onRecordUndo?: (action: { description: string; revert: () => Promise<void> } | { description: string; revert: () => Promise<void> }[]) => void;
 }
 
 export interface DeliveryPatternManagerHandle {
@@ -84,6 +85,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
   patterns,
   onPatternsChange,
   onTemporaryChangesUpdate,
+  onRecordUndo,
 }, ref) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
@@ -241,7 +243,16 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
           reason: '臨時配達'
         };
 
-        await axios.post('/api/temporary-changes', temporaryData);
+        const res = await axios.post('/api/temporary-changes', temporaryData);
+        const createdTempId = res?.data?.id as number | undefined;
+        if (createdTempId && onRecordUndo) {
+          onRecordUndo({
+            description: '臨時配達の追加を元に戻す',
+            revert: async () => {
+              await axios.delete(`/api/temporary-changes/${createdTempId}`);
+            },
+          });
+        }
         setSnackbar({
           open: true,
           message: '臨時配達を追加しました。',
@@ -308,7 +319,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
             });
 
             // 2) 新パターンを新開始日で作成（フォームの設定を適用）
-            await axios.post('/api/delivery-patterns', {
+            const createRes = await axios.post('/api/delivery-patterns', {
               customer_id: editingPattern.customer_id,
               product_id: formData.product_id,
               quantity: formData.quantity,
@@ -319,6 +330,35 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
               end_date: formData.end_date || null,
               is_active: 1,
             });
+            const newPatternId = createRes?.data?.id as number | undefined;
+            if (onRecordUndo && newPatternId) {
+              const prevEnd = editingPattern.end_date || null;
+              const prevActive = editingPattern.is_active ? 1 : 0;
+              onRecordUndo({
+                description: '配達パターン分割の取り消し',
+                revert: async () => {
+                  try {
+                    await axios.delete(`/api/delivery-patterns/${newPatternId}`);
+                  } catch (e) {
+                    console.error('新規パターン削除（Undo）に失敗:', e);
+                  }
+                  try {
+                    await axios.put(`/api/delivery-patterns/${editingPattern.id}`, {
+                      product_id: editingPattern.product_id,
+                      quantity: editingPattern.quantity,
+                      unit_price: editingPattern.unit_price,
+                      delivery_days: toDaysString(editingPattern.delivery_days),
+                      daily_quantities: toDQString(editingPattern.daily_quantities),
+                      start_date: editingPattern.start_date,
+                      end_date: prevEnd,
+                      is_active: prevActive,
+                    });
+                  } catch (e) {
+                    console.error('既存パターン復元（Undo）に失敗:', e);
+                  }
+                },
+              });
+            }
 
             setSnackbar({
               open: true,
@@ -328,6 +368,29 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
           } else {
             // 従来通りの更新（開始日が同日または前倒しの場合）
             await axios.put(`/api/delivery-patterns/${editingPattern.id}`, dataToSend);
+            if (onRecordUndo) {
+              const prevEnd = editingPattern.end_date || null;
+              const prevActive = editingPattern.is_active ? 1 : 0;
+              onRecordUndo({
+                description: '配達パターン更新の取り消し',
+                revert: async () => {
+                  try {
+                    await axios.put(`/api/delivery-patterns/${editingPattern.id}`, {
+                      product_id: editingPattern.product_id,
+                      quantity: editingPattern.quantity,
+                      unit_price: editingPattern.unit_price,
+                      delivery_days: toDaysString(editingPattern.delivery_days),
+                      daily_quantities: toDQString(editingPattern.daily_quantities),
+                      start_date: editingPattern.start_date,
+                      end_date: prevEnd,
+                      is_active: prevActive,
+                    });
+                  } catch (e) {
+                    console.error('配達パターン更新のUndoに失敗:', e);
+                  }
+                },
+              });
+            }
             setSnackbar({
               open: true,
               message: '配達パターンを更新しました。',
@@ -335,7 +398,16 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
             });
           }
         } else {
-          await axios.post('/api/delivery-patterns', dataToSend);
+          const res = await axios.post('/api/delivery-patterns', dataToSend);
+          const createdId = res?.data?.id as number | undefined;
+          if (createdId && onRecordUndo) {
+            onRecordUndo({
+              description: '配達パターン追加の取り消し',
+              revert: async () => {
+                await axios.delete(`/api/delivery-patterns/${createdId}`);
+              },
+            });
+          }
           setSnackbar({
             open: true,
             message: '配達パターンを追加しました。',
@@ -362,7 +434,40 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
     }
 
     try {
+      const deleted = patterns.find(p => p.id === patternId);
       await axios.delete(`/api/delivery-patterns/${patternId}`);
+      if (deleted && onRecordUndo) {
+        const toDaysString = (val: any): string => {
+          if (Array.isArray(val)) return JSON.stringify(val);
+          if (typeof val === 'string') return val;
+          return '[]';
+        };
+        const toDQString = (val: any): string | null => {
+          if (!val) return null;
+          if (typeof val === 'string') return val;
+          return JSON.stringify(val);
+        };
+        onRecordUndo({
+          description: '配達パターン削除の取り消し',
+          revert: async () => {
+            try {
+              await axios.post('/api/delivery-patterns', {
+                customer_id: deleted.customer_id,
+                product_id: deleted.product_id,
+                quantity: deleted.quantity,
+                unit_price: deleted.unit_price,
+                delivery_days: toDaysString(deleted.delivery_days),
+                daily_quantities: toDQString(deleted.daily_quantities),
+                start_date: deleted.start_date,
+                end_date: deleted.end_date || null,
+                is_active: deleted.is_active ? 1 : 0,
+              });
+            } catch (e) {
+              console.error('配達パターン再作成（Undo）に失敗:', e);
+            }
+          },
+        });
+      }
       setSnackbar({
         open: true,
         message: '配達パターンを削除しました。',

@@ -28,6 +28,7 @@ import {
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon,
   Edit as EditIcon,
+  Undo as UndoIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import moment from 'moment';
@@ -108,6 +109,12 @@ interface MonthDay {
   isToday: boolean;
 }
 
+// Undo アクションの型
+interface UndoAction {
+  description: string;
+  revert: () => Promise<void>;
+}
+
 const CustomerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -136,6 +143,20 @@ const CustomerDetail: React.FC = () => {
   const [billingMethod, setBillingMethod] = useState<'collection' | 'debit'>('collection');
   const [openBankInfo, setOpenBankInfo] = useState(false);
 
+  // Undo スタック
+  const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
+  const pushUndo = (action: UndoAction) => {
+    setUndoStack(prev => [...prev, action]);
+  };
+  // 子コンポーネント（配達パターン管理など）からのUndo記録用ヘルパー
+  const recordUndoFromChild = (action: UndoAction | UndoAction[]) => {
+    if (Array.isArray(action)) {
+      action.forEach(a => pushUndo(a));
+    } else {
+      pushUndo(action);
+    }
+  };
+
   // カレンダーセル編集用の状態
   const [cellMenuAnchor, setCellMenuAnchor] = useState<HTMLElement | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ date: string; productName: string; quantity?: number } | null>(null);
@@ -150,6 +171,20 @@ const CustomerDetail: React.FC = () => {
   // 休配・休配解除の期間入力ダイアログ
   const [openSkipDialog, setOpenSkipDialog] = useState<boolean>(false);
   const [openUnskipDialog, setOpenUnskipDialog] = useState<boolean>(false);
+
+  const handleUndo = async () => {
+    if (undoStack.length === 0) return;
+    const last = undoStack[undoStack.length - 1];
+    try {
+      await last.revert();
+    } catch (err) {
+      console.error('元に戻すの実行に失敗しました:', err);
+    } finally {
+      setUndoStack(prev => prev.slice(0, prev.length - 1));
+      await fetchCalendarData();
+      await handlePatternsChange();
+    }
+  };
 
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -227,6 +262,8 @@ const CustomerDetail: React.FC = () => {
     // 確認ダイアログ
     const ok = window.confirm('この日以降の配達を解約します。過去分は残ります。よろしいですか？');
     if (!ok) return;
+    const prevEndDate = pattern.end_date;
+    const prevActive = pattern.is_active ? 1 : 0;
     const endDate = moment(selectedCell.date).subtract(1, 'day').format('YYYY-MM-DD');
     try {
       await axios.put(`/api/delivery-patterns/${pattern.id}`, {
@@ -239,6 +276,23 @@ const CustomerDetail: React.FC = () => {
         end_date: endDate,
         // is_active は保持（true のまま）して過去分を表示対象にする
         is_active: true,
+      });
+      // Undo 記録：解約の取り消し（end_date を元に戻す、is_active を元の値に復元）
+      pushUndo({
+        description: '解約を元に戻す',
+        revert: async () => {
+          if (!pattern.id) return;
+          await axios.put(`/api/delivery-patterns/${pattern.id}`, {
+            product_id: pattern.product_id,
+            quantity: pattern.quantity,
+            unit_price: pattern.unit_price,
+            delivery_days: pattern.delivery_days,
+            daily_quantities: pattern.daily_quantities || {},
+            start_date: pattern.start_date,
+            end_date: prevEndDate || null,
+            is_active: prevActive,
+          });
+        },
       });
       closeCellMenu();
       // パターンとカレンダーの再取得
@@ -327,8 +381,9 @@ const CustomerDetail: React.FC = () => {
   const postTemporaryChange = async (
     change_type: 'modify' | 'skip' | 'add',
     payload: { product_id: number | null; quantity?: number; unit_price?: number },
-    overrideDate?: string
-  ) => {
+    overrideDate?: string,
+    recordUndo: boolean = true
+  ): Promise<number | undefined> => {
     if (!selectedCell) return;
     const product_id = payload.product_id ?? getProductIdByName(selectedCell.productName);
     if (!product_id) {
@@ -336,7 +391,7 @@ const CustomerDetail: React.FC = () => {
       return;
     }
     try {
-      await axios.post('/api/temporary-changes', {
+      const res = await axios.post('/api/temporary-changes', {
         customer_id: Number(id),
         change_date: overrideDate || selectedCell.date,
         change_type,
@@ -345,11 +400,22 @@ const CustomerDetail: React.FC = () => {
         unit_price: payload.unit_price ?? null,
         reason: null,
       });
+      const createdId: number | undefined = res?.data?.id;
+      if (recordUndo && createdId) {
+        pushUndo({
+          description: '臨時変更の取り消し',
+          revert: async () => {
+            await axios.delete(`/api/temporary-changes/${createdId}`);
+          },
+        });
+      }
       closeCellMenu();
       closeChangeQuantity();
       fetchCalendarData();
+      return createdId;
     } catch (err) {
       console.error('臨時変更の保存に失敗しました:', err);
+      return undefined;
     }
   };
 
@@ -408,14 +474,30 @@ const CustomerDetail: React.FC = () => {
     if (!productId) return;
 
     const dates = enumerateDates(start, end);
+    const createdIds: number[] = [];
     for (const ds of dates) {
       if (isScheduledDeliveryDay(productId, ds)) {
-        await postTemporaryChange('skip', { product_id: productId, quantity: 0 }, ds);
+        const idCreated = await postTemporaryChange('skip', { product_id: productId, quantity: 0 }, ds, false);
+        if (idCreated) createdIds.push(idCreated);
       }
     }
     setSkipStartDate('');
     setSkipEndDate('');
     await fetchCalendarData();
+    if (createdIds.length > 0) {
+      pushUndo({
+        description: '休配（期間）の取り消し',
+        revert: async () => {
+          for (const tid of createdIds) {
+            try {
+              await axios.delete(`/api/temporary-changes/${tid}`);
+            } catch (e) {
+              console.error('休配（期間）取り消しの一部削除に失敗:', e);
+            }
+          }
+        },
+      });
+    }
   };
 
   // 休配解除：開始日〜終了日の範囲で、この商品の skip を削除（終了日が空なら当日のみ）
@@ -430,6 +512,16 @@ const CustomerDetail: React.FC = () => {
       const res = await axios.get(`/api/temporary-changes/customer/${id}/period/${start}/${end}`);
       const rows: TemporaryChange[] = res.data || [];
       const targets = rows.filter(tc => tc.change_type === 'skip' && tc.product_id === productId);
+      // 削除前に復元用データを保持
+      const restorePayloads = targets.map(t => ({
+        customer_id: Number(id),
+        change_date: t.change_date,
+        change_type: t.change_type,
+        product_id: t.product_id!,
+        quantity: t.quantity ?? 0,
+        unit_price: t.unit_price ?? null,
+        reason: t.reason ?? null,
+      }));
       for (const t of targets) {
         if (t.id) {
           await axios.delete(`/api/temporary-changes/${t.id}`);
@@ -439,6 +531,20 @@ const CustomerDetail: React.FC = () => {
       setUnskipEndDate('');
       closeCellMenu();
       await fetchCalendarData();
+      if (restorePayloads.length > 0) {
+        pushUndo({
+          description: '休配解除の取り消し',
+          revert: async () => {
+            for (const payload of restorePayloads) {
+              try {
+                await axios.post('/api/temporary-changes', payload);
+              } catch (e) {
+                console.error('休配解除の取り消し（再作成）に失敗:', e);
+              }
+            }
+          },
+        });
+      }
     } catch (err) {
       console.error('休配解除に失敗しました:', err);
     }
@@ -509,7 +615,7 @@ const CustomerDetail: React.FC = () => {
       });
 
       // 新単価の新パターンを開始月1日で作成（終了日は無期限: null）
-      await axios.post(`/api/delivery-patterns`, {
+      const createRes = await axios.post(`/api/delivery-patterns`, {
         customer_id: target.customer_id,
         product_id: target.product_id,
         quantity: target.quantity,
@@ -519,6 +625,36 @@ const CustomerDetail: React.FC = () => {
         start_date: startDate,
         end_date: null,
         is_active: 1,
+      });
+      const newPatternId: number | undefined = createRes?.data?.id as number | undefined;
+      // Undo を記録：新パターン削除 + 旧パターンの end_date/is_active を復元
+      const prevEnd = target.end_date || null;
+      const prevActive = target.is_active ? 1 : 0;
+      pushUndo({
+        description: '単価変更の取り消し',
+        revert: async () => {
+          try {
+            if (newPatternId) {
+              await axios.delete(`/api/delivery-patterns/${newPatternId}`);
+            }
+          } catch (e) {
+            console.error('新規パターン削除（Undo）に失敗:', e);
+          }
+          try {
+            await axios.put(`/api/delivery-patterns/${unitPriceChangeTargetId}`, {
+              product_id: target.product_id,
+              quantity: target.quantity,
+              unit_price: target.unit_price,
+              delivery_days: deliveryDaysStr,
+              daily_quantities: dailyQuantitiesStr,
+              start_date: target.start_date,
+              end_date: prevEnd,
+              is_active: prevActive,
+            });
+          } catch (e) {
+            console.error('既存パターン復元（Undo）に失敗:', e);
+          }
+        },
       });
 
       // 画面を更新
@@ -679,9 +815,14 @@ const CustomerDetail: React.FC = () => {
                 </Typography>
               ) : null}
             </Typography>
-            <Button startIcon={<EditIcon />} variant="outlined" onClick={handleOpenEditForm}>
-              編集
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button startIcon={<UndoIcon />} variant="outlined" onClick={handleUndo} disabled={undoStack.length === 0}>
+                元に戻す
+              </Button>
+              <Button startIcon={<EditIcon />} variant="outlined" onClick={handleOpenEditForm}>
+                編集
+              </Button>
+            </Box>
           </Box>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
@@ -976,6 +1117,7 @@ const CustomerDetail: React.FC = () => {
               patterns={visiblePatterns}
               onPatternsChange={handlePatternsChange}
               onTemporaryChangesUpdate={handleTemporaryChangesUpdate}
+              onRecordUndo={recordUndoFromChild}
             />
           );
         })()}
@@ -1168,21 +1310,15 @@ const CustomerDetail: React.FC = () => {
             {selectedCell ? `${selectedCell.productName} / ${selectedCell.date}` : ''}
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, p: 1 }}>
-            <Button size="small" onClick={() => { closeCellMenu(); openChangeQuantity(); }}>
-              本数変更（当日）
-            </Button>
-            <Button size="small" onClick={() => { closeCellMenu(); setOpenSkipDialog(true); }}>
-              休配処理
-            </Button>
-            <Button size="small" color="primary" onClick={() => { closeCellMenu(); setOpenUnskipDialog(true); }}>
-              休配解除
-            </Button>
-            <Button size="small" color="error" onClick={handleCancelFromSelectedDate}>
-              解約（この日以降）
-            </Button>
+            {/* 1. パターン変更 */}
             <Button size="small" onClick={handleOpenPatternChange}>
               パターン変更
             </Button>
+            {/* 2. 本数変更 */}
+            <Button size="small" onClick={() => { closeCellMenu(); openChangeQuantity(); }}>
+              本数変更
+            </Button>
+            {/* 3. 商品追加 */}
             <Button size="small" onClick={() => { 
               closeCellMenu(); 
               if (selectedCell) {
@@ -1190,7 +1326,19 @@ const CustomerDetail: React.FC = () => {
                 dpManagerRef.current?.openForPattern(undefined, selectedCell.date);
               }
             }}>
-              商品追加（当日）
+              商品追加
+            </Button>
+            {/* 4. 休配処理 */}
+            <Button size="small" onClick={() => { closeCellMenu(); setOpenSkipDialog(true); }}>
+              休配処理
+            </Button>
+            {/* 5. 休配解除 */}
+            <Button size="small" color="primary" onClick={() => { closeCellMenu(); setOpenUnskipDialog(true); }}>
+              休配解除
+            </Button>
+            {/* 6. 解約処理 */}
+            <Button size="small" color="error" onClick={handleCancelFromSelectedDate}>
+              解約処理
             </Button>
           </Box>
         </Box>
