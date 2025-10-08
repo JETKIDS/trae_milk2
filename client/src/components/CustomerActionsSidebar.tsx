@@ -3,9 +3,6 @@ import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, Check
 import {
   Edit as EditIcon,
   MonetizationOn as MonetizationOnIcon,
-  ChangeCircle as ChangeCircleIcon,
-  PauseCircleOutline as PauseCircleOutlineIcon,
-  DeleteForever as DeleteForeverIcon,
   Calculate as CalculateIcon,
 } from '@mui/icons-material';
 
@@ -21,9 +18,6 @@ interface Props {
   onChangeBillingMethod?: (method: 'collection' | 'debit') => void;
   onOpenEditForm?: () => void;
   onOpenUnitPriceChange?: () => void;
-  onOpenTemporaryQuantityChange?: () => void;
-  onOpenSuspendProduct?: () => void; // 一時停止（休止）
-  onOpenCancelProduct?: () => void; // 契約中止
   onOpenBankInfo?: () => void; // 口座情報
   // onOpenBillingRounding?: () => void; // （UI移動により非使用）
 }
@@ -39,9 +33,6 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   onChangeBillingMethod,
   onOpenEditForm,
   onOpenUnitPriceChange,
-  onOpenTemporaryQuantityChange,
-  onOpenSuspendProduct,
-  onOpenCancelProduct,
   onOpenBankInfo,
   // onOpenBillingRounding,
 }) => {
@@ -137,37 +128,6 @@ const CustomerActionsSidebar: React.FC<Props> = ({
             onClick={onOpenUnitPriceChange}
           >
             単価変更
-          </Button>
-
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<ChangeCircleIcon />}
-            sx={{ mb: 1 }}
-            onClick={onOpenTemporaryQuantityChange}
-          >
-            一時的な数量変更
-          </Button>
-
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<PauseCircleOutlineIcon />}
-            sx={{ mb: 1 }}
-            onClick={onOpenSuspendProduct}
-          >
-            商品の休止（期間指定）
-          </Button>
-
-          <Button
-            variant="outlined"
-            color="error"
-            fullWidth
-            startIcon={<DeleteForeverIcon />}
-            sx={{ mb: 1 }}
-            onClick={onOpenCancelProduct}
-          >
-            商品の中止（契約終了）
           </Button>
 
           {/* 口座情報（引き落し選択時のみ表示） */}

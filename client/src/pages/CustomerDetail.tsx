@@ -317,6 +317,54 @@ const CustomerDetail: React.FC = () => {
     dpManagerRef.current?.openForPattern(pattern, defaultStart);
   };
 
+  // 選択セルが「解」状態かを判定（前日が終了日、当日に再開がない）
+  const selectedCellHasCancel = useCallback((): boolean => {
+    if (!selectedCell) return false;
+    const pid = getProductIdByName(selectedCell.productName);
+    if (!pid) return false;
+    const endsPrevDay = patterns.some(p =>
+      p.product_id === pid && p.is_active && !!p.end_date &&
+      moment(p.end_date).add(1, 'day').format('YYYY-MM-DD') === selectedCell.date
+    );
+    if (!endsPrevDay) return false;
+    const restartsToday = patterns.some(p =>
+      p.product_id === pid && p.is_active &&
+      moment(p.start_date).format('YYYY-MM-DD') === selectedCell.date
+    );
+    return endsPrevDay && !restartsToday;
+  }, [selectedCell, patterns]);
+
+  // 解約取り消し：選択セルが「解」の場合、前日で終了したパターンの end_date を解除（null）
+  const handleCancelUndoFromSelectedCell = async () => {
+    if (!selectedCell) return;
+    const pid = getProductIdByName(selectedCell.productName);
+    if (!pid) return;
+    const prevDay = moment(selectedCell.date).subtract(1, 'day').format('YYYY-MM-DD');
+    const target = patterns.find(p => p.product_id === pid && p.is_active && p.end_date === prevDay);
+    if (!target || !target.id) {
+      alert('取り消し対象のパターンが見つかりません。');
+      return;
+    }
+    try {
+      await axios.put(`/api/delivery-patterns/${target.id}`, {
+        product_id: target.product_id,
+        quantity: target.quantity,
+        unit_price: target.unit_price,
+        delivery_days: target.delivery_days,
+        daily_quantities: target.daily_quantities || {},
+        start_date: target.start_date,
+        end_date: null,
+        is_active: true,
+      });
+      closeCellMenu();
+      await fetchCustomerData();
+      await fetchCalendarData();
+    } catch (e) {
+      console.error('解約取り消しに失敗しました:', e);
+      alert('解約取り消しに失敗しました。時間をおいて再度お試しください。');
+    }
+  };
+
   const handleOpenEditForm = () => {
     setOpenEditForm(true);
   };
@@ -1156,9 +1204,6 @@ const CustomerDetail: React.FC = () => {
           onChangeBillingMethod={handleChangeBillingMethod}
           onOpenEditForm={handleOpenEditForm}
           onOpenUnitPriceChange={() => setOpenUnitPriceChange(true)}
-          onOpenTemporaryQuantityChange={() => setOpenTemporaryQuantityChange(true)}
-          onOpenSuspendProduct={() => setOpenSuspendProduct(true)}
-          onOpenCancelProduct={() => setOpenCancelProduct(true)}
           onOpenBankInfo={() => setOpenBankInfo(true)}
         />
       </Grid>
@@ -1336,10 +1381,16 @@ const CustomerDetail: React.FC = () => {
             <Button size="small" color="primary" onClick={() => { closeCellMenu(); setOpenUnskipDialog(true); }}>
               休配解除
             </Button>
-            {/* 6. 解約処理 */}
-            <Button size="small" color="error" onClick={handleCancelFromSelectedDate}>
-              解約処理
-            </Button>
+            {/* 6. 解約関連：セルが『解』のときは取り消し、それ以外は解約処理 */}
+            {selectedCellHasCancel() ? (
+              <Button size="small" color="error" onClick={handleCancelUndoFromSelectedCell}>
+                解約取り消し
+              </Button>
+            ) : (
+              <Button size="small" color="error" onClick={handleCancelFromSelectedDate}>
+                解約処理
+              </Button>
+            )}
           </Box>
         </Box>
       </Popover>
