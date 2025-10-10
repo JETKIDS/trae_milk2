@@ -197,10 +197,10 @@
 
 /* 印刷時も同様に適用 */
 @media print {
-  .invoice-right .big-title { font-size: 16px; line-height: 1.0; }
+  .invoice-right .big-title { font-size: 18px; line-height: 1.0; }
   /* 印刷ではpxよりmmの方が安定するため、位置調整はmm単位で指定 */
   /* 右端見切れ対策：顧客情報の右へのオフセットを5mm縮小（20mm→15mm） */
-  .invoice-right .customer-info { border: none !important; margin-left: 15mm !important; margin-top: 0mm !important; margin-bottom: 0 !important; padding-bottom: 0mm !important; }
+  .invoice-right .customer-info { border: none !important; margin-left: 26mm !important; margin-top: -5mm !important; margin-bottom: 0 !important; padding-bottom: 0mm !important; }
   /* 右端に5mmの余白を追加して、コース名や会社情報の切れを防ぐ */
   .invoice-right { padding-right: 5mm !important; }
   /* 顧客情報とカレンダー枠の外側の隙間をさらにゼロに近づける（兄弟セレクタで強制） */
@@ -208,6 +208,6 @@
   .invoice-right .thin-box.customer-info + .thin-box.calendar-section { margin-top: 2mm !important; }
   /* 先頭の負のマージンを解消してページ先頭の空白ページを防ぐ */
   .invoice-right .billing-month { text-align: center; font-size: 16px; font-weight: 700; line-height: 1.0; margin: 0; margin-top: 0mm !important; }
-  .invoice-right .customer-name { font-size: 15px; font-weight: 700; line-height: 1.0; margin-top: 0; }
-  .invoice-right .address-text, .invoice-right .course-text { font-size: 7px; line-height: 1.0; }
+  .invoice-right .customer-name { font-size: 16px; font-weight: 700; line-height: 1.0; margin-top: 0; }
+  .invoice-right .address-text, .invoice-right .course-text { font-size: 8px; line-height: 1.0; }
 }
