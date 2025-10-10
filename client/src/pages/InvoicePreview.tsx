@@ -299,27 +299,43 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
     return p ? p.product_id : null;
   };
 
-  // 小計（税抜相当）、内税額、請求額
+  // 小計（税抜相当）、内税額（8%/10%を分割）、請求額
   const totals = useMemo(() => {
     let base = 0;
     let tax = 0;
+    let tax8 = 0;
+    let tax10 = 0;
     calendar.forEach((day) => {
       day.products.forEach((p) => {
         const rate = getTaxRateForProductName(p.productName);
         const pm = productMapByName[p.productName];
         const taxType = pm?.sales_tax_type || pm?.purchase_tax_type || 'standard';
+        let taxPart = 0;
         if (taxType === 'inclusive') {
-          const basePart = p.amount / (1 + rate);
-          const taxPart = p.amount - basePart;
-          base += basePart;
-          tax += taxPart;
+          // 税込価格：税部分は amount * r/(1+r)、ベースは差分
+          taxPart = p.amount * (rate / (1 + rate));
+          base += p.amount - taxPart;
         } else {
+          // 税抜価格：税部分は amount * r、ベースはそのまま
           base += p.amount;
-          tax += p.amount * rate;
+          taxPart = p.amount * rate;
+        }
+        tax += taxPart;
+        if (Math.abs(rate - 0.08) < 0.001) {
+          tax8 += taxPart;
+        } else {
+          // 10%（標準）その他は10%扱い
+          tax10 += taxPart;
         }
       });
     });
-    return { base: Math.round(base), tax: Math.round(tax), total: Math.round(base + tax) };
+    return {
+      base: Math.round(base),
+      tax: Math.round(tax),
+      tax8: Math.round(tax8),
+      tax10: Math.round(tax10),
+      total: Math.round(base + tax),
+    };
   }, [calendar, getTaxRateForProductName, productMapByName]);
 
   // カレンダー用の商品行（全件）
@@ -532,22 +548,46 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
               </TableContainer>
             </Box>
 
-                    {/* 合計金額欄 */}
-                    <Box className="thin-box" sx={{ p: 1 }}>
-                      <div className="totals-row">
-                        <div className="totals-item"><span className="label">お買上額</span><span className="value">{totals.base.toLocaleString()}</span></div>
-                        <div className="totals-item"><span className="label">消費税額</span><span className="value">{totals.tax.toLocaleString()}</span></div>
-                        <div className="totals-item"><span className="label">御請求額</span><span className="value">{totals.total.toLocaleString()}</span></div>
-                      </div>
+                    {/* 合計金額欄（前月項目＋消費税1枠、右端は「御請求額」ラベルと金額の2セル分割） */}
+                    <Box className="thin-box totals-grid" sx={{ p: 0 }}>
+                      {/* 左から：前月お買い上げ額／前月入金額／繰越額／お買上額／消費税額／右端はラベル＋金額の2セル */}
+                      <div className="totals-cell label" style={{ gridColumn: 1, gridRow: 1 }}>前月お買い上げ額</div>
+                      <div className="totals-cell value" style={{ gridColumn: 1, gridRow: 2 }}>{(0).toLocaleString()}</div>
+
+                      <div className="totals-cell label" style={{ gridColumn: 2, gridRow: 1 }}>前月入金額</div>
+                      <div className="totals-cell value" style={{ gridColumn: 2, gridRow: 2 }}>{(0).toLocaleString()}</div>
+
+                      <div className="totals-cell label" style={{ gridColumn: 3, gridRow: 1 }}>繰越額</div>
+                      <div className="totals-cell value" style={{ gridColumn: 3, gridRow: 2 }}>{(0).toLocaleString()}</div>
+
+                      <div className="totals-cell label" style={{ gridColumn: 4, gridRow: 1 }}>お買上額</div>
+                      <div className="totals-cell value" style={{ gridColumn: 4, gridRow: 2 }}>{totals.base.toLocaleString()}</div>
+
+                      <div className="totals-cell label" style={{ gridColumn: 5, gridRow: 1 }}>消費税額</div>
+                      <div className="totals-cell value" style={{ gridColumn: 5, gridRow: 2 }}>{totals.tax.toLocaleString()}</div>
+
+                      {/* 右端：左右2セル（左は反転で「御請求額」、右は金額を強調） */}
+                      <div className="totals-grand-label" style={{ gridColumn: 6, gridRow: '1 / span 2' }}>御請求額</div>
+                      <div className="totals-grand-amount" style={{ gridColumn: 7, gridRow: '1 / span 2' }}>{totals.total.toLocaleString()}</div>
                     </Box>
 
-                    {/* フッター */}
+                    {/* フッター（店舗情報：左に店舗名、右に住所・電話番号／1行、右詰） */}
                     <div className="footer">
-                      <div className="remarks thin-box" style={{ padding: 6 }}>備考欄</div>
-                      <div>
-                        <Typography className="small-text" sx={{ textAlign: 'right' }}>{company?.company_name || ''}</Typography>
-                        <Typography className="small-text" sx={{ textAlign: 'right' }}>{company?.address || ''}</Typography>
-                        <Typography className="small-text" sx={{ textAlign: 'right' }}>TEL {company?.phone || ''}</Typography>
+                      <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                        {/* 店舗名（左・大きめ） */}
+                        <Typography
+                          className="small-text footer-store-name"
+                          sx={{ fontSize: '24px', fontWeight: 700, lineHeight: 1.0, '@media print': { fontSize: '20px' } }}
+                        >
+                          {company?.company_name || ''}
+                        </Typography>
+                        {/* 住所・電話番号（右） */}
+                        <Typography className="small-text">
+                          {[
+                            company?.address || '',
+                            company?.phone ? `TEL ${company.phone}` : ''
+                          ].filter(Boolean).join('　')}
+                        </Typography>
                       </div>
                     </div>
                   </Box>
