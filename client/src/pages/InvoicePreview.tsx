@@ -346,20 +346,34 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
     return withTotals as ProductCalendarRow[];
   }, [calendar]);
 
-  // 5行ずつページ分割
+  // 5行ずつページ分割（不足分は空行でパディングして常に5行表示）
   const calendarPages = useMemo(() => {
+    const padRow: ProductCalendarRow = {
+      productName: '',
+      specification: '',
+      dailyQuantities: {},
+      totalQty: 0,
+      totalAmount: 0,
+    };
     const chunks: ProductCalendarRow[][] = [];
-    for (let i = 0; i < calendarProducts.length; i += 5) {
-      chunks.push(calendarProducts.slice(i, i + 5));
+    if (calendarProducts.length === 0) {
+      // 商品がない場合でも5行の空行ページを1枚表示
+      chunks.push(Array.from({ length: 5 }, () => ({ ...padRow })));
+      return chunks;
     }
-    return chunks.length ? chunks : [[]];
+    for (let i = 0; i < calendarProducts.length; i += 5) {
+      const slice = calendarProducts.slice(i, i + 5);
+      while (slice.length < 5) slice.push({ ...padRow });
+      chunks.push(slice);
+    }
+    return chunks;
   }, [calendarProducts]);
 
   // 月を前半(1〜15日)と後半(16日〜末日)に分割表示用
   const { firstHalf: firstHalfDays, secondHalf: secondHalfDays } = useMemo(() => generateMonthDays(), [year, month, generateMonthDays]);
 
   return (
-    <Box sx={{ p: 2 }} className="invoice-root">
+    <Box sx={{ p: 2 }} className="invoice-root print-root">
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="h6" className="title no-print">請求書プレビュー</Typography>
         <Button variant="contained" className="no-print" onClick={handlePrint}>印刷</Button>
@@ -409,11 +423,11 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
 
                   {/* 右：御請求書（商品リストは削除） */}
                   <Box className="invoice-right">
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0 }}>
                       <Typography className="big-title title">御請求書</Typography>
-                      <Typography className="small-text">{String(year).slice(2)}/{month}月分</Typography>
                     </Stack>
-                    <Box className="thin-box" sx={{ p: 1, mb: 1 }}>
+                    <Typography className="billing-month">{String(year).slice(2)}/{month}月分</Typography>
+                    <Box className="thin-box customer-info" sx={{ p: 0, mb: 0 }}>
                       <Typography className="customer-name">{customer?.customer_name} 様</Typography>
                       <Stack direction="row" justifyContent="space-between" alignItems="baseline">
                         <Typography className="address-text">{customer?.address || ''}</Typography>
@@ -422,7 +436,8 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                     </Box>
 
             {/* 配達カレンダー（最大5行） */}
-            <Box className="thin-box calendar-section" sx={{ p: 1, mb: 1, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          {/* カレンダー枠の内部余白は元に戻す（外側の隙間はCSSで調整） */}
+          <Box className="thin-box calendar-section" sx={{ p: 1, mb: 1, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
               {/* 前半（1〜15日） */}
               <TableContainer component={Paper} variant="outlined" sx={{ mb: 1 }} className="table-container">
                 <Table size="small" className="calendar-table">
@@ -507,9 +522,9 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                             </TableCell>
                           );
                         })}
-                        {/* 各商品の合計（本数／金額）を別セルで表示 */}
-                        <TableCell className="totals-qty">{product.totalQty?.toLocaleString?.() ?? 0}</TableCell>
-                        <TableCell className="totals-amount">{(product as any).totalAmount?.toLocaleString?.() ?? 0}</TableCell>
+                        {/* 各商品の合計（本数／金額）を別セルで表示。0は空表示にして空行を美しく見せる */}
+                        <TableCell className="totals-qty">{product.totalQty ? product.totalQty.toLocaleString() : ''}</TableCell>
+                        <TableCell className="totals-amount">{product.totalAmount ? product.totalAmount.toLocaleString() : ''}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

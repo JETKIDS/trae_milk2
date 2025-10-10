@@ -1,6 +1,7 @@
 @page {
   size: A4 landscape;
-  margin: 5mm;
+  /* 右側が約5mm見切れる問題に対応：右余白を +5mm 拡張 */
+  margin: 5mm 10mm 5mm 5mm;
 }
 
 .invoice-root {
@@ -18,22 +19,27 @@
   grid-template-rows: 1fr 1fr;
   gap: 12px;
 }
-.print-page {
-  page-break-after: always;
-}
-.print-page:last-of-type {
-  page-break-after: auto;
-}
+.print-page { page-break-after: always; }
+/* 最後のカードでは改ページしない（末尾の空白ページ防止） */
+.print-page:last-child { page-break-after: auto; }
 
 /* 印刷時に上下2件が1ページに収まるよう高さ・余白・幅を厳密指定 */
 @media print {
   /* A4 横: 高さ 210mm、@page margin 5mm × 2 = 10mm → 実効高さ 200mm */
-  .print-page { height: 200mm; margin: 0 !important; padding: 0 !important; border: none !important; }
+  .print-page { height: 200mm; margin: 0 !important; padding: 0 !important; border: none !important; break-inside: avoid; }
+  /* ページ全体の余白をゼロにして先頭空白を抑制 */
+  .invoice-root { margin: 0 !important; padding: 0 !important; }
+  /* 印刷専用ラッパーで .print-page 以外（タイトルバーやエラー表示など）を非表示にして、先頭の余白要素を排除 */
+  .print-root > :not(.print-page) { display: none !important; }
+  /* ブラウザ既定余白の影響を排除 */
+  html, body { margin: 0 !important; padding: 0 !important; }
   .print-page .MuiCardContent-root { padding: 0 !important; }
+  /* MUIカードの既定の余白を無効化して高さ超過を防止 */
+  .MuiCard-root.print-page { margin: 0 !important; }
   .two-up { height: 200mm; gap: 3mm; grid-template-rows: auto auto; align-content: space-between; }
-  .two-up > .invoice-grid { height: calc((200mm - 3mm) / 2 - 15px); }
+  /* 内部カードパディング等の差異を吸収するために数mm余裕を持たせる */
+  .two-up > .invoice-grid { height: calc((200mm - 3mm) / 2 - 20px); }
   .invoice-grid > * { height: 100%; }
-  .two-up, .two-up > .invoice-grid, .invoice-grid { page-break-inside: avoid; }
   .box, .thin-box { break-inside: avoid; }
 
   /* 左側の入金票・領収証の幅を狭める */
@@ -43,8 +49,14 @@
   .slips-col, .invoice-right { height: 100%; }
   .slips-row { height: 100%; align-items: stretch; }
   .slip-box { height: 100%; }
-  .invoice-right { display: grid; grid-template-rows: auto auto 1fr auto auto; }
+  /* グリッドの可変高さ(1fr)はカレンダー枠に割り当てる。顧客情報はautoで縮む */
+  .invoice-right { display: grid; grid-template-rows: auto auto auto 1fr auto auto; }
   .calendar-section { min-height: 0; }
+  /* 顧客情報とカレンダーの間の隙間をなくす */
+  .invoice-right { row-gap: 0 !important; }
+  .invoice-right .MuiTypography-root { margin: 0 !important; }
+  /* 枠外の隙間のみ詰める。内部のパディングは維持する */
+  .calendar-section { margin-top: 0 !important; }
 
   /* フォント・パディングを縮小して重なりを防止 */
   .big-title { font-size: 26px; }
@@ -62,11 +74,14 @@
 
   /* カレンダーを印刷時も約半分の高さへ */
   .calendar-table th, .calendar-table td { padding: 0 !important; }
+  /* ブラウザと同じく罫線の隙間が出ないように強制的に詰める */
+  .calendar-table { border-collapse: collapse !important; border-spacing: 0 !important; }
+  .calendar-table .MuiTableCell-root { border: 1px solid #000 !important; padding: 0 !important; height: 12px !important; line-height: 1 !important; }
   .calendar-header { font-size: 3.2px; }
   .calendar-cell { font-size: 4px; width: 14px; line-height: 1.0; }
 
-  /* 印刷時はテーブルのスクロールを無効化 */
-  .MuiTableContainer-root, .table-container { overflow: visible !important; }
+  /* 印刷時はテーブルのスクロールを無効化。上下テーブル間の余白もゼロに */
+  .MuiTableContainer-root, .table-container { overflow: visible !important; margin-bottom: 0 !important; }
   .calendar-header { min-width: 0; padding-left: 0.4px; padding-right: 0.4px; }
   /* 下段は上段同様に table-layout: fixed、日付セルは上段と同じ幅(14px) */
   .bottom-calendar { width: 100% !important; display: table; table-layout: fixed !important; }
@@ -132,8 +147,6 @@
 .product-cell { font-size: 4px; padding: 0; line-height: 1.0; }
 .totals-header { text-align: center; font-size: 3px; }
 .totals-qty, .totals-amount { text-align: right; padding-right: 2px; font-size: 4px; }
-.totals-header { text-align: center; font-size: 3px; }
-.totals-qty, .totals-amount { text-align: right; padding-right: 2px; font-size: 4px; }
 .totals-row {
   display: flex;
   justify-content: flex-end;
@@ -146,4 +159,35 @@
 
 @media print {
   .no-print { display: none !important; }
+}
+
+/* 右上（御請求書エリア）の縦幅を半減するためのフォント縮小・行間詰め（画面表示） */
+.invoice-right .big-title { font-size: 18px; line-height: 1.0; }
+.invoice-right .small-text { font-size: 10px; line-height: 1.0; }
+.invoice-right .customer-name { font-size: 16px; font-weight: 700; line-height: 1.0; margin-top: -2px; }
+.invoice-right .address-text { font-size: 8px; line-height: 1.0; }
+.invoice-right .course-text { font-size: 8px; line-height: 1.0; }
+.invoice-right .MuiTypography-root { margin: 0; }
+
+/* 顧客名がある部分の四角い枠を消して、右に100pxオフセット（ブラウザ表示で8pxさらに上へ） */
+.invoice-right .customer-info { border: none !important; margin-left: 100px; margin-top: -20px; }
+
+/* 請求月を大きくして中央に配置 */
+.invoice-right .billing-month { text-align: center; font-size: 16px; font-weight: 700; line-height: 1.0; margin: 0; margin-top: -3px; }
+
+/* 印刷時も同様に適用 */
+@media print {
+  .invoice-right .big-title { font-size: 16px; line-height: 1.0; }
+  /* 印刷ではpxよりmmの方が安定するため、位置調整はmm単位で指定 */
+  /* 右端見切れ対策：顧客情報の右へのオフセットを5mm縮小（20mm→15mm） */
+  .invoice-right .customer-info { border: none !important; margin-left: 15mm !important; margin-top: 0mm !important; margin-bottom: 0 !important; padding-bottom: 0mm !important; }
+  /* 右端に5mmの余白を追加して、コース名や会社情報の切れを防ぐ */
+  .invoice-right { padding-right: 5mm !important; }
+  /* 顧客情報とカレンダー枠の外側の隙間をさらにゼロに近づける（兄弟セレクタで強制） */
+  /* 顧客情報とカレンダー枠の間に約2mmの余白を確保 */
+  .invoice-right .thin-box.customer-info + .thin-box.calendar-section { margin-top: 2mm !important; }
+  /* 先頭の負のマージンを解消してページ先頭の空白ページを防ぐ */
+  .invoice-right .billing-month { text-align: center; font-size: 16px; font-weight: 700; line-height: 1.0; margin: 0; margin-top: 0mm !important; }
+  .invoice-right .customer-name { font-size: 15px; font-weight: 700; line-height: 1.0; margin-top: 0; }
+  .invoice-right .address-text, .invoice-right .course-text { font-size: 7px; line-height: 1.0; }
 }

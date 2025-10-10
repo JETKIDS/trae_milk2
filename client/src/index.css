@@ -18,11 +18,8 @@ code {
 
 /* 印刷用スタイル */
 @media print {
-  /* ページ設定 */
-  @page {
-    margin: 1cm;
-    size: A4;
-  }
+  /* ページ設定は各ページ固有のCSS（例: InvoicePreview.css）で指定する。
+     ここでは @page を定義しないことで競合を回避し、余白ページの発生を防ぐ。 */
 
   /* 印刷時に非表示にする要素 */
   .no-print,
@@ -141,7 +138,7 @@ code {
     font-size: 18px !important;
   }
 
-  /* コース別ページ分割 */
+  /* コース別ページ分割（他画面用）。InvoicePreview では独自の .print-page で管理 */
   .print-page-break {
     page-break-before: always;
   }
