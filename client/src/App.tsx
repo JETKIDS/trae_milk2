@@ -13,6 +13,8 @@ import DeliveryList from './pages/DeliveryList';
 import ProductList from './pages/ProductList';
 import CourseList from './pages/CourseList';
 import MasterManagement from './pages/MasterManagement';
+import BillingOperations from './pages/BillingOperations';
+import InvoicePreview from './pages/InvoicePreview';
 import { CompanyProvider } from './contexts/CompanyContext';
 
 const theme = createTheme({
@@ -57,7 +59,9 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/customers" element={<CustomerList />} />
                 <Route path="/customers/:id" element={<CustomerDetail />} />
+                <Route path="/invoice-preview/:id" element={<InvoicePreview />} />
                 <Route path="/delivery" element={<DeliveryList />} />
+                <Route path="/billing" element={<BillingOperations />} />
                 <Route path="/products" element={<ProductList />} />
                 <Route path="/courses" element={<CourseList />} />
               <Route path="/masters" element={<MasterManagement />} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Typography,
   Box,
@@ -117,6 +117,7 @@ interface UndoAction {
 
 const CustomerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [patterns, setPatterns] = useState<DeliveryPattern[]>([]);
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
@@ -1142,6 +1143,19 @@ const CustomerDetail: React.FC = () => {
                     <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
                       {currentDate.format('YYYY年M月')}分
                     </Typography>
+                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => {
+                          const y = currentDate.format('YYYY');
+                          const m = currentDate.format('M');
+                          navigate(`/invoice-preview/${id}?year=${y}&month=${m}`);
+                        }}
+                      >
+                        請求書プレビュー
+                      </Button>
+                    </Box>
                   </CardContent>
                 </Card>
               </Grid>

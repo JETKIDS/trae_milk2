@@ -27,6 +27,8 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/delivery', require('./routes/delivery'));
 app.use('/api/delivery-patterns', require('./routes/deliveryPatterns'));
 app.use('/api/temporary-changes', require('./routes/temporaryChanges'));
+// 口座振替（全銀協）ファイルプレビュー
+app.use('/api/debits', require('./routes/debits'));
 
 // ヘルスチェック
 app.get('/api/health', (req, res) => {

@@ -1,0 +1,149 @@
+@page {
+  size: A4 landscape;
+  margin: 5mm;
+}
+
+.invoice-root {
+  font-family: 'MS Mincho', 'Yu Mincho', 'Noto Serif JP', serif;
+  color: #000;
+}
+.invoice-grid {
+  display: grid;
+  grid-template-columns: 34% 66%;
+  gap: 8px;
+  align-items: stretch;
+}
+.two-up {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 12px;
+}
+.print-page {
+  page-break-after: always;
+}
+.print-page:last-of-type {
+  page-break-after: auto;
+}
+
+/* 印刷時に上下2件が1ページに収まるよう高さ・余白・幅を厳密指定 */
+@media print {
+  /* A4 横: 高さ 210mm、@page margin 5mm × 2 = 10mm → 実効高さ 200mm */
+  .print-page { height: 200mm; margin: 0 !important; padding: 0 !important; border: none !important; }
+  .print-page .MuiCardContent-root { padding: 0 !important; }
+  .two-up { height: 200mm; gap: 3mm; grid-template-rows: auto auto; align-content: space-between; }
+  .two-up > .invoice-grid { height: calc((200mm - 3mm) / 2 - 15px); }
+  .invoice-grid > * { height: 100%; }
+  .two-up, .two-up > .invoice-grid, .invoice-grid { page-break-inside: avoid; }
+  .box, .thin-box { break-inside: avoid; }
+
+  /* 左側の入金票・領収証の幅を狭める */
+  .invoice-grid { grid-template-columns: 26% 74%; gap: 2mm; }
+
+  /* 左右のコンテナをページ半分の高さに固定 */
+  .slips-col, .invoice-right { height: 100%; }
+  .slips-row { height: 100%; align-items: stretch; }
+  .slip-box { height: 100%; }
+  .invoice-right { display: grid; grid-template-rows: auto auto 1fr auto auto; }
+  .calendar-section { min-height: 0; }
+
+  /* フォント・パディングを縮小して重なりを防止 */
+  .big-title { font-size: 26px; }
+  .slip-title { font-size: 14px; }
+  .section-title { font-size: 14px; margin-bottom: 4px; }
+  .small-text { font-size: 10px; }
+  .customer-name { font-size: 20px; font-weight: 700; }
+  .address-text { font-size: 9px; }
+  .course-text { font-size: 9px; text-align: right; }
+
+  .box { border-width: 1px; padding: 6px; }
+  .thin-box { border-width: 0.6px; }
+  .footer { margin-top: 4px; }
+  .remarks { min-height: 24px; }
+
+  /* カレンダーを印刷時も約半分の高さへ */
+  .calendar-table th, .calendar-table td { padding: 0 !important; }
+  .calendar-header { font-size: 3.2px; }
+  .calendar-cell { font-size: 4px; width: 14px; line-height: 1.0; }
+
+  /* 印刷時はテーブルのスクロールを無効化 */
+  .MuiTableContainer-root, .table-container { overflow: visible !important; }
+  .calendar-header { min-width: 0; padding-left: 0.4px; padding-right: 0.4px; }
+  /* 下段は上段同様に table-layout: fixed、日付セルは上段と同じ幅(14px) */
+  .bottom-calendar { width: 100% !important; display: table; table-layout: fixed !important; }
+  .bottom-calendar .calendar-header, .bottom-calendar .calendar-cell { width: 14px !important; min-width: 14px !important; max-width: 14px !important; }
+
+  .totals-row { gap: 14px; margin-top: 4px; }
+  .totals-item .label { font-size: 11px; }
+  .totals-item .value { font-size: 15px; }
+}
+.box {
+  border: 2px solid #000;
+  padding: 8px;
+}
+.thin-box { border: 1px solid #000; }
+.title {
+  font-family: 'MS Gothic', 'Yu Gothic', 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+}
+.big-title {
+  font-size: 26px;
+}
+.slip-title {
+  font-size: 16px;
+}
+.section-title {
+  font-size: 16px;
+  border-bottom: 1px solid #000;
+  margin-bottom: 6px;
+}
+.small-text { font-size: 12px; }
+.customer-name { font-size: 22px; font-weight: 700; }
+.address-text { font-size: 11px; }
+.course-text { font-size: 11px; text-align: right; }
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 8px;
+}
+.remarks { min-height: 40px; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { border: 1px solid #000; padding: 4px; }
+.table th { background: #f5f5f5; }
+.calendar-table th, .calendar-table td { border: 1px solid #000; padding: 0; text-align: center; }
+/* ブラウザで行高が縮むよう、MUIの既定パディング/最小高さを強制的に上書き */
+.calendar-table .MuiTableCell-root {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 1 !important;
+  height: 12px !important; /* 画面表示時の行高 */
+  min-height: 0 !important;
+}
+/* ヘッダー二段のDIVも行間ゼロで詰める */
+.calendar-header div { line-height: 1 !important; margin: 0; padding: 0; }
+/* 画面表示時もカレンダーセル高さを半減 */
+.calendar-table .MuiTableCell-root { padding-top: 0; padding-bottom: 0; height: 12px; }
+.calendar-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
+/* 下段は可変幅・右余白用のダミー列を使用 */
+.bottom-calendar { width: 100% !important; display: table; table-layout: fixed; }
+.calendar-header { font-size: 3px; box-sizing: border-box; width: 14px; min-width: 14px; max-width: 14px; }
+.calendar-cell { font-size: 4px; box-sizing: border-box; line-height: 1.0; width: 14px; min-width: 14px; max-width: 14px; }
+.product-header { font-size: 3px; padding: 0; }
+.product-cell { font-size: 4px; padding: 0; line-height: 1.0; }
+.totals-header { text-align: center; font-size: 3px; }
+.totals-qty, .totals-amount { text-align: right; padding-right: 2px; font-size: 4px; }
+.totals-header { text-align: center; font-size: 3px; }
+.totals-qty, .totals-amount { text-align: right; padding-right: 2px; font-size: 4px; }
+.totals-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+  margin-top: 8px;
+}
+.totals-item { display: flex; gap: 8px; align-items: baseline; }
+.totals-item .label { font-size: 14px; }
+.totals-item .value { font-size: 18px; font-weight: 700; }
+
+@media print {
+  .no-print { display: none !important; }
+}
