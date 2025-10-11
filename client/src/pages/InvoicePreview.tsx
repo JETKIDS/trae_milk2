@@ -39,6 +39,8 @@ interface Customer {
   phone: string;
   course_id: number;
   course_name: string;
+  // コース内順位（配達順）
+  delivery_order?: number;
 }
 
 interface CalendarProduct {
@@ -169,6 +171,8 @@ const InvoicePreview: React.FC = () => {
     });
     return Array.from(map.entries()).map(([productName, v]) => ({ productName, ...v }));
   }, [calendar]);
+
+  
 
   const monthlyTotalRaw = useMemo(() => {
     return calendar.reduce((sum, day) => sum + day.products.reduce((s, p) => s + p.amount, 0), 0);
@@ -362,6 +366,20 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
     return withTotals as ProductCalendarRow[];
   }, [calendar]);
 
+  // 入金票（契約商品）表示行：最大5行、足りない分は空行でパディング
+  const depositRows = useMemo<ProductCalendarRow[]>(() => {
+    const rows = calendarProducts.filter((p) => p.totalQty > 0).slice(0, 5);
+    const pad: ProductCalendarRow = {
+      productName: '',
+      specification: '',
+      dailyQuantities: {},
+      totalQty: 0,
+      totalAmount: 0,
+    };
+    while (rows.length < 5) rows.push({ ...pad });
+    return rows;
+  }, [calendarProducts]);
+
   // 5行ずつページ分割（不足分は空行でパディングして常に5行表示）
   const calendarPages = useMemo(() => {
     const padRow: ProductCalendarRow = {
@@ -388,6 +406,12 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
   // 月を前半(1〜15日)と後半(16日〜末日)に分割表示用
   const { firstHalf: firstHalfDays, secondHalf: secondHalfDays } = useMemo(() => generateMonthDays(), [year, month, generateMonthDays]);
 
+  // 前回残高（仮置き：将来的に未入金の繰越を連携）
+  const previousBalance = useMemo(() => {
+    // TODO: 未入金繰越データが整備されたらここで取得・計算
+    return 0;
+  }, [customer]);
+
   return (
     <Box sx={{ p: 2 }} className="invoice-root print-root">
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
@@ -407,20 +431,39 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                   <Box className="slips-col" sx={{ height: '100%' }}>
                     <Stack className="slips-row" direction="row" spacing={1} sx={{ height: '100%' }}>
                       <Box className="box slip-box" sx={{ flex: 1, height: '100%' }}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                          <Typography className="slip-title title">入金票</Typography>
-                          <Typography className="small-text">{String(year).slice(2)}/{month}月分</Typography>
-                        </Stack>
+                        <Typography className="slip-title title">入金票</Typography>
                         <Divider sx={{ my: 1 }} />
-                        <Typography className="small-text">{customer?.customer_name} 様</Typography>
-                        <Typography className="small-text">住所: {customer?.address || ''}</Typography>
-                        <Typography className="small-text">コース: {customer?.course_name || ''}</Typography>
+          {/* コース/順位（ブラウザで30%縮小） */}
+          <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
+          {/* 顧客ID（ブラウザで30%縮小） */}
+          <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
+                        {/* 顧客名 */}
+                        <Typography className="small-text">顧客名: {customer?.customer_name}</Typography>
+          {/* 住所（ブラウザで30%縮小） */}
+          <Typography className="small-text shrink-30">住所: {customer?.address || ''}</Typography>
+          {/* 電話番号（ブラウザで30%縮小） */}
+          <Typography className="small-text shrink-30">電話番号: {customer?.phone || ''}</Typography>
+                        {/* 請求月 */}
+                        <Typography className="small-text">請求月: {year}年{month}月</Typography>
                         <Divider sx={{ my: 1 }} />
-                        <Stack direction="row" justifyContent="space-between">
-                          <Typography className="small-text">顧客コード: {pad7(customer?.custom_id)}</Typography>
-                          <Typography className="small-text">請求額</Typography>
-                        </Stack>
-                        <Typography sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>{totals.total.toLocaleString()}</Typography>
+                        {/* 契約商品と当月お届け本数とそれぞれの金額 */}
+                        <Box className="deposit-list" sx={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '2px', alignItems: 'baseline', mb: 1 }}>
+                          {depositRows.map((p, idx) => (
+                            <React.Fragment key={`dep-${idx}-${p.productName || 'blank'}`}>
+                              <Typography className="small-text name">{p.productName || '\u00A0'}</Typography>
+                              <Typography className="small-text qty" sx={{ textAlign: 'right' }}>{p.totalQty ? `${p.totalQty}本` : ''}</Typography>
+                              <Typography className="small-text amount" sx={{ textAlign: 'right' }}>{p.totalAmount ? p.totalAmount.toLocaleString() : ''}</Typography>
+                            </React.Fragment>
+                          ))}
+                        </Box>
+                        {/* 前回残高欄（簡易） */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline', mb: 1 }}>
+                          <Typography className="small-text shrink-50">前回残高</Typography>
+                          <Typography className="small-text shrink-50" sx={{ textAlign: 'right' }}>{previousBalance ? previousBalance.toLocaleString() : ''}</Typography>
+                        </Box>
+                        {/* 請求額 */}
+                        <Typography className="small-text">請求額</Typography>
+                        <Typography className="deposit-total" sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>{totals.total.toLocaleString()}</Typography>
                       </Box>
                       <Box className="box slip-box" sx={{ flex: 1, height: '100%' }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -447,7 +490,6 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                       <Typography className="customer-name">{customer?.customer_name} 様</Typography>
                       <Stack direction="row" justifyContent="space-between" alignItems="baseline">
                         <Typography className="address-text">{customer?.address || ''}</Typography>
-                        <Typography className="course-text">コース: {customer?.course_name || ''}</Typography>
                       </Stack>
                     </Box>
 
@@ -571,17 +613,22 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                       <div className="totals-grand-amount" style={{ gridColumn: 7, gridRow: '1 / span 2' }}>{totals.total.toLocaleString()}</div>
                     </Box>
 
-                    {/* フッター（店舗情報：左に店舗名、右に住所・電話番号／1行、右詰） */}
+                    {/* フッター（左：顧客ID/コース/順位、右：店舗名と住所/電話） */}
                     <div className="footer">
-                      <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                        {/* 店舗名（左・大きめ） */}
+                      {/* 左詰め：顧客ID / 配達コース / コース内順位（順位は数字のみ表示） */}
+                      <div>
+                        <Typography className="small-text">
+                          {`ID: ${pad7(customer?.custom_id)} / コース: ${customer?.course_name || ''} / ${customer?.delivery_order ?? '-'}`}
+                        </Typography>
+                      </div>
+                      {/* 右詰め：店舗名（大きさ2倍）＋ 住所・電話番号 */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', gap: 8 }}>
                         <Typography
                           className="small-text footer-store-name"
-                          sx={{ fontSize: '24px', fontWeight: 700, lineHeight: 1.0, '@media print': { fontSize: '20px' } }}
+                          style={{ fontSize: '20px', fontWeight: 700, lineHeight: 1.0 }}
                         >
                           {company?.company_name || ''}
                         </Typography>
-                        {/* 住所・電話番号（右） */}
                         <Typography className="small-text">
                           {[
                             company?.address || '',

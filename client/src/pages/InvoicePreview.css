@@ -1,6 +1,6 @@
 @page {
   size: A4 landscape;
-  /* 右側が約5mm見切れる問題に対応：右余白を +5mm 拡張 */
+  /* 右側が約5mm見切れる問題に対応：右余白を +5mm 拡張（左は5mmに戻す） */
   margin: 5mm 10mm 5mm 5mm;
 }
 
@@ -36,27 +36,30 @@
   .print-page .MuiCardContent-root { padding: 0 !important; }
   /* MUIカードの既定の余白を無効化して高さ超過を防止 */
   .MuiCard-root.print-page { margin: 0 !important; }
-  .two-up { height: 200mm; gap: 3mm; grid-template-rows: auto auto; align-content: space-between; }
-  /* 内部カードパディング等の差異を吸収するために数mm余裕を持たせる */
-  .two-up > .invoice-grid { height: calc((200mm - 3mm) / 2 - 20px); }
+  /* 2段をページ中央で厳密に分割（実効高さ200mm → 100mm+100mm） */
+  /* ページを上下均等に分割：中央の余白6mm、各段97mm（200mm-6mmの半分） */
+  .two-up { height: 200mm; gap: 6mm; grid-template-rows: 97mm 97mm; align-content: stretch; }
+  .two-up > .invoice-grid { height: 97mm; }
   .invoice-grid > * { height: 100%; }
   .box, .thin-box { break-inside: avoid; }
 
   /* 左側の入金票・領収証の幅を狭める */
-  .invoice-grid { grid-template-columns: 26% 74%; gap: 2mm; }
+  /* 左側の入金票・領収証の幅を狭める（左26%／右74%） */
+  /* ブラウザ準拠の幅（34%／66%）を印刷にも適用。gapも画面と同じ8pxへ */
+  .invoice-grid { grid-template-columns: 34% 66%; gap: 8px; }
 
-  /* 左右のコンテナをページ半分の高さに固定 */
+  /* 上下97mmの枠に収めるため高さを100%に固定 */
   .slips-col, .invoice-right { height: 100%; }
-  .slips-row { height: 100%; align-items: stretch; }
+  .slips-row { height: 100%; align-items: stretch; gap: 4px !important; }
   .slip-box { height: 100%; }
-  /* グリッドの可変高さ(1fr)はカレンダー枠に割り当てる。顧客情報はautoで縮む */
+  /* invoice-right は高さ制約内でフロー。必要に応じてカレンダー側を優先表示 */
   .invoice-right { display: grid; grid-template-rows: auto auto auto 1fr auto auto; }
   .calendar-section { min-height: 0; }
-  /* 顧客情報とカレンダーの間の隙間をなくす */
-  .invoice-right { row-gap: 0 !important; }
+  /* 顧客情報とカレンダーの間の余白を最小化して高さを確保 */
+  .invoice-right .thin-box.customer-info + .thin-box.calendar-section { margin-top: 2mm !important; }
   .invoice-right .MuiTypography-root { margin: 0 !important; }
-  /* 枠外の隙間のみ詰める。内部のパディングは維持する */
-  .calendar-section { margin-top: 0 !important; }
+  /* フッターの上余白も印刷時はゼロにして全体高さを抑制 */
+  .footer { margin-top: 0 !important; }
 
   /* フォント・パディングを縮小して重なりを防止 */
   .big-title { font-size: 26px; }
@@ -74,16 +77,28 @@
   .footer { margin-top: 4px; }
   .remarks { min-height: 24px; }
 
-  /* カレンダーを印刷時も約半分の高さへ */
+  /* カレンダーの見え方をブラウザ準拠に統一 */
   .calendar-table th, .calendar-table td { padding: 0 !important; }
-  /* ブラウザと同じく罫線の隙間が出ないように強制的に詰める */
   .calendar-table { border-collapse: collapse !important; border-spacing: 0 !important; }
   .calendar-table .MuiTableCell-root { border: 1px solid #000 !important; padding: 0 !important; height: 12px !important; line-height: 1 !important; }
-  .calendar-header { font-size: 3.2px; }
+  .calendar-header { font-size: 3px; }
   .calendar-cell { font-size: 4px; width: 14px; line-height: 1.0; }
 
-  /* 印刷時はテーブルのスクロールを無効化。上下テーブル間の余白もゼロに */
-  .MuiTableContainer-root, .table-container { overflow: visible !important; margin-bottom: 0 !important; }
+  /* ブラウザ準拠：上下テーブル間の余白は画面同様に約8pxを維持 */
+  .MuiTableContainer-root, .table-container { overflow: visible !important; margin-bottom: 8px !important; }
+
+  /* ブラウザ準拠：印刷時も画面の文字サイズに極力合わせる */
+  .slip-box .slip-title { font-size: 16px !important; }
+  .slip-box .small-text { font-size: 12px !important; line-height: 1.0 !important; }
+  .slip-box .MuiTypography-root { margin: 0 !important; }
+  .slip-box .MuiDivider-root { margin-top: 2px !important; margin-bottom: 2px !important; }
+  /* 商品欄は画面準拠（10px）で可読性維持 */
+  .deposit-list { gap: 2px !important; margin-bottom: 4px !important; }
+  .deposit-list .name, .deposit-list .qty, .deposit-list .amount { font-size: 10px !important; line-height: 1.0 !important; }
+  /* 請求額も画面準拠 */
+  .deposit-total { font-size: 18px !important; }
+  /* 左列内の左右ボックス間のギャップも画面準拠 */
+  .slips-row { gap: 8px !important; }
   .calendar-header { min-width: 0; padding-left: 0.4px; padding-right: 0.4px; }
   /* 下段は上段同様に table-layout: fixed、日付セルは上段と同じ幅(14px) */
   .bottom-calendar { width: 100% !important; display: table; table-layout: fixed !important; }
@@ -116,12 +131,19 @@
 .slip-title {
   font-size: 16px;
 }
+.deposit-list .name { font-size: 10px; }
+.deposit-list .qty { font-size: 10px; text-align: right; }
+.deposit-list .amount { font-size: 10px; text-align: right; }
 .section-title {
   font-size: 16px;
   border-bottom: 1px solid #000;
   margin-bottom: 6px;
 }
 .small-text { font-size: 12px; }
+/* 画面表示：指定箇所のみフォントを30%縮小 */
+.slip-box .small-text.shrink-30 { font-size: 70%; }
+/* 画面表示：指定箇所のみフォントを50%縮小 */
+.slip-box .small-text.shrink-50 { font-size: 50%; }
 /* 店舗名を倍の大きさに（画面表示） */
 .invoice-right .footer-store-name { font-size: 24px; font-weight: 700; line-height: 1.0; }
 .customer-name { font-size: 22px; font-weight: 700; }
@@ -203,6 +225,8 @@
   .invoice-right .customer-info { border: none !important; margin-left: 26mm !important; margin-top: -5mm !important; margin-bottom: 0 !important; padding-bottom: 0mm !important; }
   /* 右端に5mmの余白を追加して、コース名や会社情報の切れを防ぐ */
   .invoice-right { padding-right: 5mm !important; }
+  /* ページの中央分割に合わせ、余分な内側余白を削除して位置合わせを厳密化 */
+  .print-root { padding: 0 !important; }
   /* 顧客情報とカレンダー枠の外側の隙間をさらにゼロに近づける（兄弟セレクタで強制） */
   /* 顧客情報とカレンダー枠の間に約2mmの余白を確保 */
   .invoice-right .thin-box.customer-info + .thin-box.calendar-section { margin-top: 2mm !important; }
@@ -210,4 +234,9 @@
   .invoice-right .billing-month { text-align: center; font-size: 16px; font-weight: 700; line-height: 1.0; margin: 0; margin-top: 0mm !important; }
   .invoice-right .customer-name { font-size: 16px; font-weight: 700; line-height: 1.0; margin-top: 0; }
   .invoice-right .address-text, .invoice-right .course-text { font-size: 8px; line-height: 1.0; }
+
+  /* 印刷時もブラウザ準拠：指定箇所のみフォントを30%縮小 */
+  .slip-box .small-text.shrink-30 { font-size: 70% !important; }
+  /* 印刷時もブラウザ準拠：指定箇所のみフォントを50%縮小 */
+  .slip-box .small-text.shrink-50 { font-size: 50% !important; }
 }
