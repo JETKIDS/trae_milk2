@@ -110,6 +110,8 @@ const InvoicePreview: React.FC = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
   const [roundingEnabled, setRoundingEnabled] = useState<boolean>(true);
+  // 集金区分（現金 or 引き落し）
+  const [billingMethod, setBillingMethod] = useState<'collection' | 'debit'>('collection');
   const [error, setError] = useState<string | null>(null);
   const [patterns, setPatterns] = useState<DeliveryPattern[]>([]);
   const [temporaryChanges, setTemporaryChanges] = useState<any[]>([]);
@@ -135,6 +137,7 @@ const InvoicePreview: React.FC = () => {
         setPatterns(customerRes.data.patterns || []);
         const settings = customerRes.data.settings;
         setRoundingEnabled(settings ? (settings.rounding_enabled === 1 || settings.rounding_enabled === true) : true);
+        setBillingMethod(settings && settings.billing_method === 'debit' ? 'debit' : 'collection');
         setCalendar(calendarRes.data.calendar || []);
         setTemporaryChanges(calendarRes.data.temporaryChanges || []);
         const masters: ProductMaster[] = (productsRes.data || []).map((p: any) => ({
@@ -461,21 +464,42 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                           <Typography className="small-text shrink-50">前回残高</Typography>
                           <Typography className="small-text shrink-50" sx={{ textAlign: 'right' }}>{previousBalance ? previousBalance.toLocaleString() : ''}</Typography>
                         </Box>
-                        {/* 請求額 */}
-                        <Typography className="small-text">請求額</Typography>
-                        <Typography className="deposit-total" sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>{totals.total.toLocaleString()}</Typography>
+                        {/* 請求額（ラベルの横に金額を表示） */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline' }}>
+                          <Typography className="small-text">請求額</Typography>
+                          <Typography className="deposit-total" sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>￥{totals.total.toLocaleString()}</Typography>
+                        </Box>
                       </Box>
                       <Box className="box slip-box" sx={{ flex: 1, height: '100%' }}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                          <Typography className="slip-title title">領収証</Typography>
-                          <Typography className="small-text">{String(year).slice(2)}/{month}月分</Typography>
-                        </Stack>
+                        {/* 領収書タイトル */}
+                        <Typography className="slip-title title">領収書</Typography>
                         <Divider sx={{ my: 1 }} />
-                        <Typography className="small-text">{customer?.customer_name} 様</Typography>
-                        <Typography className="small-text">区分: 現金</Typography>
+                        {/* コース/順位（左の入金票と同じく30%縮小） */}
+                        <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
+                        {/* 顧客ID（左の入金票と同じく30%縮小） */}
+                        <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
+                        {/* 顧客名 */}
+                        <Typography className="small-text">顧客名: {customer?.customer_name || ''} 様</Typography>
+                        {/* 集金区分（現金 or 引き落し） */}
+                        <Typography className="small-text shrink-30">集金区分: {billingMethod === 'debit' ? '引き落し' : '現金'}</Typography>
+                        {/* 請求月 */}
+                        <Typography className="small-text">請求月: {year}年{month}月</Typography>
                         <Divider sx={{ my: 1 }} />
-                        <Typography className="small-text">領収金額</Typography>
-                        <Typography sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>{totals.total.toLocaleString()}</Typography>
+                        {/* 領収金額（ラベルの横に金額を表示） */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline' }}>
+                          <Typography className="small-text">領収金額</Typography>
+                          <Typography className="receipt-total" sx={{ textAlign: 'right', fontWeight: 700 }}>￥{totals.total.toLocaleString()}</Typography>
+                        </Box>
+                        <Divider sx={{ my: 1 }} />
+                        {/* 日付手書きエリア（括弧を削除）右寄せ */}
+                        <Typography className="small-text shrink-30" sx={{ textAlign: 'right' }}>　　年　　月　　日</Typography>
+                        {/* 領収文言（10%小さく） */}
+                        <Typography className="small-text shrink-40" sx={{ mt: 0.5 }}>上記金額、正に領収いたしました。</Typography>
+                        <Divider sx={{ my: 1 }} />
+                        {/* 店舗情報 */}
+                        <Typography className="small-text" sx={{ fontWeight: 700 }}>{company?.company_name || ''}</Typography>
+                        <Typography className="small-text shrink-30">{company?.address || ''}</Typography>
+                        <Typography className="small-text shrink-30">{company?.phone ? `TEL ${company.phone}` : ''}</Typography>
                       </Box>
                     </Stack>
                   </Box>
@@ -610,7 +634,7 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
 
                       {/* 右端：左右2セル（左は反転で「御請求額」、右は金額を強調） */}
                       <div className="totals-grand-label" style={{ gridColumn: 6, gridRow: '1 / span 2' }}>御請求額</div>
-                      <div className="totals-grand-amount" style={{ gridColumn: 7, gridRow: '1 / span 2' }}>{totals.total.toLocaleString()}</div>
+        <div className="totals-grand-amount" style={{ gridColumn: 7, gridRow: '1 / span 2' }}>￥{totals.total.toLocaleString()}</div>
                     </Box>
 
                     {/* フッター（左：顧客ID/コース/順位、右：店舗名と住所/電話） */}
