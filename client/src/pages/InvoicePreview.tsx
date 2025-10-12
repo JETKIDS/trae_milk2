@@ -440,14 +440,14 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
           <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
           {/* 顧客ID（ブラウザで30%縮小） */}
           <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
-                        {/* 顧客名 */}
-                        <Typography className="small-text">顧客名: {customer?.customer_name}</Typography>
+                      {/* 顧客名（ラベルを外して氏名のみ表示） */}
+                      <Typography className="small-text">{customer?.customer_name || ''} 様</Typography>
           {/* 住所（ブラウザで30%縮小） */}
           <Typography className="small-text shrink-30">住所: {customer?.address || ''}</Typography>
           {/* 電話番号（ブラウザで30%縮小） */}
           <Typography className="small-text shrink-30">電話番号: {customer?.phone || ''}</Typography>
-                        {/* 請求月 */}
-                        <Typography className="small-text">請求月: {year}年{month}月</Typography>
+                      {/* 請求月（表示形式を 25/10月分 に統一）*/}
+                      <Typography className="small-text">請求月: {String(year).slice(2)}/{month}月分</Typography>
                         <Divider sx={{ my: 1 }} />
                         {/* 契約商品と当月お届け本数とそれぞれの金額 */}
                         <Box className="deposit-list" sx={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '2px', alignItems: 'baseline', mb: 1 }}>
@@ -478,12 +478,12 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                         <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
                         {/* 顧客ID（左の入金票と同じく30%縮小） */}
                         <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
-                        {/* 顧客名 */}
-                        <Typography className="small-text">顧客名: {customer?.customer_name || ''} 様</Typography>
+                      {/* 顧客名（ラベルを外して氏名のみ表示） */}
+                      <Typography className="small-text">{customer?.customer_name || ''} 様</Typography>
                         {/* 集金区分（現金 or 引き落し） */}
                         <Typography className="small-text shrink-30">集金区分: {billingMethod === 'debit' ? '引き落し' : '現金'}</Typography>
-                        {/* 請求月 */}
-                        <Typography className="small-text">請求月: {year}年{month}月</Typography>
+                      {/* 請求月（表示形式を 25/10月分 に統一）*/}
+                      <Typography className="small-text">請求月: {String(year).slice(2)}/{month}月分</Typography>
                         <Divider sx={{ my: 1 }} />
                         {/* 領収金額（ラベルの横に金額を表示） */}
                         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline' }}>
@@ -496,10 +496,12 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                         {/* 領収文言（10%小さく） */}
                         <Typography className="small-text shrink-40" sx={{ mt: 0.5 }}>上記金額、正に領収いたしました。</Typography>
                         <Divider sx={{ my: 1 }} />
-                        {/* 店舗情報 */}
-                        <Typography className="small-text" sx={{ fontWeight: 700 }}>{company?.company_name || ''}</Typography>
-                        <Typography className="small-text shrink-30">{company?.address || ''}</Typography>
-                        <Typography className="small-text shrink-30">{company?.phone ? `TEL ${company.phone}` : ''}</Typography>
+                        {/* 店舗情報（下詰め配置） */}
+                        <Box className="store-info">
+                          <Typography className="small-text" sx={{ fontWeight: 700 }}>{company?.company_name || ''}</Typography>
+                          <Typography className="small-text shrink-30">{company?.address || ''}</Typography>
+                          <Typography className="small-text shrink-30">{company?.phone ? `TEL ${company.phone}` : ''}</Typography>
+                        </Box>
                       </Box>
                     </Stack>
                   </Box>
@@ -616,8 +618,8 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
 
                     {/* 合計金額欄（前月項目＋消費税1枠、右端は「御請求額」ラベルと金額の2セル分割） */}
                     <Box className="thin-box totals-grid" sx={{ p: 0 }}>
-                      {/* 左から：前月お買い上げ額／前月入金額／繰越額／お買上額／消費税額／右端はラベル＋金額の2セル */}
-                      <div className="totals-cell label" style={{ gridColumn: 1, gridRow: 1 }}>前月お買い上げ額</div>
+                      {/* 左から：前月請求額／前月入金額／繰越額／お買上額／消費税額／右端はラベル＋金額の2セル */}
+                      <div className="totals-cell label" style={{ gridColumn: 1, gridRow: 1 }}>前月請求額</div>
                       <div className="totals-cell value" style={{ gridColumn: 1, gridRow: 2 }}>{(0).toLocaleString()}</div>
 
                       <div className="totals-cell label" style={{ gridColumn: 2, gridRow: 1 }}>前月入金額</div>

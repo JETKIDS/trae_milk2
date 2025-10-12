@@ -49,12 +49,18 @@
   /* 左側の入金票・領収証の幅を狭める */
   /* 左側の入金票・領収証の幅を狭める（左26%／右74%） */
   /* ブラウザ準拠の幅（34%／66%）を印刷にも適用。gapも画面と同じ8pxへ */
-  .invoice-grid { grid-template-columns: 34% 66%; gap: 8px; }
+  /* 左列（入金票／領収書）を20mm広げ、右列（請求書）を20mm狭める */
+  .invoice-grid { grid-template-columns: calc(34% + 20mm) calc(66% - 20mm); gap: 8px; }
 
   /* 上下97mmの枠に収めるため高さを100%に固定 */
   .slips-col, .invoice-right { height: 100%; }
   .slips-row { height: 100%; align-items: stretch; gap: 4px !important; }
   .slip-box { height: 100%; }
+  /* 領収書の店舗情報を下詰め（flex化して store-info を下寄せ） */
+  .slip-box { display: flex; flex-direction: column; }
+  /* さらに15mm下へオフセット（印刷時のみ） */
+  /* 領収書の店舗情報：5mm上げて中央揃え（印刷時） */
+  .slip-box .store-info { margin-top: auto; transform: translateY(10mm); text-align: center; }
   /* invoice-right は高さ制約内でフロー。必要に応じてカレンダー側を優先表示 */
   .invoice-right { display: grid; grid-template-rows: auto auto auto 1fr auto auto; }
   .calendar-section { min-height: 0; }
@@ -95,9 +101,19 @@
   .slip-box .small-text { font-size: 20px !important; line-height: 1.0 !important; }
   .slip-box .MuiTypography-root { margin: 0 !important; }
   .slip-box .MuiDivider-root { margin-top: 2px !important; margin-bottom: 2px !important; }
+  /* 入金票/領収書の行間を2mm確保（商品欄は対象外） */
+  .slip-box .slip-title { margin-bottom: 2mm !important; }
+  .slip-box .small-text { margin-bottom: 2mm !important; }
+  /* 入金票の商品欄（deposit-list）は行間拡張の対象外にする */
+  .slip-box .deposit-list .MuiTypography-root,
+  .slip-box .deposit-list .name,
+  .slip-box .deposit-list .qty,
+  .slip-box .deposit-list .amount { margin-bottom: 0 !important; }
+  /* 直前の縮小指定を撤回（small-text を既定の 20px のまま維持） */
   /* 商品欄は画面準拠（10px）で可読性維持 */
   .deposit-list { gap: 2px !important; margin-bottom: 4px !important; }
-  .deposit-list .name, .deposit-list .qty, .deposit-list .amount { font-size: 15px !important; line-height: 1.0 !important; }
+  /* 入金票のお届け商品表示のフォントを 10px に */
+  .deposit-list .name, .deposit-list .qty, .deposit-list .amount { font-size: 10px !important; line-height: 1.0 !important; }
   /* 請求額も画面準拠 */
 .deposit-total { font-size: 27px !important; }
 /* 領収書側の金額はさらに大きめに（視認性を高める） */
@@ -117,9 +133,10 @@
 .totals-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 0.8fr 1.6fr; grid-template-rows: min-content min-content; gap: 2px; align-items: stretch; }
 .totals-cell { border: 1px solid #000; padding: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .totals-cell.label { text-align: center; font-size: 9px; font-weight: 700; line-height: 1.0; }
-.totals-cell.value { text-align: right; font-size: 12px; font-weight: 700; padding-right: 4px; line-height: 1.0; }
+ .totals-cell.value { text-align: right; font-size: 12px; font-weight: 900; padding-right: 4px; line-height: 1.0; }
 .totals-grand-label { border: 2px solid #000; padding: 3px; display: flex; align-items: center; justify-content: center; background: #fff !important; color: #000 !important; font-size: 11px; font-weight: 800; line-height: 1.0; text-align: center; }
-.totals-grand-amount { border: 2px solid #000; padding: 3px; display: flex; align-items: center; justify-content: flex-end; background: #fff; color: #000; font-size: 24px; font-weight: 800; line-height: 1.0; text-align: right; }
+  /* 御請求額（金額セル）印刷時：太枠＋フォント拡大＋太文字（背景は白に戻す） */
+  .totals-grand-amount { border: 3px solid #000; padding: 4px; display: flex; align-items: center; justify-content: flex-end; background: #fff !important; color: #000; font-size: 30px; font-weight: 900 !important; line-height: 1.0; text-align: right; }
 }
 .box {
   border: 2px solid #000;
@@ -205,9 +222,10 @@
 .totals-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 0.8fr 1.8fr; grid-template-rows: min-content min-content; gap: 2px; align-items: stretch; }
 .totals-cell { border: 1px solid #000; padding: 2px; background: #fff; }
 .totals-cell.label { text-align: center; font-size: 9px; font-weight: 700; line-height: 1.0; }
-.totals-cell.value { text-align: right; font-size: 12px; font-weight: 700; padding-right: 4px; line-height: 1.0; }
+ .totals-cell.value { text-align: right; font-size: 12px; font-weight: 900; padding-right: 4px; line-height: 1.0; }
 .totals-grand-label { border: 2px solid #000; padding: 3px; display: flex; align-items: center; justify-content: center; background: #000; color: #fff; font-size: 11px; font-weight: 800; line-height: 1.0; text-align: center; }
-.totals-grand-amount { border: 2px solid #000; padding: 3px; display: flex; align-items: center; justify-content: flex-end; background: #fff; color: #000; font-size: 24px; font-weight: 800; line-height: 1.0; text-align: right; }
+/* ブラウザ表示でも御請求額（金額セル）を強調：太枠＋フォント拡大＋太文字（背景は白） */
+.totals-grand-amount { border: 3px solid #000; padding: 4px; display: flex; align-items: center; justify-content: flex-end; background: #fff; color: #000; font-size: 28px; font-weight: 900; line-height: 1.0; text-align: right; }
 
 @media print {
   .no-print { display: none !important; }
@@ -244,6 +262,8 @@
   .invoice-right .billing-month { text-align: center; font-size: 16px; font-weight: 700; line-height: 1.0; margin: 0; margin-top: 0mm !important; }
   .invoice-right .customer-name { font-size: 16px; font-weight: 700; line-height: 1.0; margin-top: 0; }
   .invoice-right .address-text, .invoice-right .course-text { font-size: 8px; line-height: 1.0; }
+  /* 右下の店舗情報：店舗名を1mm下げる（印刷時のみ） */
+  .invoice-right .footer-store-name { margin-top: 1mm !important; }
 
   /* 印刷時もブラウザ準拠：指定箇所のみフォントを30%縮小 */
   .slip-box .small-text.shrink-30 { font-size: 70% !important; }
