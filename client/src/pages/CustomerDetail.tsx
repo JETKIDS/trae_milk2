@@ -102,12 +102,19 @@ interface ProductCalendarData {
   dailyQuantities: { [date: string]: number };
 }
 
-interface MonthDay {
-  date: string;
-  day: number;
-  dayOfWeek: number;
-  isToday: boolean;
-}
+  interface MonthDay {
+    date: string;
+    day: number;
+    dayOfWeek: number;
+    isToday: boolean;
+  }
+
+  interface ProductMaster {
+    product_name: string;
+    sales_tax_type?: 'inclusive' | 'standard' | 'reduced';
+    purchase_tax_type?: 'inclusive' | 'standard' | 'reduced';
+    sales_tax_rate?: number | null;
+  }
 
 // Undo アクションの型
 interface UndoAction {
@@ -115,7 +122,7 @@ interface UndoAction {
   revert: () => Promise<void>;
 }
 
-const CustomerDetail: React.FC = () => {
+  const CustomerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -136,6 +143,11 @@ const CustomerDetail: React.FC = () => {
   const [openSuspendProduct, setOpenSuspendProduct] = useState(false);
   const [openCancelProduct, setOpenCancelProduct] = useState(false);
   const [openBillingRounding, setOpenBillingRounding] = useState(false);
+  // 入金登録ダイアログ
+  const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
+  const [paymentNote, setPaymentNote] = useState<string>('');
+  const [paymentSaving, setPaymentSaving] = useState(false);
 
   // ダイアログをセルのポップオーバーから開くための参照
   const dpManagerRef = useRef<DeliveryPatternManagerHandle>(null);
@@ -237,6 +249,40 @@ const CustomerDetail: React.FC = () => {
   const handleTemporaryChangesUpdate = () => {
     fetchCalendarData(); // 臨時変更が更新されたらカレンダーデータを更新
   };
+
+  // 商品マスタ（税設定）
+  const [productMapByName, setProductMapByName] = useState<Record<string, ProductMaster>>({});
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await axios.get('/api/products');
+        const masters: ProductMaster[] = (res.data || []).map((p: any) => ({
+          product_name: p.product_name,
+          sales_tax_type: p.sales_tax_type,
+          purchase_tax_type: p.purchase_tax_type,
+          sales_tax_rate: typeof p.sales_tax_rate === 'number' ? p.sales_tax_rate : null,
+        }));
+        const byName: Record<string, ProductMaster> = {};
+        masters.forEach((m) => { byName[m.product_name] = m; });
+        setProductMapByName(byName);
+      } catch (e) {
+        console.error('商品マスタの取得に失敗しました:', e);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  // 税率取得（商品マスタの数値を優先。なければ種別から推定）
+  const getTaxRateForProductName = useCallback((name: string): number => {
+    const pm = productMapByName[name];
+    if (!pm) return 0.10; // 不明時は標準10%
+    if (typeof pm.sales_tax_rate === 'number' && !isNaN(pm.sales_tax_rate)) {
+      return pm.sales_tax_rate > 1 ? pm.sales_tax_rate / 100 : pm.sales_tax_rate;
+    }
+    const type = pm.sales_tax_type || pm.purchase_tax_type || 'standard';
+    if (type === 'reduced') return 0.08;
+    return 0.10;
+  }, [productMapByName]);
 
   // セルに紐づく商品IDから、指定日の有効な定期パターンを取得
   const findPatternForSelectedCell = (): DeliveryPattern | null => {
@@ -847,6 +893,57 @@ const CustomerDetail: React.FC = () => {
     await saveBillingSettings(method, billingRoundingEnabled);
   };
 
+  // 月次請求確定（当月）
+  const handleConfirmInvoice = async () => {
+    try {
+      const y = currentDate.year();
+      const m = currentDate.month() + 1;
+      await axios.post(`/api/customers/${id}/invoices/confirm`, { year: y, month: m });
+      alert('当月の請求を確定しました。');
+    } catch (e) {
+      console.error('請求確定エラー', e);
+      alert('請求確定に失敗しました。時間をおいて再度お試しください。');
+    }
+  };
+
+  // 現金集金の登録
+  const openCollectionDialog = () => {
+    setPaymentAmount('');
+    setPaymentNote('');
+    setOpenPaymentDialog(true);
+  };
+
+  const closeCollectionDialog = () => {
+    if (paymentSaving) return;
+    setOpenPaymentDialog(false);
+  };
+
+  const saveCollection = async () => {
+    if (paymentAmount === '' || Number(paymentAmount) <= 0) {
+      alert('金額を入力してください');
+      return;
+    }
+    try {
+      setPaymentSaving(true);
+      const y = currentDate.year();
+      const m = currentDate.month() + 1;
+      await axios.post(`/api/customers/${id}/payments`, {
+        year: y,
+        month: m,
+        amount: Number(paymentAmount),
+        method: 'collection',
+        note: paymentNote || undefined,
+      });
+      setPaymentSaving(false);
+      setOpenPaymentDialog(false);
+      alert('入金（現金集金）を登録しました。');
+    } catch (e) {
+      console.error('入金登録エラー', e);
+      setPaymentSaving(false);
+      alert('入金登録に失敗しました。時間をおいて再度お試しください。');
+    }
+  };
+
   return (
     <Grid container spacing={2}>
       {/* 左：メインコンテンツ（少し狭く） */}
@@ -1097,18 +1194,28 @@ const CustomerDetail: React.FC = () => {
                         <TableCell align="right">数量</TableCell>
                         <TableCell align="right">単価</TableCell>
                         <TableCell align="right">金額</TableCell>
+                        <TableCell align="right">消費税額（内税）</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {Object.entries(monthlyQuantities).map(([productName, quantity]) => {
                         // 月内の金額はカレンダーの各日の amount を積み上げて算出（単価変更にも正確に対応）
                         let totalAmount = 0;
+                        let totalTax = 0;
                         const priceSet = new Set<number>();
                         calendar.forEach((day) => {
                           day.products.forEach((p) => {
                             if (p.productName === productName) {
                               totalAmount += p.amount;
                               priceSet.add(p.unitPrice);
+                              const rate = getTaxRateForProductName(p.productName);
+                              const pm = productMapByName[p.productName];
+                              const taxType = pm?.sales_tax_type || pm?.purchase_tax_type || 'standard';
+                              if (taxType === 'inclusive') {
+                                totalTax += p.amount * (rate / (1 + rate));
+                              } else {
+                                totalTax += p.amount * rate;
+                              }
                             }
                           });
                         });
@@ -1124,6 +1231,7 @@ const CustomerDetail: React.FC = () => {
                               {unitPriceDisplay !== null ? `¥${unitPriceDisplay.toLocaleString()}` : '複数'}
                             </TableCell>
                             <TableCell align="right">¥{totalAmount.toLocaleString()}</TableCell>
+                            <TableCell align="right">（{Math.round(totalTax).toLocaleString()}）</TableCell>
                           </TableRow>
                         );
                       })}
@@ -1144,22 +1252,28 @@ const CustomerDetail: React.FC = () => {
                       {currentDate.format('YYYY年M月')}分
                     </Typography>
                     <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => {
-                          const y = currentDate.format('YYYY');
-                          const m = currentDate.format('M');
-                          navigate(`/invoice-preview/${id}?year=${y}&month=${m}`);
-                        }}
-                      >
-                        請求書プレビュー
-                      </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => {
+                        const y = currentDate.format('YYYY');
+                        const m = currentDate.format('M');
+                        navigate(`/invoice-preview/${id}?year=${y}&month=${m}`);
+                      }}
+                    >
+                      請求書プレビュー
+                    </Button>
+                    <Button sx={{ ml: 1 }} variant="outlined" color="primary" onClick={handleConfirmInvoice}>
+                      月次請求確定
+                    </Button>
+                    <Button sx={{ ml: 1 }} variant="outlined" color="secondary" onClick={openCollectionDialog}>
+                      現金集金を登録
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
             </Grid>
+          </Grid>
           </Box>
         </CardContent>
       </Card>
@@ -1336,6 +1450,41 @@ const CustomerDetail: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
               <Button onClick={() => setOpenBillingRounding(false)}>閉じる</Button>
               <Button variant="contained" disabled>保存（未実装）</Button>
+            </Box>
+          </Box>
+        </Dialog>
+      </Grid>
+
+      {/* 入金登録（現金集金） */}
+      <Grid item xs={12}>
+        <Dialog open={openPaymentDialog} onClose={closeCollectionDialog} fullWidth maxWidth="sm">
+          <Box sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>入金登録（現金集金）</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              当月の集金金額を入力して登録します。
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label="金額"
+                type="number"
+                inputProps={{ min: 0, step: 1 }}
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                fullWidth
+                autoFocus
+              />
+              <TextField
+                label="メモ（任意）"
+                value={paymentNote}
+                onChange={(e) => setPaymentNote(e.target.value)}
+                fullWidth
+              />
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+              <Button onClick={closeCollectionDialog} disabled={paymentSaving}>キャンセル</Button>
+              <Button variant="contained" onClick={saveCollection} disabled={paymentSaving || paymentAmount === '' || Number(paymentAmount) <= 0}>
+                {paymentSaving ? '保存中…' : '保存'}
+              </Button>
             </Box>
           </Box>
         </Dialog>

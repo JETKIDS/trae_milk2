@@ -98,7 +98,9 @@ router.post('/', async (req, res) => {
     description,
     include_in_invoice,
     sales_tax_type,
-    purchase_tax_type
+    purchase_tax_type,
+    sales_tax_rate,
+    purchase_tax_rate,
   } = req.body;
   
   // custom_idが指定されていない場合は自動生成（4桁形式）
@@ -131,15 +133,18 @@ router.post('/', async (req, res) => {
       INSERT INTO products (
         custom_id, product_name, product_name_short, manufacturer_id, 
         order_code, jan_code, sort_order, sort_type, unit_price, purchase_price,
-        unit, description, include_in_invoice, sales_tax_type, purchase_tax_type
+        unit, description, include_in_invoice, sales_tax_type, purchase_tax_type,
+        sales_tax_rate, purchase_tax_rate
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     db.run(query, [
       finalCustomId, product_name, product_name_short, manufacturer_id,
       order_code, jan_code, sort_order || 0, sort_type || 'id', unit_price, purchase_price || 0,
-      unit || '本', description, include_in_invoice ? 1 : 0, sales_tax_type || 'inclusive', purchase_tax_type || 'reduced'
+      unit || '本', description, include_in_invoice ? 1 : 0, sales_tax_type || 'inclusive', purchase_tax_type || 'reduced',
+      typeof sales_tax_rate === 'number' ? sales_tax_rate : null,
+      typeof purchase_tax_rate === 'number' ? purchase_tax_rate : null,
     ], function(err) {
       if (err) {
         console.error('❌ 商品登録エラー:', err.message);
@@ -183,14 +188,17 @@ router.put('/:id', (req, res) => {
     description,
     include_in_invoice,
     sales_tax_type,
-    purchase_tax_type
+    purchase_tax_type,
+    sales_tax_rate,
+    purchase_tax_rate,
   } = req.body;
   
   const query = `
     UPDATE products 
     SET custom_id = ?, product_name = ?, product_name_short = ?, manufacturer_id = ?, 
         order_code = ?, jan_code = ?, sort_order = ?, sort_type = ?, unit_price = ?, purchase_price = ?,
-        unit = ?, description = ?, include_in_invoice = ?, sales_tax_type = ?, purchase_tax_type = ?
+        unit = ?, description = ?, include_in_invoice = ?, sales_tax_type = ?, purchase_tax_type = ?,
+        sales_tax_rate = ?, purchase_tax_rate = ?
     WHERE id = ?
   `;
   
@@ -198,6 +206,8 @@ router.put('/:id', (req, res) => {
     custom_id, product_name, product_name_short, manufacturer_id,
     order_code, jan_code, sort_order || 0, sort_type || 'id', unit_price, purchase_price || 0,
     unit || '本', description, include_in_invoice ? 1 : 0, sales_tax_type || 'inclusive', purchase_tax_type || 'reduced',
+    typeof sales_tax_rate === 'number' ? sales_tax_rate : null,
+    typeof purchase_tax_rate === 'number' ? purchase_tax_rate : null,
     productId
   ], function(err) {
     if (err) {

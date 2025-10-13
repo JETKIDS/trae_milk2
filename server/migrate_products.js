@@ -80,6 +80,32 @@ db.serialize(() => {
     }
   });
 
+  // 新たに税率カラムを追加（%保持: 8 or 10）
+  db.run(`ALTER TABLE products ADD COLUMN sales_tax_rate INTEGER`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('sales_tax_rate追加エラー:', err.message);
+    } else {
+      console.log('sales_tax_rate フィールドを追加しました');
+    }
+  });
+
+  db.run(`ALTER TABLE products ADD COLUMN purchase_tax_rate INTEGER`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('purchase_tax_rate追加エラー:', err.message);
+    } else {
+      console.log('purchase_tax_rate フィールドを追加しました');
+    }
+  });
+
+  // 既存レコードを「販売 内税8％」に統一（要件に基づく）
+  db.run(`UPDATE products SET sales_tax_type = 'inclusive', sales_tax_rate = 8`, (err) => {
+    if (err) {
+      console.error('一括更新（販売税）エラー:', err.message);
+    } else {
+      console.log('既存商品の販売税率を「内税8％」に統一しました');
+    }
+  });
+
   console.log('マイグレーション完了');
 });
 

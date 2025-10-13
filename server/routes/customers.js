@@ -814,4 +814,256 @@ function generateMonthlyCalendar(year, month, patterns, temporaryChanges = []) {
 
 
 
+// ===== 売掛台帳ユーティリティ =====
+function ensureLedgerTables(db) {
+  const sql = `
+    CREATE TABLE IF NOT EXISTS ar_invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      year INTEGER NOT NULL,
+      month INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      rounding_enabled INTEGER NOT NULL,
+      status TEXT DEFAULT 'confirmed',
+      confirmed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(customer_id, year, month),
+      FOREIGN KEY (customer_id) REFERENCES customers(id)
+    );
+    CREATE TABLE IF NOT EXISTS ar_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      year INTEGER NOT NULL,
+      month INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      method TEXT CHECK (method IN ('collection','debit')),
+      note TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES customers(id)
+    );
+  `;
+  return new Promise((resolve, reject) => {
+    db.exec(sql, (err) => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+}
+
+async function computeMonthlyTotal(db, customerId, year, month) {
+  return new Promise((resolve, reject) => {
+    const patternsQuery = `
+      SELECT dp.*, p.product_name, p.unit, m.manufacturer_name
+      FROM delivery_patterns dp
+      JOIN products p ON dp.product_id = p.id
+      JOIN manufacturers m ON p.manufacturer_id = m.id
+      WHERE dp.customer_id = ? AND dp.is_active = 1
+    `;
+
+    const temporaryQuery = `
+      SELECT tc.*, p.product_name, p.unit_price, p.unit, m.manufacturer_name
+      FROM temporary_changes tc
+      JOIN products p ON tc.product_id = p.id
+      JOIN manufacturers m ON p.manufacturer_id = m.id
+      WHERE tc.customer_id = ?
+        AND strftime('%Y', tc.change_date) = ?
+        AND strftime('%m', tc.change_date) = ?
+    `;
+
+    db.all(patternsQuery, [customerId], (pErr, patterns) => {
+      if (pErr) return reject(pErr);
+      db.all(temporaryQuery, [customerId, String(year), String(month).padStart(2, '0')], (tErr, temporaryChanges) => {
+        if (tErr) return reject(tErr);
+        const calendar = generateMonthlyCalendar(year, month, patterns, temporaryChanges);
+        const totalRaw = calendar.reduce((sum, day) => sum + day.products.reduce((s, p) => s + (p.amount || 0), 0), 0);
+        resolve(totalRaw);
+      });
+    });
+  });
+}
+
+// ===== 月次請求確定（売掛へ登録） =====
+router.post('/:id/invoices/confirm', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const { year, month } = req.body;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+
+    // 端数設定取得（デフォルトON）
+    const roundingRow = await new Promise((resolve, reject) => {
+      db.get('SELECT rounding_enabled FROM customer_settings WHERE customer_id = ?', [customerId], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    const roundingEnabled = roundingRow ? (roundingRow.rounding_enabled === 1) : true;
+
+    const totalRaw = await computeMonthlyTotal(db, customerId, y, m);
+    const amount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+
+    // UPSERT（顧客×年月は一意）
+    await new Promise((resolve, reject) => {
+      const sql = `
+        INSERT INTO ar_invoices (customer_id, year, month, amount, rounding_enabled, status)
+        VALUES (?, ?, ?, ?, ?, 'confirmed')
+        ON CONFLICT(customer_id, year, month) DO UPDATE SET
+          amount = excluded.amount,
+          rounding_enabled = excluded.rounding_enabled,
+          status = 'confirmed',
+          confirmed_at = CURRENT_TIMESTAMP
+      `;
+      db.run(sql, [customerId, y, m, amount, roundingEnabled ? 1 : 0], function(err) {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+
+    db.close();
+    return res.json({ customer_id: Number(customerId), year: y, month: m, amount, rounding_enabled: roundingEnabled });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== 入金登録（現金集金／口座振替の個別登録） =====
+router.post('/:id/payments', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const { year, month, amount, method, note } = req.body;
+  if (!year || !month || !amount || !method) {
+    db.close();
+    return res.status(400).json({ error: 'year, month, amount, method は必須です' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  const amt = parseInt(String(amount), 10);
+  if ([y, m, amt].some(v => isNaN(v)) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month/amount の形式が不正です' });
+  }
+  if (!['collection','debit'].includes(String(method))) {
+    db.close();
+    return res.status(400).json({ error: 'method は collection または debit を指定してください' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+    await new Promise((resolve, reject) => {
+      const sql = `
+        INSERT INTO ar_payments (customer_id, year, month, amount, method, note)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      db.run(sql, [customerId, y, m, amt, String(method), note || null], function(err) {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+    db.close();
+    return res.json({ customer_id: Number(customerId), year: y, month: m, amount: amt, method: String(method), note: note || null });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
+
+// AR（売掛）サマリ: 前月請求額／前月入金額／繰越額（暫定版）
+// 既存の配達カレンダー生成を用いて「前月請求額」を試算し、入金・繰越は0で返す（将来、台帳導入で拡張）
+router.get('/:id/ar-summary', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const { year, month } = req.query;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+
+    // 前月
+    const prevMoment = moment(`${y}-${String(m).padStart(2, '0')}-01`).subtract(1, 'month');
+    const prevYear = parseInt(prevMoment.format('YYYY'), 10);
+    const prevMonth = parseInt(prevMoment.format('MM'), 10);
+
+    // 端数設定（デフォルトON）
+    const roundingRow = await new Promise((resolve, reject) => {
+      db.get('SELECT rounding_enabled FROM customer_settings WHERE customer_id = ?', [customerId], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    const roundingEnabled = roundingRow ? (roundingRow.rounding_enabled === 1) : true;
+
+    // 前月請求額：確定済みがあれば優先、なければカレンダーから試算
+    const invoiceRow = await new Promise((resolve, reject) => {
+      db.get('SELECT amount FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?', [customerId, prevYear, prevMonth], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    let prevInvoiceAmount;
+    if (invoiceRow && typeof invoiceRow.amount === 'number') {
+      prevInvoiceAmount = invoiceRow.amount;
+    } else {
+      const totalRaw = await computeMonthlyTotal(db, customerId, prevYear, prevMonth);
+      prevInvoiceAmount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+    }
+
+    // 前月入金額：当該年月の入金合計
+    const paymentRow = await new Promise((resolve, reject) => {
+      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND year = ? AND month = ?', [customerId, prevYear, prevMonth], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    const prevPaymentAmount = paymentRow ? (paymentRow.total || 0) : 0;
+
+    // 繰越額：過去（前月まで）の請求累計 - 入金累計
+    const cumInvoiceRow = await new Promise((resolve, reject) => {
+      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_invoices WHERE customer_id = ? AND (year < ? OR (year = ? AND month <= ?))', [customerId, prevYear, prevYear, prevMonth], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    const cumPaymentRow = await new Promise((resolve, reject) => {
+      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND (year < ? OR (year = ? AND month <= ?))', [customerId, prevYear, prevYear, prevMonth], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    const carryoverAmount = (cumInvoiceRow?.total || 0) - (cumPaymentRow?.total || 0);
+
+    db.close();
+    return res.json({
+      prev_year: prevYear,
+      prev_month: prevMonth,
+      prev_invoice_amount: prevInvoiceAmount,
+      prev_payment_amount: prevPaymentAmount,
+      carryover_amount: carryoverAmount,
+    });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});

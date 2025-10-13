@@ -15,9 +15,6 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
-  RadioGroup,
-  Radio,
-  FormLabel,
   Divider,
   InputAdornment,
 } from '@mui/material';
@@ -39,8 +36,11 @@ interface Product {
   unit?: string; // 単位（本、個、パックなど）
   description?: string;
   include_in_invoice: boolean; // 請求書記載チェック
+  // 既存のタイプ表現は維持しつつ、レートを明示的に保持します
   sales_tax_type: 'inclusive' | 'standard' | 'reduced'; // 税込み、標準10%、軽減8%
+  sales_tax_rate?: number; // 8 or 10（特に税込み時に使用）
   purchase_tax_type: 'inclusive' | 'standard' | 'reduced'; // 税込み、標準10%、軽減8%
+  purchase_tax_rate?: number; // 8 or 10（特に税込み時に使用）
 }
 
 interface Manufacturer {
@@ -70,7 +70,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
     description: '',
     include_in_invoice: false,
     sales_tax_type: 'inclusive', // デフォルト：税込み
-    purchase_tax_type: 'reduced', // デフォルト：軽減8%
+    sales_tax_rate: 10, // デフォルト：内税10％
+    purchase_tax_type: 'reduced', // デフォルト：外税8％
+    purchase_tax_rate: 8,
   });
 
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
@@ -83,7 +85,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
         setFormData({
           ...product,
           sales_tax_type: product.sales_tax_type || 'inclusive',
+          sales_tax_rate: product.sales_tax_rate ?? (
+            product.sales_tax_type === 'inclusive' ? 10 : (product.sales_tax_type === 'standard' ? 10 : 8)
+          ),
           purchase_tax_type: product.purchase_tax_type || 'reduced',
+          purchase_tax_rate: product.purchase_tax_rate ?? (
+            product.purchase_tax_type === 'inclusive' ? 10 : (product.purchase_tax_type === 'standard' ? 10 : 8)
+          ),
           include_in_invoice: product.include_in_invoice || false,
           sort_type: product.sort_type || 'id',
           purchase_price: product.purchase_price || 0,
@@ -107,7 +115,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
             description: '',
             include_in_invoice: false,
             sales_tax_type: 'inclusive', // デフォルト：税込み
-            purchase_tax_type: 'reduced', // デフォルト：軽減8%
+            sales_tax_rate: 10, // デフォルト：内税10％
+            purchase_tax_type: 'reduced', // デフォルト：外税8％
+            purchase_tax_rate: 8,
           });
         });
       }
@@ -195,6 +205,59 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
       onClose();
     } catch (error) {
       console.error('商品保存エラー:', error);
+    }
+  };
+
+  // 4択の消費税設定（販売・仕入れ）をUIと内部フィールドにマッピング
+  type TaxOption = 'inclusive8' | 'inclusive10' | 'exclusive8' | 'exclusive10';
+
+  const getSalesTaxOption = (): TaxOption => {
+    if (formData.sales_tax_type === 'inclusive') {
+      return formData.sales_tax_rate === 8 ? 'inclusive8' : 'inclusive10';
+    }
+    if (formData.sales_tax_type === 'standard') return 'exclusive10';
+    return 'exclusive8';
+  };
+
+  const setSalesTaxByOption = (opt: TaxOption) => {
+    switch (opt) {
+      case 'inclusive8':
+        setFormData({ ...formData, sales_tax_type: 'inclusive', sales_tax_rate: 8 });
+        break;
+      case 'inclusive10':
+        setFormData({ ...formData, sales_tax_type: 'inclusive', sales_tax_rate: 10 });
+        break;
+      case 'exclusive8':
+        setFormData({ ...formData, sales_tax_type: 'reduced', sales_tax_rate: 8 });
+        break;
+      case 'exclusive10':
+        setFormData({ ...formData, sales_tax_type: 'standard', sales_tax_rate: 10 });
+        break;
+    }
+  };
+
+  const getPurchaseTaxOption = (): TaxOption => {
+    if (formData.purchase_tax_type === 'inclusive') {
+      return formData.purchase_tax_rate === 8 ? 'inclusive8' : 'inclusive10';
+    }
+    if (formData.purchase_tax_type === 'standard') return 'exclusive10';
+    return 'exclusive8';
+  };
+
+  const setPurchaseTaxByOption = (opt: TaxOption) => {
+    switch (opt) {
+      case 'inclusive8':
+        setFormData({ ...formData, purchase_tax_type: 'inclusive', purchase_tax_rate: 8 });
+        break;
+      case 'inclusive10':
+        setFormData({ ...formData, purchase_tax_type: 'inclusive', purchase_tax_rate: 10 });
+        break;
+      case 'exclusive8':
+        setFormData({ ...formData, purchase_tax_type: 'reduced', purchase_tax_rate: 8 });
+        break;
+      case 'exclusive10':
+        setFormData({ ...formData, purchase_tax_type: 'standard', purchase_tax_rate: 10 });
+        break;
     }
   };
 
@@ -399,32 +462,34 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <FormControl component="fieldset">
-                <FormLabel component="legend">販売価格の消費税</FormLabel>
-                <RadioGroup
-                  row
-                  value={formData.sales_tax_type}
-                  onChange={(e) => setFormData({ ...formData, sales_tax_type: e.target.value as 'inclusive' | 'standard' | 'reduced' })}
+              <FormControl fullWidth>
+                <InputLabel>販売価格の消費税</InputLabel>
+                <Select
+                  label="販売価格の消費税"
+                  value={getSalesTaxOption()}
+                  onChange={(e) => setSalesTaxByOption(e.target.value as TaxOption)}
                 >
-                  <FormControlLabel value="inclusive" control={<Radio />} label="税込み" />
-                  <FormControlLabel value="standard" control={<Radio />} label="標準（10％）" />
-                  <FormControlLabel value="reduced" control={<Radio />} label="軽減（8％）" />
-                </RadioGroup>
+                  <MenuItem value="inclusive8">内税8％</MenuItem>
+                  <MenuItem value="inclusive10">内税10％</MenuItem>
+                  <MenuItem value="exclusive8">外税8％</MenuItem>
+                  <MenuItem value="exclusive10">外税10％</MenuItem>
+                </Select>
               </FormControl>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <FormControl component="fieldset">
-                <FormLabel component="legend">仕入価格の消費税</FormLabel>
-                <RadioGroup
-                  row
-                  value={formData.purchase_tax_type}
-                  onChange={(e) => setFormData({ ...formData, purchase_tax_type: e.target.value as 'inclusive' | 'standard' | 'reduced' })}
+              <FormControl fullWidth>
+                <InputLabel>仕入価格の消費税</InputLabel>
+                <Select
+                  label="仕入価格の消費税"
+                  value={getPurchaseTaxOption()}
+                  onChange={(e) => setPurchaseTaxByOption(e.target.value as TaxOption)}
                 >
-                  <FormControlLabel value="inclusive" control={<Radio />} label="税込み" />
-                  <FormControlLabel value="standard" control={<Radio />} label="標準（10％）" />
-                  <FormControlLabel value="reduced" control={<Radio />} label="軽減（8％）" />
-                </RadioGroup>
+                  <MenuItem value="inclusive8">内税8％</MenuItem>
+                  <MenuItem value="inclusive10">内税10％</MenuItem>
+                  <MenuItem value="exclusive8">外税8％</MenuItem>
+                  <MenuItem value="exclusive10">外税10％</MenuItem>
+                </Select>
               </FormControl>
             </Grid>
 

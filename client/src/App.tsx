@@ -14,6 +14,7 @@ import ProductList from './pages/ProductList';
 import CourseList from './pages/CourseList';
 import MasterManagement from './pages/MasterManagement';
 import BillingOperations from './pages/BillingOperations';
+import DebitImport from './pages/DebitImport';
 import InvoicePreview from './pages/InvoicePreview';
 import { CompanyProvider } from './contexts/CompanyContext';
 
@@ -60,6 +61,7 @@ function App() {
                 <Route path="/customers" element={<CustomerList />} />
                 <Route path="/customers/:id" element={<CustomerDetail />} />
                 <Route path="/invoice-preview/:id" element={<InvoicePreview />} />
+                <Route path="/debits/import" element={<DebitImport />} />
                 <Route path="/delivery" element={<DeliveryList />} />
                 <Route path="/billing" element={<BillingOperations />} />
                 <Route path="/products" element={<ProductList />} />

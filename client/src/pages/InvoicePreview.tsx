@@ -81,10 +81,18 @@ interface ProductCalendarData {
   dailyQuantities: { [date: string]: number };
 }
 
-interface ProductCalendarRow extends ProductCalendarData {
-  totalQty: number;
-  totalAmount: number;
-}
+  interface ProductCalendarRow extends ProductCalendarData {
+    totalQty: number;
+    totalAmount: number;
+  }
+
+  interface ArSummary {
+    prev_year: number;
+    prev_month: number;
+    prev_invoice_amount: number;
+    prev_payment_amount: number;
+    carryover_amount: number;
+  }
 
 // 商品マスタ（税率関連の値を参照）
 interface ProductMaster {
@@ -103,7 +111,7 @@ function pad7(customId?: string): string {
   return `000${id}`;
 }
 
-const InvoicePreview: React.FC = () => {
+  const InvoicePreview: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const [company, setCompany] = useState<CompanyInfo | null>(null);
@@ -306,7 +314,7 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
     return p ? p.product_id : null;
   };
 
-  // 小計（税抜相当）、内税額（8%/10%を分割）、請求額
+  // 小計（税抜相当）、内税額（8%/10%を分割）、請求額（端数処理対応）
   const totals = useMemo(() => {
     let base = 0;
     let tax = 0;
@@ -336,14 +344,37 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
         }
       });
     });
+    const baseRounded = Math.round(base);
+    const taxRounded = Math.round(tax);
+    const totalRaw = baseRounded + taxRounded;
+    const totalRounded = roundingEnabled
+      ? Math.floor(totalRaw / 10) * 10 // 顧客詳細ページと同じ「1の位切り捨て」
+      : Math.round(totalRaw);
     return {
-      base: Math.round(base),
-      tax: Math.round(tax),
+      base: baseRounded,
+      tax: taxRounded,
       tax8: Math.round(tax8),
       tax10: Math.round(tax10),
-      total: Math.round(base + tax),
+      total: totalRounded,
     };
-  }, [calendar, getTaxRateForProductName, productMapByName]);
+  }, [calendar, getTaxRateForProductName, productMapByName, roundingEnabled]);
+
+  // 前月請求／前月入金／繰越のサマリ（サーバから取得：暫定実装）
+  const [arSummary, setArSummary] = useState<ArSummary | null>(null);
+  useEffect(() => {
+    const fetchArSummary = async () => {
+      try {
+        const idNum = Number(id);
+        if (!idNum || !year || !month) return;
+        const res = await axios.get(`/api/customers/${idNum}/ar-summary`, { params: { year, month } });
+        setArSummary(res.data as ArSummary);
+      } catch (e) {
+        console.error('ARサマリ取得エラー', e);
+        setArSummary(null);
+      }
+    };
+    fetchArSummary();
+  }, [id, year, month]);
 
   // カレンダー用の商品行（全件）
   const calendarProducts = useMemo<ProductCalendarRow[]>(() => {
@@ -369,9 +400,9 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
     return withTotals as ProductCalendarRow[];
   }, [calendar]);
 
-  // 入金票（契約商品）表示行：最大5行、足りない分は空行でパディング
+  // 入金票（契約商品）表示行：最大6行、足りない分は空行でパディング
   const depositRows = useMemo<ProductCalendarRow[]>(() => {
-    const rows = calendarProducts.filter((p) => p.totalQty > 0).slice(0, 5);
+    const rows = calendarProducts.filter((p) => p.totalQty > 0).slice(0, 6);
     const pad: ProductCalendarRow = {
       productName: '',
       specification: '',
@@ -379,11 +410,11 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
       totalQty: 0,
       totalAmount: 0,
     };
-    while (rows.length < 5) rows.push({ ...pad });
+    while (rows.length < 6) rows.push({ ...pad });
     return rows;
   }, [calendarProducts]);
 
-  // 5行ずつページ分割（不足分は空行でパディングして常に5行表示）
+  // 6行ずつページ分割（不足分は空行でパディングして常に6行表示）
   const calendarPages = useMemo(() => {
     const padRow: ProductCalendarRow = {
       productName: '',
@@ -394,13 +425,13 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
     };
     const chunks: ProductCalendarRow[][] = [];
     if (calendarProducts.length === 0) {
-      // 商品がない場合でも5行の空行ページを1枚表示
-      chunks.push(Array.from({ length: 5 }, () => ({ ...padRow })));
+      // 商品がない場合でも6行の空行ページを1枚表示
+      chunks.push(Array.from({ length: 6 }, () => ({ ...padRow })));
       return chunks;
     }
-    for (let i = 0; i < calendarProducts.length; i += 5) {
-      const slice = calendarProducts.slice(i, i + 5);
-      while (slice.length < 5) slice.push({ ...padRow });
+    for (let i = 0; i < calendarProducts.length; i += 6) {
+      const slice = calendarProducts.slice(i, i + 6);
+      while (slice.length < 6) slice.push({ ...padRow });
       chunks.push(slice);
     }
     return chunks;
@@ -409,11 +440,15 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
   // 月を前半(1〜15日)と後半(16日〜末日)に分割表示用
   const { firstHalf: firstHalfDays, secondHalf: secondHalfDays } = useMemo(() => generateMonthDays(), [year, month, generateMonthDays]);
 
-  // 前回残高（仮置き：将来的に未入金の繰越を連携）
+  // 前回残高（未入金繰越）：ARサマリの carryover_amount を反映
   const previousBalance = useMemo(() => {
-    // TODO: 未入金繰越データが整備されたらここで取得・計算
-    return 0;
-  }, [customer]);
+    return arSummary?.carryover_amount || 0;
+  }, [arSummary]);
+
+  // 御請求額（当月端数処理適用後の請求額 + 前月までの繰越）
+  const grandTotal = useMemo(() => {
+    return monthlyTotal + (arSummary?.carryover_amount || 0);
+  }, [monthlyTotal, arSummary]);
 
   return (
     <Box sx={{ p: 2 }} className="invoice-root print-root">
@@ -467,7 +502,7 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                         {/* 請求額（ラベルの横に金額を表示） */}
                         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline' }}>
                           <Typography className="small-text">請求額</Typography>
-                          <Typography className="deposit-total" sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>￥{totals.total.toLocaleString()}</Typography>
+                          <Typography className="deposit-total" sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>￥{grandTotal.toLocaleString()}</Typography>
                         </Box>
                       </Box>
                       <Box className="box slip-box" sx={{ flex: 1, height: '100%' }}>
@@ -488,7 +523,7 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                         {/* 領収金額（ラベルの横に金額を表示） */}
                         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline' }}>
                           <Typography className="small-text">領収金額</Typography>
-                          <Typography className="receipt-total" sx={{ textAlign: 'right', fontWeight: 700 }}>￥{totals.total.toLocaleString()}</Typography>
+                          <Typography className="receipt-total" sx={{ textAlign: 'right', fontWeight: 700 }}>￥{monthlyTotal.toLocaleString()}</Typography>
                         </Box>
                         <Divider sx={{ my: 1 }} />
                         {/* 日付手書きエリア（括弧を削除）右寄せ */}
@@ -620,23 +655,23 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                     <Box className="thin-box totals-grid" sx={{ p: 0 }}>
                       {/* 左から：前月請求額／前月入金額／繰越額／お買上額／消費税額／右端はラベル＋金額の2セル */}
                       <div className="totals-cell label" style={{ gridColumn: 1, gridRow: 1 }}>前月請求額</div>
-                      <div className="totals-cell value" style={{ gridColumn: 1, gridRow: 2 }}>{(0).toLocaleString()}</div>
+                      <div className="totals-cell value" style={{ gridColumn: 1, gridRow: 2 }}>{(arSummary?.prev_invoice_amount || 0).toLocaleString()}</div>
 
                       <div className="totals-cell label" style={{ gridColumn: 2, gridRow: 1 }}>前月入金額</div>
-                      <div className="totals-cell value" style={{ gridColumn: 2, gridRow: 2 }}>{(0).toLocaleString()}</div>
+                      <div className="totals-cell value" style={{ gridColumn: 2, gridRow: 2 }}>{(arSummary?.prev_payment_amount || 0).toLocaleString()}</div>
 
                       <div className="totals-cell label" style={{ gridColumn: 3, gridRow: 1 }}>繰越額</div>
-                      <div className="totals-cell value" style={{ gridColumn: 3, gridRow: 2 }}>{(0).toLocaleString()}</div>
+                      <div className="totals-cell value" style={{ gridColumn: 3, gridRow: 2 }}>{(arSummary?.carryover_amount || 0).toLocaleString()}</div>
 
                       <div className="totals-cell label" style={{ gridColumn: 4, gridRow: 1 }}>お買上額</div>
-                      <div className="totals-cell value" style={{ gridColumn: 4, gridRow: 2 }}>{totals.base.toLocaleString()}</div>
+                      <div className="totals-cell value" style={{ gridColumn: 4, gridRow: 2 }}>{monthlyTotalRaw.toLocaleString()}</div>
 
                       <div className="totals-cell label" style={{ gridColumn: 5, gridRow: 1 }}>消費税額</div>
-                      <div className="totals-cell value" style={{ gridColumn: 5, gridRow: 2 }}>{totals.tax.toLocaleString()}</div>
+                      <div className="totals-cell value" style={{ gridColumn: 5, gridRow: 2 }}>{`(${includedTaxTotal.toLocaleString()})`}</div>
 
                       {/* 右端：左右2セル（左は反転で「御請求額」、右は金額を強調） */}
                       <div className="totals-grand-label" style={{ gridColumn: 6, gridRow: '1 / span 2' }}>御請求額</div>
-        <div className="totals-grand-amount" style={{ gridColumn: 7, gridRow: '1 / span 2' }}>￥{totals.total.toLocaleString()}</div>
+        <div className="totals-grand-amount" style={{ gridColumn: 7, gridRow: '1 / span 2' }}>￥{grandTotal.toLocaleString()}</div>
                     </Box>
 
                     {/* フッター（左：顧客ID/コース/順位、右：店舗名と住所/電話） */}
