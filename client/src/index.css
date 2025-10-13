@@ -169,3 +169,8 @@ code {
     color: #000 !important;
   }
 }
+
+/* グローバル印刷設定：請求書以外はA4縦で印刷 */
+@page {
+  size: A4 portrait;
+}
