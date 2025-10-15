@@ -44,6 +44,7 @@ import {
 } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import axios from 'axios';
+import moment from 'moment';
 
 interface Course {
   id: number;
@@ -878,6 +879,31 @@ const CourseList: React.FC = () => {
                 fullWidth
               >
                 配達順序を保存
+              </Button>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button
+                variant="outlined"
+                onClick={async () => {
+                  if (!selectedCourseId) return;
+                  const y = moment().year();
+                  const m = moment().month() + 1;
+                  try {
+                    const res = await axios.post('/api/customers/invoices/confirm-batch', {
+                      year: y,
+                      month: m,
+                      course_id: selectedCourseId,
+                    });
+                    alert(`当月の月次請求を確定しました（対象 ${res.data?.count ?? 0} 件）`);
+                  } catch (err) {
+                    console.error('一括確定エラー', err);
+                    alert('月次請求の一括確定に失敗しました。時間をおいて再度お試しください。');
+                  }
+                }}
+                disabled={!selectedCourseId}
+                fullWidth
+              >
+                コース月次確定（今月）
               </Button>
             </Grid>
           </Grid>

@@ -581,6 +581,150 @@ router.get('/by-course/:courseId', (req, res) => {
   db.close();
 });
 
+// コース別（集金客のみ）一覧取得
+router.get('/by-course/:courseId/collection', (req, res) => {
+  const db = getDB();
+  const courseId = req.params.courseId;
+
+  const query = `
+    SELECT c.id, c.custom_id, c.customer_name, c.address, c.phone,
+           dc.course_name, ds.staff_name,
+           cs.billing_method, cs.rounding_enabled
+    FROM customers c
+    LEFT JOIN customer_settings cs ON cs.customer_id = c.id
+    LEFT JOIN delivery_courses dc ON c.course_id = dc.id
+    LEFT JOIN delivery_staff ds ON c.staff_id = ds.id
+    WHERE c.course_id = ? AND COALESCE(cs.billing_method, 'collection') = 'collection'
+    ORDER BY c.delivery_order ASC, c.id ASC
+  `;
+
+  db.all(query, [courseId], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+  db.close();
+});
+
+// 指定月の請求額（確定があればそれを優先／なければ試算）をコース別でまとめて返却
+router.get('/by-course/:courseId/invoices-amounts', async (req, res) => {
+  const db = getDB();
+  const courseId = req.params.courseId;
+  const { year, month } = req.query;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+    const customers = await new Promise((resolve, reject) => {
+      const sql = `
+        SELECT c.id, c.custom_id, c.customer_name,
+               cs.rounding_enabled
+        FROM customers c
+        LEFT JOIN customer_settings cs ON cs.customer_id = c.id
+        WHERE c.course_id = ? AND COALESCE(cs.billing_method, 'collection') = 'collection'
+        ORDER BY c.delivery_order ASC, c.id ASC
+      `;
+      db.all(sql, [courseId], (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows || []);
+      });
+    });
+
+    const results = [];
+    for (const c of customers) {
+      const roundingEnabled = c.rounding_enabled === 1 || c.rounding_enabled === null || typeof c.rounding_enabled === 'undefined' ? true : c.rounding_enabled === 1;
+      const invRow = await new Promise((resolve, reject) => {
+        db.get('SELECT amount, status FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?', [c.id, y, m], (err, row) => {
+          if (err) return reject(err);
+          resolve(row);
+        });
+      });
+      let amount;
+      let confirmed = false;
+      if (invRow && typeof invRow.amount === 'number') {
+        amount = invRow.amount;
+        confirmed = String(invRow.status || 'confirmed') === 'confirmed';
+      } else {
+        const totalRaw = await computeMonthlyTotal(db, c.id, y, m);
+        amount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+      }
+      results.push({ customer_id: c.id, amount, confirmed, rounding_enabled: roundingEnabled ? 1 : 0 });
+    }
+
+    db.close();
+    return res.json({ year: y, month: m, items: results });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== 入金一括登録（集金） =====
+router.post('/payments/batch', async (req, res) => {
+  const db = getDB();
+  const { year, month, entries } = req.body; // entries: [{ customer_id, amount, note? }]
+  if (!year || !month || !entries || !Array.isArray(entries) || entries.length === 0) {
+    db.close();
+    return res.status(400).json({ error: 'year, month, entries は必須です' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+  try {
+    await ensureLedgerTables(db);
+    let success = 0;
+    let failed = 0;
+    await new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+        const stmt = db.prepare(
+          `INSERT INTO ar_payments (customer_id, year, month, amount, method, note)
+           VALUES (?, ?, ?, ?, 'collection', ?)`
+        );
+        for (const e of entries) {
+          const cid = parseInt(String(e.customer_id), 10);
+          const amt = parseInt(String(e.amount), 10);
+          const note = e.note ? String(e.note) : null;
+          if (isNaN(cid) || isNaN(amt) || amt <= 0) { failed++; continue; }
+          stmt.run([cid, y, m, amt, note], (err) => {
+            if (err) { failed++; }
+            else { success++; }
+          });
+        }
+        stmt.finalize((finErr) => {
+          if (finErr) {
+            db.run('ROLLBACK');
+            return reject(finErr);
+          }
+          db.run('COMMIT', (commitErr) => {
+            if (commitErr) return reject(commitErr);
+            resolve(null);
+          });
+        });
+      });
+    });
+    db.close();
+    return res.json({ year: y, month: m, success, failed });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // 配達順一括更新
 router.put('/delivery-order/bulk', (req, res) => {
   const db = getDB();
@@ -856,7 +1000,7 @@ async function computeMonthlyTotal(db, customerId, year, month) {
       FROM delivery_patterns dp
       JOIN products p ON dp.product_id = p.id
       JOIN manufacturers m ON p.manufacturer_id = m.id
-      WHERE dp.customer_id = ? AND dp.is_active = 1
+      WHERE dp.customer_id = ?
     `;
 
     const temporaryQuery = `
@@ -931,6 +1075,284 @@ router.post('/:id/invoices/confirm', async (req, res) => {
 
     db.close();
     return res.json({ customer_id: Number(customerId), year: y, month: m, amount, rounding_enabled: roundingEnabled });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== 月次請求ステータス取得（確定済みか判定） =====
+router.get('/:id/invoices/status', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const { year, month } = req.query;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+    const row = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT amount, rounding_enabled, confirmed_at FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?',
+        [customerId, y, m],
+        (err, r) => {
+          if (err) return reject(err);
+          resolve(r);
+        }
+      );
+    });
+    db.close();
+    if (row) {
+      return res.json({
+        confirmed: true,
+        amount: row.amount,
+        rounding_enabled: row.rounding_enabled === 1,
+        confirmed_at: row.confirmed_at,
+      });
+    }
+    return res.json({ confirmed: false });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== 月次請求の一括確定（コース単位／指定顧客／全顧客） =====
+router.post('/invoices/confirm-batch', async (req, res) => {
+  const db = getDB();
+  const { year, month, course_id, customer_ids } = req.body;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+
+    // 対象顧客の抽出
+    let targets = [];
+    if (Array.isArray(customer_ids) && customer_ids.length > 0) {
+      targets = customer_ids.map((cid) => parseInt(String(cid), 10)).filter((n) => !isNaN(n));
+    } else if (typeof course_id !== 'undefined') {
+      const courseId = parseInt(String(course_id), 10);
+      if (isNaN(courseId)) {
+        db.close();
+        return res.status(400).json({ error: 'course_id の形式が不正です' });
+      }
+      const customersInCourse = await new Promise((resolve, reject) => {
+        db.all('SELECT id FROM customers WHERE course_id = ?', [courseId], (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        });
+      });
+      targets = customersInCourse.map((r) => r.id);
+    } else {
+      const allCustomers = await new Promise((resolve, reject) => {
+        db.all('SELECT id FROM customers', [], (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        });
+      });
+      targets = allCustomers.map((r) => r.id);
+    }
+
+    // トランザクションで一括確定
+    await new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run('BEGIN', (bErr) => {
+          if (bErr) return reject(bErr);
+
+          const proceed = async () => {
+            const results = [];
+            try {
+              for (const customerId of targets) {
+                // 端数設定（デフォルトON）
+                const roundingRow = await new Promise((res2, rej2) => {
+                  db.get('SELECT rounding_enabled FROM customer_settings WHERE customer_id = ?', [customerId], (err, row) => {
+                    if (err) return rej2(err);
+                    res2(row);
+                  });
+                });
+                const roundingEnabled = roundingRow ? (roundingRow.rounding_enabled === 1) : true;
+
+                const totalRaw = await computeMonthlyTotal(db, customerId, y, m);
+                const amount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+
+                await new Promise((res3, rej3) => {
+                  const sql = `
+                    INSERT INTO ar_invoices (customer_id, year, month, amount, rounding_enabled, status)
+                    VALUES (?, ?, ?, ?, ?, 'confirmed')
+                    ON CONFLICT(customer_id, year, month) DO UPDATE SET
+                      amount = excluded.amount,
+                      rounding_enabled = excluded.rounding_enabled,
+                      status = 'confirmed',
+                      confirmed_at = CURRENT_TIMESTAMP
+                  `;
+                  db.run(sql, [customerId, y, m, amount, roundingEnabled ? 1 : 0], function(err) {
+                    if (err) return rej3(err);
+                    res3();
+                  });
+                });
+
+                results.push({ customer_id: customerId, year: y, month: m, amount, rounding_enabled: roundingEnabled });
+              }
+
+              db.run('COMMIT', (cErr) => {
+                if (cErr) return reject(cErr);
+                resolve(results);
+              });
+            } catch (loopErr) {
+              db.run('ROLLBACK', () => {
+                reject(loopErr);
+              });
+            }
+          };
+
+          proceed();
+        });
+      });
+    }).then((results) => {
+      db.close();
+      return res.json({ year: y, month: m, count: targets.length, results });
+    }).catch((err) => {
+      db.close();
+      return res.status(500).json({ error: err.message });
+    });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== 月次請求の一括確定解除（コース単位／指定顧客／全顧客） =====
+router.post('/invoices/unconfirm-batch', async (req, res) => {
+  const db = getDB();
+  const { year, month, course_id, customer_ids } = req.body;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+
+    // 対象顧客の抽出
+    let targets = [];
+    if (Array.isArray(customer_ids) && customer_ids.length > 0) {
+      targets = customer_ids.map((cid) => parseInt(String(cid), 10)).filter((n) => !isNaN(n));
+    } else if (typeof course_id !== 'undefined') {
+      const courseId = parseInt(String(course_id), 10);
+      if (isNaN(courseId)) {
+        db.close();
+        return res.status(400).json({ error: 'course_id の形式が不正です' });
+      }
+      const customersInCourse = await new Promise((resolve, reject) => {
+        db.all('SELECT id FROM customers WHERE course_id = ?', [courseId], (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        });
+      });
+      targets = customersInCourse.map((r) => r.id);
+    } else {
+      const allCustomers = await new Promise((resolve, reject) => {
+        db.all('SELECT id FROM customers', [], (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        });
+      });
+      targets = allCustomers.map((r) => r.id);
+    }
+
+    // トランザクションで一括確定解除（該当月の売掛請求レコードを削除）
+    const results = await new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run('BEGIN', (bErr) => {
+          if (bErr) return reject(bErr);
+
+          const doWork = async () => {
+            const out = [];
+            try {
+              for (const customerId of targets) {
+                const deleted = await new Promise((resDel, rejDel) => {
+                  const sql = 'DELETE FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?';
+                  db.run(sql, [customerId, y, m], function(delErr) {
+                    if (delErr) return rejDel(delErr);
+                    resDel(this.changes || 0);
+                  });
+                });
+                out.push({ customer_id: customerId, year: y, month: m, removed_count: deleted });
+              }
+              db.run('COMMIT', (cErr) => {
+                if (cErr) return reject(cErr);
+                resolve(out);
+              });
+            } catch (loopErr) {
+              db.run('ROLLBACK', () => {
+                reject(loopErr);
+              });
+            }
+          };
+
+          doWork();
+        });
+      });
+    });
+
+    db.close();
+    return res.json({ year: y, month: m, count: targets.length, results });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== 月次請求の確定解除（顧客単位） =====
+router.post('/:id/invoices/unconfirm', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const { year, month } = req.body;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+    await new Promise((resolve, reject) => {
+      const sql = 'DELETE FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?';
+      db.run(sql, [customerId, y, m], function(err) {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+    db.close();
+    return res.json({ customer_id: Number(customerId), year: y, month: m, removed: true });
   } catch (e) {
     db.close();
     return res.status(500).json({ error: e.message });
@@ -1013,6 +1435,8 @@ router.get('/:id/ar-summary', async (req, res) => {
         resolve(row);
       });
     });
+
+// （注意）整合性テストルートは ar-summary ルートの外に定義する必要があるため、ここでは削除し、ファイル末尾で再定義します。
     const roundingEnabled = roundingRow ? (roundingRow.rounding_enabled === 1) : true;
 
     // 前月請求額：確定済みがあれば優先、なければカレンダーから試算
@@ -1065,5 +1489,105 @@ router.get('/:id/ar-summary', async (req, res) => {
   } catch (e) {
     db.close();
     return res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== ARサマリー整合性テスト（前月請求額・繰越） =====
+// 指定年月の「前月」を対象に、
+// - 配達カレンダーからの試算額（totalRaw）
+// - 切り上げ/四捨五入設定適用後の想定請求額（expectedAmount）
+// - 売掛請求テーブル(ar_invoices)登録額（arInvoiceAmount）
+// - ARサマリーAPIが返す前月請求額（arSummaryPrevInvoiceAmount）
+// の一致状況を返す。
+router.get('/:id/ar-summary/consistency', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const { year, month } = req.query;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+
+    // 前月の算出
+    const prevMoment = moment(`${y}-${String(m).padStart(2, '0')}-01`).subtract(1, 'month');
+    const prevYear = parseInt(prevMoment.format('YYYY'), 10);
+    const prevMonth = parseInt(prevMoment.format('MM'), 10);
+
+    // 端数設定（confirm-batch と同じロジック：customer_settings.rounding_enabled を使用）
+    const roundingEnabled = await new Promise((resolve) => {
+      db.get('SELECT rounding_enabled FROM customer_settings WHERE customer_id = ?', [customerId], (err, row) => {
+        if (err) {
+          console.error('端数設定取得エラー:', err);
+          resolve(true);
+        } else {
+          resolve(row ? (row.rounding_enabled === 1) : true);
+        }
+      });
+    });
+
+    // 配達データからの試算
+    const totalRaw = await computeMonthlyTotal(db, customerId, prevYear, prevMonth);
+    // confirm-batch と同一の丸め（10円単位の切り捨て）
+    const expectedAmount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+
+    // 売掛請求テーブル登録額
+    const arInvoiceAmount = await new Promise((resolve) => {
+      db.get('SELECT amount FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?', [customerId, prevYear, prevMonth], (err, row) => {
+        if (err) {
+          console.error('AR請求取得エラー:', err);
+          resolve(null);
+        } else {
+          resolve(row?.amount ?? null);
+        }
+      });
+    });
+
+    // ARサマリーAPIの値（前月請求額・繰越）
+    const arSummary = await new Promise((resolve) => {
+      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND year = ? AND month = ?', [customerId, prevYear, prevMonth], (pErr, pRow) => {
+        const prevPaymentTotal = pRow?.total || 0;
+        db.get('SELECT amount FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?', [customerId, prevYear, prevMonth], (iErr, iRow) => {
+          const prevInvoiceFromAR = iRow?.amount ?? null;
+          // サマリーの前月請求額は「ARに存在すればそれを、なければ配達試算」を採用
+          const prevInvoiceAmount = prevInvoiceFromAR ?? totalRaw;
+          db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_invoices WHERE customer_id = ? AND (year < ? OR (year = ? AND month <= ?))', [customerId, prevYear, prevYear, prevMonth], (cumInvErr, cumInvRow) => {
+            db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND (year < ? OR (year = ? AND month <= ?))', [customerId, prevYear, prevYear, prevMonth], (cumPayErr, cumPayRow) => {
+              const carryoverAmount = (cumInvRow?.total || 0) - (cumPayRow?.total || 0);
+              resolve({ prevInvoiceAmount, carryoverAmount, prevPaymentTotal });
+            });
+          });
+        });
+      });
+    });
+
+    const consistency = {
+      prevYear,
+      prevMonth,
+      rounding_enabled: Boolean(roundingEnabled),
+      totalRaw,
+      expectedAmount,
+      arInvoiceAmount,
+      arSummaryPrevInvoiceAmount: arSummary.prevInvoiceAmount,
+      carryoverAmountFromSummary: arSummary.carryoverAmount,
+      prevPaymentTotal: arSummary.prevPaymentTotal,
+      isPrevInvoiceEqualToExpected: arInvoiceAmount === null ? false : arInvoiceAmount === expectedAmount,
+      isSummaryUsingARAmount: arInvoiceAmount === null ? arSummary.prevInvoiceAmount === totalRaw : arSummary.prevInvoiceAmount === arInvoiceAmount
+    };
+
+    db.close();
+    return res.json(consistency);
+  } catch (e) {
+    console.error('ARサマリー整合性テスト失敗:', e);
+    db.close();
+    return res.status(500).json({ error: 'ARサマリー整合性テストに失敗しました' });
   }
 });

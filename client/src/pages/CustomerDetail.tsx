@@ -155,6 +155,10 @@ interface UndoAction {
   const [billingRoundingEnabled, setBillingRoundingEnabled] = useState(true); // デフォルトON
   const [billingMethod, setBillingMethod] = useState<'collection' | 'debit'>('collection');
   const [openBankInfo, setOpenBankInfo] = useState(false);
+  // 前月サマリ（AR）
+  const [arSummary, setArSummary] = useState<{ prev_year: number; prev_month: number; prev_invoice_amount: number; prev_payment_amount: number; carryover_amount: number } | null>(null);
+  // 月次確定ステータス
+  const [invoiceConfirmed, setInvoiceConfirmed] = useState<boolean>(false);
 
   // Undo スタック
   const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
@@ -201,6 +205,30 @@ interface UndoAction {
 
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
+  const fetchArSummary = useCallback(async () => {
+    try {
+      const y = currentDate.year();
+      const m = currentDate.month() + 1;
+      const resp = await axios.get(`/api/customers/${id}/ar-summary`, { params: { year: y, month: m } });
+      setArSummary(resp.data);
+    } catch (err) {
+      console.error('ARサマリの取得に失敗しました:', err);
+    }
+  }, [id, currentDate]);
+
+  const fetchInvoiceStatus = useCallback(async () => {
+    try {
+      const y = currentDate.year();
+      const m = currentDate.month() + 1;
+      const resp = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
+      const confirmed = resp.data && resp.data.confirmed === true;
+      setInvoiceConfirmed(Boolean(confirmed));
+    } catch (err) {
+      console.error('請求ステータスの取得に失敗しました:', err);
+      setInvoiceConfirmed(false);
+    }
+  }, [id, currentDate]);
+
   const fetchCustomerData = useCallback(async () => {
     try {
       const response = await axios.get(`/api/customers/${id}`);
@@ -215,10 +243,13 @@ interface UndoAction {
         setBillingMethod('collection');
         setBillingRoundingEnabled(true);
       }
+      // 顧客取得後にARサマリも取得
+      await fetchArSummary();
+      await fetchInvoiceStatus();
     } catch (error) {
       console.error('顧客データの取得に失敗しました:', error);
     }
-  }, [id]);
+  }, [id, fetchArSummary, fetchInvoiceStatus]);
 
   const fetchCalendarData = useCallback(async () => {
     try {
@@ -238,8 +269,11 @@ interface UndoAction {
     if (id) {
       fetchCustomerData();
       fetchCalendarData();
+      // 月が変わったらARサマリも再取得（保険的に明示）
+      fetchArSummary();
+      fetchInvoiceStatus();
     }
-  }, [id, currentDate, fetchCustomerData, fetchCalendarData]);
+  }, [id, currentDate, fetchCustomerData, fetchCalendarData, fetchArSummary, fetchInvoiceStatus]);
 
   const handlePatternsChange = () => {
     fetchCustomerData(); // 配達パターンが変更されたらカレンダーデータも更新
@@ -867,9 +901,12 @@ interface UndoAction {
 
   const monthlyQuantities = calculateMonthlyQuantity();
   const monthlyTotalRaw = calculateMonthlyTotal();
-  const monthlyTotal = billingRoundingEnabled
-    ? Math.floor(monthlyTotalRaw / 10) * 10 // 1の位切り捨て
+  // 今月概算合計は「当月概算 + 前月繰越（前月請求額 - 前月入金額）」で表示
+  const baseMonthlyTotal = billingRoundingEnabled
+    ? Math.floor(monthlyTotalRaw / 10) * 10 // 1の位切り捨て（当月分のみ）
     : monthlyTotalRaw;
+  const carryoverFromPrev = (arSummary?.carryover_amount ?? ((arSummary?.prev_invoice_amount || 0) - (arSummary?.prev_payment_amount || 0))) || 0;
+  const monthlyTotal = baseMonthlyTotal + carryoverFromPrev;
 
   // 設定保存ヘルパー
   const saveBillingSettings = async (method: 'collection' | 'debit', roundingEnabled: boolean) => {
@@ -900,9 +937,35 @@ interface UndoAction {
       const m = currentDate.month() + 1;
       await axios.post(`/api/customers/${id}/invoices/confirm`, { year: y, month: m });
       alert('当月の請求を確定しました。');
+      await fetchArSummary(); // 前月・繰越に影響が出る可能性があるため再取得
+      await fetchInvoiceStatus();
     } catch (e) {
       console.error('請求確定エラー', e);
       alert('請求確定に失敗しました。時間をおいて再度お試しください。');
+    }
+  };
+
+  // 入金登録（指定の年月に紐づけて保存。デフォルトは前月）
+  const savePrevPayment = async (amount: number, mode: 'auto' | 'manual', year?: number, month?: number) => {
+    try {
+      const y = typeof year === 'number' ? year : arSummary?.prev_year;
+      const m = typeof month === 'number' ? month : arSummary?.prev_month;
+      if (!y || !m) {
+        alert('入金対象の年月が取得できていません');
+        return;
+      }
+      await axios.post(`/api/customers/${id}/payments`, {
+        year: y,
+        month: m,
+        amount,
+        method: billingMethod,
+        note: mode === 'auto' ? '請求額に対する自動入金' : '手動入金',
+      });
+      alert('入金を登録しました。');
+      await fetchArSummary();
+    } catch (e) {
+      console.error('入金登録エラー', e);
+      alert('入金の登録に失敗しました。時間をおいて再度お試しください。');
     }
   };
 
@@ -1326,6 +1389,15 @@ interface UndoAction {
           customId={customer.custom_id}
           courseName={customer.course_name}
           monthlyTotal={monthlyTotal}
+          invoiceConfirmed={invoiceConfirmed}
+          onConfirmInvoice={handleConfirmInvoice}
+          currentYear={currentDate.year()}
+          currentMonth={currentDate.month() + 1}
+          prevInvoiceAmount={arSummary?.prev_invoice_amount}
+          prevPaymentAmount={arSummary?.prev_payment_amount}
+          prevYear={arSummary?.prev_year}
+          prevMonth={arSummary?.prev_month}
+          onSavePrevPayment={savePrevPayment}
           billingRoundingEnabled={billingRoundingEnabled}
           onToggleBillingRounding={handleToggleBillingRounding}
           billingMethod={billingMethod}
