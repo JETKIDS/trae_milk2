@@ -1,6 +1,6 @@
 @page {
   size: A4 landscape;
-  /* 余白調整：右を短く、左を長く */
+  /* 余白調整：右を短く、左を長く（上下 6mm に戻す） */
   margin: 6mm 7mm 6mm 8mm;
 }
 
@@ -27,8 +27,7 @@
 @media print {
   /* 画面の見た目にできるだけ合わせて色を維持 */
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  /* A4 横: 高さ 210mm、@page margin 5mm × 2 = 10mm → 実効高さ 200mm */
-  /* 現在の @page 余白: 上6mm+下6mm → 実効高さ 198mm に合わせる */
+  /* A4 横: 高さ 210mm、現在の @page 余白: 上6mm+下6mm → 実効高さ 198mm に合わせる */
   .print-page { height: 198mm; margin: 0 !important; padding: 0 !important; border: none !important; break-inside: avoid; }
   /* ページ全体の余白をゼロにして先頭空白を抑制 */
   .invoice-root { margin: 0 !important; padding: 0 !important; }
@@ -39,10 +38,10 @@
   .print-page .MuiCardContent-root { padding: 0 !important; }
   /* MUIカードの既定の余白を無効化して高さ超過を防止 */
   .MuiCard-root.print-page { margin: 0 !important; }
-  /* 2段をページ中央で分割（画面のギャップに合わせて 12px） */
-  /* 実効高さ200mm → 上段97mm/下段97mmを維持しつつ gap は画面準拠 */
-  .two-up { height: 198mm; gap: 12px; grid-template-rows: 96mm 96mm; align-content: stretch; }
-  .two-up > .invoice-grid { height: 96mm; }
+  /* 2段をページ中央で分割（印刷時のギャップは 4mm） */
+  /* 実効高さ198mm → gap 8mm を差し引き、各段 95mm で均等配置（さらに上下を2mmずつ狭く） */
+  .two-up { height: 198mm; gap: 8mm; grid-template-rows: 95mm 95mm; align-content: stretch; }
+  .two-up > .invoice-grid { height: 95mm; }
   .invoice-grid > * { height: 100%; }
   .box, .thin-box { break-inside: avoid; }
 
@@ -52,7 +51,7 @@
   /* 左列（入金票／領収書）を20mm広げ、右列（請求書）を20mm狭める */
   .invoice-grid { grid-template-columns: calc(34% + 20mm) calc(66% - 20mm); gap: 8px; }
 
-  /* 上下97mmの枠に収めるため高さを100%に固定 */
+  /* 上下95mmの枠に収めるため高さを100%に固定 */
   .slips-col, .invoice-right { height: 100%; }
   .slips-row { height: 100%; align-items: stretch; gap: 4px !important; }
   .slip-box { height: 100%; }
