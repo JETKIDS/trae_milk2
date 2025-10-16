@@ -23,7 +23,8 @@ router.get('/', (req, res) => {
     const idTerm = searchId.trim();
     const isNumeric = /^\d+$/.test(idTerm);
     if (isNumeric) {
-      const paddedId = idTerm.padStart(4, '0');
+      // 顧客IDは7桁ゼロ埋めに統一
+      const paddedId = idTerm.padStart(7, '0');
       whereConditions.push('c.custom_id = ?');
       params.push(paddedId);
     } else {
@@ -62,7 +63,7 @@ router.get('/', (req, res) => {
   // 並び順の選択（id / yomi / course）。デフォルトは yomi
   const sortKey = (sort || 'yomi').toLowerCase();
   if (sortKey === 'id') {
-    // custom_id（4桁ゼロパディング前提）で昇順
+    // custom_id（7桁ゼロパディング）で昇順
     query += ` ORDER BY c.custom_id ASC`;
   } else if (sortKey === 'course') {
     // コース名で昇順、同一コース内は「配達順（delivery_order）」を優先し、その後 yomi/名前
@@ -155,7 +156,8 @@ router.get('/paged', (req, res) => {
     const idTerm = String(searchId).trim();
     const isNumeric = /^\d+$/.test(idTerm);
     if (isNumeric) {
-      const paddedId = idTerm.padStart(4, '0');
+      // 顧客IDは7桁ゼロ埋めに統一
+      const paddedId = idTerm.padStart(7, '0');
       whereConditions.push('c.custom_id = ?');
       params.push(paddedId);
     } else {
@@ -203,6 +205,7 @@ router.get('/paged', (req, res) => {
 
   const sortKey = (String(sort || 'yomi')).toLowerCase();
   if (sortKey === 'id') {
+    // 7桁のゼロ埋め文字列のため文字列昇順でOK
     dataQuery += ` ORDER BY c.custom_id ASC`;
   } else if (sortKey === 'course') {
     dataQuery += ` ORDER BY dc.course_name ASC, c.delivery_order ASC, CASE WHEN c.yomi IS NOT NULL AND c.yomi <> '' THEN c.yomi ELSE c.customer_name END ASC`;
@@ -233,10 +236,10 @@ router.get('/paged', (req, res) => {
   });
 });
 
-// 次の顧客ID（未使用の最小4桁ID）を返す - 動的ルートより前に定義
+// 次の顧客ID（未使用の最小7桁ID）を返す - 動的ルートより前に定義
 router.get('/next-id', (req, res) => {
   const db = getDB();
-  const query = `SELECT custom_id FROM customers WHERE LENGTH(custom_id) = 4 AND custom_id GLOB '[0-9][0-9][0-9][0-9]'`;
+  const query = `SELECT custom_id FROM customers WHERE LENGTH(custom_id) = 7 AND custom_id GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9]'`;
   db.all(query, [], (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -245,8 +248,8 @@ router.get('/next-id', (req, res) => {
     }
     const used = new Set(rows.map(r => parseInt(r.custom_id, 10)).filter(n => !isNaN(n)));
     let candidate = 1;
-    while (candidate <= 9999 && used.has(candidate)) candidate++;
-    const nextId = candidate <= 9999 ? candidate.toString().padStart(4, '0') : null;
+    while (candidate <= 9999999 && used.has(candidate)) candidate++;
+    const nextId = candidate <= 9999999 ? candidate.toString().padStart(7, '0') : null;
     res.json({ custom_id: nextId });
     db.close();
   });
@@ -332,10 +335,10 @@ router.post('/', (req, res) => {
   const db = getDB();
   const { custom_id, customer_name, yomi, address, phone, email, course_id, staff_id, contract_start_date, notes, delivery_order } = req.body;
   
-  // custom_idが指定されていない場合は自動生成（4桁形式）
+  // custom_idが指定されていない場合は自動生成（7桁形式）
   const generateCustomId = (callback) => {
-    // 既存の4桁数値IDを取得し、未使用の最小値を返す
-    const allIdQuery = `SELECT custom_id FROM customers WHERE LENGTH(custom_id) = 4 AND custom_id GLOB '[0-9][0-9][0-9][0-9]'`;
+    // 既存の7桁数値IDを取得し、未使用の最小値を返す
+    const allIdQuery = `SELECT custom_id FROM customers WHERE LENGTH(custom_id) = 7 AND custom_id GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9]'`;
     db.all(allIdQuery, [], (err, rows) => {
       if (err) {
         callback(err, null);
@@ -343,8 +346,8 @@ router.post('/', (req, res) => {
       }
       const used = new Set(rows.map(r => parseInt(r.custom_id, 10)).filter(n => !isNaN(n)));
       let candidate = 1;
-      while (candidate <= 9999 && used.has(candidate)) candidate++;
-      const newCustomId = candidate <= 9999 ? candidate.toString().padStart(4, '0') : null;
+      while (candidate <= 9999999 && used.has(candidate)) candidate++;
+      const newCustomId = candidate <= 9999999 ? candidate.toString().padStart(7, '0') : null;
       callback(null, newCustomId);
     });
   };

@@ -106,9 +106,10 @@ interface ProductMaster {
 
 // const dowLabels = ['日','月','火','水','木','金','土']; // 未使用
 
-function pad7(customId?: string): string {
-  const id = (customId || '').padStart(4, '0');
-  return `000${id}`;
+function pad7(customId?: string | number): string {
+  const s = customId == null ? '' : String(customId);
+  const digits = s.replace(/\D/g, '');
+  return digits.padStart(7, '0');
 }
 
   const InvoicePreview: React.FC = () => {
@@ -401,8 +402,8 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
                         <Divider sx={{ my: 1 }} />
           {/* コース/順位（ブラウザで30%縮小） */}
           <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
-          {/* 顧客ID（custom_id が無ければDBの数値IDを表示） */}
-          <Typography className="small-text shrink-30">顧客ID: {customer?.custom_id || customer?.id}</Typography>
+          {/* 顧客ID（7桁ゼロ埋めで表示） */}
+          <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
                       {/* 顧客名（ラベルを外して氏名のみ表示） */}
                       <Typography className="small-text">{customer?.customer_name || ''} 様</Typography>
           {/* 住所（ブラウザで30%縮小） */}
@@ -439,8 +440,8 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
                         <Divider sx={{ my: 1 }} />
                         {/* コース/順位（左の入金票と同じく30%縮小） */}
                         <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
-                        {/* 顧客ID（custom_id が無ければDBの数値IDを表示） */}
-                        <Typography className="small-text shrink-30">顧客ID: {customer?.custom_id || customer?.id}</Typography>
+                        {/* 顧客ID（7桁ゼロ埋めで表示） */}
+                        <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
                       {/* 顧客名（ラベルを外して氏名のみ表示） */}
                       <Typography className="small-text">{customer?.customer_name || ''} 様</Typography>
                         {/* 集金区分（現金 or 引き落し） */}
@@ -607,7 +608,7 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
                       {/* 左詰め：顧客ID / 配達コース / コース内順位（0/未設定は'-'表示） */}
                       <div>
                         <Typography className="small-text">
-                          {`ID: ${customer?.custom_id || (customer?.id ?? '')} / コース: ${customer?.course_name || ''} / ${customer?.delivery_order && customer?.delivery_order > 0 ? customer.delivery_order : '-'}`}
+                          {`ID: ${pad7(customer?.custom_id)} / コース: ${customer?.course_name || ''} / ${customer?.delivery_order && customer?.delivery_order > 0 ? customer.delivery_order : '-'}`}
                         </Typography>
                       </div>
                       {/* 右詰め：店舗名（大きさ2倍）＋ 住所・電話番号 */}
