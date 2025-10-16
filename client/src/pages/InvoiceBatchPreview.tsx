@@ -308,7 +308,8 @@ const InvoiceContent: React.FC<{
             <Typography className="slip-title title">入金票</Typography>
             <Divider sx={{ my: 1 }} />
             <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
-            <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
+            {/* 顧客ID（custom_id が無ければDBの数値IDを表示） */}
+            <Typography className="small-text shrink-30">顧客ID: {customer?.custom_id || customer?.id}</Typography>
             <Typography className="small-text">{customer?.customer_name || ''} 様</Typography>
             <Typography className="small-text shrink-30">住所: {customer?.address || ''}</Typography>
             <Typography className="small-text shrink-30">電話番号: {customer?.phone || ''}</Typography>
@@ -332,11 +333,12 @@ const InvoiceContent: React.FC<{
               <Typography className="deposit-total" sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>￥{grandTotal.toLocaleString()}</Typography>
             </Box>
           </Box>
-          <Box className="box slip-box" sx={{ flex: 1, height: '100%' }}>
+          <Box className="box slip-box receipt-slip" sx={{ flex: 1, height: '100%' }}>
             <Typography className="slip-title title">領収書</Typography>
             <Divider sx={{ my: 1 }} />
             <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
-            <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
+            {/* 顧客ID（custom_id が無ければDBの数値IDを表示） */}
+            <Typography className="small-text shrink-30">顧客ID: {customer?.custom_id || customer?.id}</Typography>
             <Typography className="small-text">{customer?.customer_name || ''} 様</Typography>
             <Typography className="small-text shrink-30">集金区分: {billingMethod === 'debit' ? '引き落し' : '現金'}</Typography>
             <Typography className="small-text">請求月: {String(year).slice(2)}/{month}月分</Typography>
@@ -488,7 +490,7 @@ const InvoiceContent: React.FC<{
         <div className="footer">
           <div>
             <Typography className="small-text">
-              {`ID: ${pad7(customer?.custom_id)} / コース: ${customer?.course_name || ''} / ${customer?.delivery_order ?? '-'}`}
+              {`ID: ${customer?.custom_id || (customer?.id ?? '')} / コース: ${customer?.course_name || ''} / ${customer?.delivery_order && customer?.delivery_order > 0 ? customer.delivery_order : '-'}`}
             </Typography>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', gap: 8 }}>

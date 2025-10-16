@@ -401,8 +401,8 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
                         <Divider sx={{ my: 1 }} />
           {/* コース/順位（ブラウザで30%縮小） */}
           <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
-          {/* 顧客ID（ブラウザで30%縮小） */}
-          <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
+          {/* 顧客ID（custom_id が無ければDBの数値IDを表示） */}
+          <Typography className="small-text shrink-30">顧客ID: {customer?.custom_id || customer?.id}</Typography>
                       {/* 顧客名（ラベルを外して氏名のみ表示） */}
                       <Typography className="small-text">{customer?.customer_name || ''} 様</Typography>
           {/* 住所（ブラウザで30%縮小） */}
@@ -433,14 +433,14 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
                           <Typography className="deposit-total" sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>￥{grandTotal.toLocaleString()}</Typography>
                         </Box>
                       </Box>
-                      <Box className="box slip-box" sx={{ flex: 1, height: '100%' }}>
+                      <Box className="box slip-box receipt-slip" sx={{ flex: 1, height: '100%' }}>
                         {/* 領収書タイトル */}
                         <Typography className="slip-title title">領収書</Typography>
                         <Divider sx={{ my: 1 }} />
                         {/* コース/順位（左の入金票と同じく30%縮小） */}
                         <Typography className="small-text shrink-30">コース/順位: {customer?.course_name || ''}{customer?.delivery_order != null ? ` / ${customer.delivery_order}` : ''}</Typography>
-                        {/* 顧客ID（左の入金票と同じく30%縮小） */}
-                        <Typography className="small-text shrink-30">顧客ID: {pad7(customer?.custom_id)}</Typography>
+                        {/* 顧客ID（custom_id が無ければDBの数値IDを表示） */}
+                        <Typography className="small-text shrink-30">顧客ID: {customer?.custom_id || customer?.id}</Typography>
                       {/* 顧客名（ラベルを外して氏名のみ表示） */}
                       <Typography className="small-text">{customer?.customer_name || ''} 様</Typography>
                         {/* 集金区分（現金 or 引き落し） */}
@@ -604,10 +604,10 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
 
                     {/* フッター（左：顧客ID/コース/順位、右：店舗名と住所/電話） */}
                     <div className="footer">
-                      {/* 左詰め：顧客ID / 配達コース / コース内順位（順位は数字のみ表示） */}
+                      {/* 左詰め：顧客ID / 配達コース / コース内順位（0/未設定は'-'表示） */}
                       <div>
                         <Typography className="small-text">
-                          {`ID: ${pad7(customer?.custom_id)} / コース: ${customer?.course_name || ''} / ${customer?.delivery_order ?? '-'}`}
+                          {`ID: ${customer?.custom_id || (customer?.id ?? '')} / コース: ${customer?.course_name || ''} / ${customer?.delivery_order && customer?.delivery_order > 0 ? customer.delivery_order : '-'}`}
                         </Typography>
                       </div>
                       {/* 右詰め：店舗名（大きさ2倍）＋ 住所・電話番号 */}

@@ -82,6 +82,8 @@
 
   .box { border-width: 2px; padding: 8px; }
   .thin-box { border-width: 1px; }
+  /* 領収書（右側スリップ）の外枠を非表示 */
+  .receipt-slip { border: none !important; }
   .footer { margin-top: 8px; }
   .remarks { min-height: 40px; }
 
@@ -224,11 +226,15 @@
  .totals-cell.value { text-align: right; font-size: 12px; font-weight: 900; padding-right: 4px; line-height: 1.0; }
 .totals-grand-label { border: 2px solid #000; padding: 3px; display: flex; align-items: center; justify-content: center; background: #000; color: #fff; font-size: 11px; font-weight: 800; line-height: 1.0; text-align: center; }
 /* ブラウザ表示でも御請求額（金額セル）を強調：太枠＋フォント拡大＋太文字（背景は白） */
-.totals-grand-amount { border: 3px solid #000; padding: 4px; display: flex; align-items: center; justify-content: flex-end; background: #fff; color: #000; font-size: 28px; font-weight: 900; line-height: 1.0; text-align: right; }
+  .totals-grand-amount { border: 3px solid #000; padding: 4px; display: flex; align-items: center; justify-content: flex-end; background: #fff; color: #000; font-size: 28px; font-weight: 900; line-height: 1.0; text-align: right; }
 
 @media print {
   .no-print { display: none !important; }
 }
+
+/* 画面表示でも領収書の外枠を消す（.box の後勝ちを確実に打ち消すために複合セレクタ＋!important） */
+.box.receipt-slip { border: none !important; border-width: 0 !important; box-shadow: none !important; }
+.slip-box.receipt-slip { border: none !important; border-width: 0 !important; box-shadow: none !important; }
 
 /* 右上（御請求書エリア）の縦幅を半減するためのフォント縮小・行間詰め（画面表示） */
 .invoice-right .big-title { font-size: 18px; line-height: 1.0; }
