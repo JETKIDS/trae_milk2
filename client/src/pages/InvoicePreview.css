@@ -238,8 +238,8 @@
 .invoice-right .course-text { font-size: 8px; line-height: 1.0; }
 .invoice-right .MuiTypography-root { margin: 0; }
 
-/* 顧客名がある部分の四角い枠を消して、右に100pxオフセット（ブラウザ表示で8pxさらに上へ） */
-.invoice-right .customer-info { border: none !important; margin-left: 100px; margin-top: -20px; }
+/* 顧客名がある部分の四角い枠を消して、右に100px + 10mm オフセット（ブラウザ表示で8pxさらに上へ） */
+.invoice-right .customer-info { border: none !important; margin-left: calc(100px + 10mm); margin-top: -20px; }
 
 /* 請求月を大きくして中央に配置 */
 .invoice-right .billing-month { text-align: center; font-size: 16px; font-weight: 700; line-height: 1.0; margin: 0; margin-top: -3px; }
