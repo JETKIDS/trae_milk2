@@ -3,7 +3,6 @@ import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, Check
 import {
   Edit as EditIcon,
   MonetizationOn as MonetizationOnIcon,
-  Calculate as CalculateIcon,
 } from '@mui/icons-material';
 
 interface Props {

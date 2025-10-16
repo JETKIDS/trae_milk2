@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -13,7 +13,6 @@ import {
   Card,
   CardContent,
   Grid,
-  IconButton,
   Chip,
   CircularProgress,
   Alert,
@@ -30,8 +29,7 @@ import {
   Checkbox,
   FormControlLabel
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, LocalShipping, Person, Print, GetApp, ExpandMore } from '@mui/icons-material';
-import { deliveryService, DeliveryCustomer } from '../services/deliveryService';
+import { LocalShipping, Print, GetApp, ExpandMore } from '@mui/icons-material';
 
 // Course型の定義
 interface Course {
@@ -77,7 +75,7 @@ const ProductSummaryTab: React.FC = () => {
   });
 
   // メーカー一覧を取得
-  const fetchManufacturers = async () => {
+  const fetchManufacturers = useCallback(async () => {
     try {
       const response = await fetch('http://localhost:9000/api/masters/manufacturers');
       if (!response.ok) {
@@ -89,18 +87,18 @@ const ProductSummaryTab: React.FC = () => {
       console.error('メーカー一覧取得エラー:', error);
       setError('メーカー一覧の取得に失敗しました。');
     }
-  };
+  }, []);
 
   // 終了日を計算する関数
-  const calculateEndDate = (start: string, dayCount: number): string => {
+  const calculateEndDate = useCallback((start: string, dayCount: number): string => {
     const startDateObj = new Date(start);
     const endDateObj = new Date(startDateObj);
     endDateObj.setDate(endDateObj.getDate() + dayCount - 1); // dayCount日分（開始日含む）
     return endDateObj.toISOString().split('T')[0];
-  };
+  }, []);
 
   // コース一覧を取得する関数
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     try {
       const response = await fetch('http://localhost:9000/api/masters/courses');
       if (!response.ok) {
@@ -111,7 +109,7 @@ const ProductSummaryTab: React.FC = () => {
     } catch (error: any) {
       console.error('コース一覧の取得エラー:', error);
     }
-  };
+  }, []);
 
   // 指定期間・対象顧客の臨時変更（休配等）を取得
   const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
@@ -160,7 +158,7 @@ const ProductSummaryTab: React.FC = () => {
   };
 
   // 商品合計データを取得
-  const fetchSummaryData = async () => {
+  const fetchSummaryData = useCallback(async () => {
     if (!startDate || days <= 0) return;
 
     setLoading(true);
@@ -389,7 +387,6 @@ const ProductSummaryTab: React.FC = () => {
         }
 
         const aggregateAll = selectedCourse !== 'all-by-course';
-        const manufacturerFilter = selectedManufacturer === 'all' ? null : String(selectedManufacturer);
         const overallSummary = { total_quantity: 0, total_amount: 0 };
 
         if (aggregateAll) {
@@ -479,7 +476,7 @@ const ProductSummaryTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, days, selectedCourse, selectedManufacturer, reflectSkips, calculateEndDate]);
 
   // 手動集計ボタンのハンドラー
   const handleManualFetch = () => {
@@ -498,7 +495,7 @@ const ProductSummaryTab: React.FC = () => {
     if (autoFetch) {
       fetchSummaryData();
     }
-  }, [startDate, days, selectedCourse, selectedManufacturer, autoFetch, reflectSkips]);
+  }, [fetchCourses, fetchManufacturers, fetchSummaryData, autoFetch]);
 
   // 今日の日付に設定
   const handleToday = () => {
@@ -944,15 +941,15 @@ const ProductSummaryTab: React.FC = () => {
   });
 
   // 終了日を計算する関数
-  const calculateEndDate = (start: string, dayCount: number): string => {
+  const calculateEndDate = useCallback((start: string, dayCount: number): string => {
     const startDateObj = new Date(start);
     const endDateObj = new Date(startDateObj);
     endDateObj.setDate(endDateObj.getDate() + dayCount - 1); // dayCount日分（開始日含む）
     return endDateObj.toISOString().split('T')[0];
-  };
+  }, []);
 
   // コース一覧を取得する関数
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     try {
       const response = await fetch('http://localhost:9000/api/masters/courses');
       if (!response.ok) {
@@ -963,7 +960,7 @@ const ProductSummaryTab: React.FC = () => {
     } catch (error: any) {
       console.error('コース一覧の取得エラー:', error);
     }
-  };
+  }, []);
 
   // 臨時変更を取得（期間・顧客ごと）
   const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
@@ -1088,7 +1085,7 @@ const ProductSummaryTab: React.FC = () => {
   };
 
   // 配達データを取得する関数
-  const fetchDeliveryData = async () => {
+  const fetchDeliveryData = useCallback(async () => {
     if (!startDate || days <= 0) return;
 
     setLoading(true);
@@ -1321,12 +1318,9 @@ const ProductSummaryTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, days, selectedCourse, calculateEndDate, patternsMap]);
 
-  // 手動集計ボタンのハンドラー
-  const handleManualFetch = () => {
-    fetchDeliveryData();
-  };
+  // 手動集計ボタンのハンドラー（未使用のため削除）
 
   // autoFetchの状態をローカルストレージに保存（配達リストタブ用）
   useEffect(() => {
@@ -1339,7 +1333,7 @@ const ProductSummaryTab: React.FC = () => {
     if (autoFetch) {
       fetchDeliveryData();
     }
-  }, [startDate, days, selectedCourse, autoFetch]);
+  }, [fetchCourses, fetchDeliveryData, autoFetch]);
 
   // 今日の日付に設定
   const handleToday = () => {
@@ -1440,6 +1434,17 @@ const ProductSummaryTab: React.FC = () => {
               >
                 {loading ? '集計中...' : '集計'}
               </Button>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autoFetch}
+                    onChange={(e) => setAutoFetch(e.target.checked)}
+                    size="small"
+                  />
+                }
+                label="自動集計"
+                sx={{ ml: 1 }}
+              />
               <FormControlLabel
                 control={
                   <Checkbox

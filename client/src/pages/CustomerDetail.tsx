@@ -398,6 +398,13 @@ interface UndoAction {
     dpManagerRef.current?.openForPattern(pattern, defaultStart);
   };
 
+  // 商品名から product_id を取得（臨時表示の接頭辞を除去して検索）
+  const getProductIdByName = useCallback((productName: string): number | null => {
+    const normalized = productName.replace(/^（臨時）/, '');
+    const found = patterns.find(p => p.product_name === normalized);
+    return found ? found.product_id : null;
+  }, [patterns]);
+
   // 選択セルが「解」状態かを判定（前日が終了日、当日に再開がない）
   const selectedCellHasCancel = useCallback((): boolean => {
     if (!selectedCell) return false;
@@ -413,7 +420,7 @@ interface UndoAction {
       moment(p.start_date).format('YYYY-MM-DD') === selectedCell.date
     );
     return endsPrevDay && !restartsToday;
-  }, [selectedCell, patterns]);
+  }, [selectedCell, patterns, getProductIdByName]);
 
   // 解約取り消し：選択セルが「解」の場合、前日で終了したパターンの end_date を解除（null）
   const handleCancelUndoFromSelectedCell = async () => {
@@ -467,12 +474,9 @@ interface UndoAction {
     setCurrentDate(currentDate.clone().add(1, 'month'));
   };
 
-  // 商品名から product_id を取得（臨時表示の接頭辞を除去して検索）
-  const getProductIdByName = (productName: string): number | null => {
-    const normalized = productName.replace(/^（臨時）/, '');
-    const found = patterns.find(p => p.product_name === normalized);
-    return found ? found.product_id : null;
-  };
+  
+
+  
 
   // セルクリック時のポップオーバー表示
   const handleCellClick = (
@@ -555,9 +559,7 @@ interface UndoAction {
   };
 
   // 休配（当日0本に上書き）
-  const applySkipForDay = async () => {
-    await postTemporaryChange('skip', { product_id: null, quantity: 0 });
-  };
+  // 未使用のため削除（期間休配 applySkipForPeriod を使用）
 
   // 日付範囲の配列を生成（開始日含む、終了日含む）
   const enumerateDates = (start: string, end: string): string[] => {

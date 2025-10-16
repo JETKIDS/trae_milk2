@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Typography,
   Box,
@@ -24,11 +24,6 @@ import {
   MenuItem,
   Snackbar,
   Alert,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -131,7 +126,7 @@ const CourseList: React.FC = () => {
     }
   });
 
-  const fetchCourses = async (): Promise<void> => {
+  const fetchCourses = useCallback(async (): Promise<void> => {
     try {
       const params = new URLSearchParams();
       if (searchId.trim()) params.append('searchId', searchId.trim());
@@ -144,7 +139,7 @@ const CourseList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchId, searchName]);
 
   const handleDeleteCourse = async (course: Course) => {
     const ok = window.confirm(`コース「${course.course_name}」を削除します。よろしいですか？`);
@@ -166,7 +161,7 @@ const CourseList: React.FC = () => {
 
   useEffect(() => {
     fetchCourses();
-  }, [searchId, searchName]);
+  }, [fetchCourses]);
 
   const handleSearchIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchId(event.target.value);

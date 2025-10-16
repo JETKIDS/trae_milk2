@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Typography,
   Table,
@@ -44,7 +44,7 @@ const ProductList: React.FC = () => {
   const [openProductForm, setOpenProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const fetchProducts = async (): Promise<void> => {
+  const fetchProducts = useCallback(async (): Promise<void> => {
     try {
       const params: any = {};
       if (searchId) params.searchId = searchId;
@@ -57,11 +57,11 @@ const ProductList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchId, searchName]);
 
   useEffect(() => {
     fetchProducts();
-  }, [searchId, searchName]);
+  }, [fetchProducts]);
 
   const handleSearchIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchId(event.target.value);

@@ -23,9 +23,6 @@ import {
   Select,
   MenuItem,
   TextField,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
   Grid,
   Alert,
   Snackbar,
@@ -194,17 +191,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
     }
   };
 
-  const handleDayToggle = (dayIndex: number) => {
-    const currentDays = formData.delivery_days || [];
-    const newDays = currentDays.includes(dayIndex)
-      ? currentDays.filter(d => d !== dayIndex)
-      : [...currentDays, dayIndex].sort();
-    
-    setFormData({
-      ...formData,
-      delivery_days: newDays,
-    });
-  };
+  
 
   // 「今契約している商品（patterns内）」を除外して表示するためのリスト（通常モード時のみ適用）
   const contractedProductIds = new Set<number>((patterns || []).filter(p => p.is_active).map(p => p.product_id));

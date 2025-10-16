@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Typography, Card, CardContent, Button, Stack, Divider, Alert, ToggleButtonGroup, ToggleButton, TextField } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Card, CardContent, Button, Stack, Divider, Alert, ToggleButtonGroup, ToggleButton, TextField, FormControl, InputLabel, Select, MenuItem, CircularProgress } from '@mui/material';
 import axios from 'axios';
 
 const BillingOperations: React.FC = () => {
@@ -9,6 +9,11 @@ const BillingOperations: React.FC = () => {
   const [loadingParse, setLoadingParse] = useState(false);
   const [roundingRule, setRoundingRule] = useState<'round' | 'floor' | 'ceil'>('round');
   const [outputMonth, setOutputMonth] = useState<string>(new Date().toISOString().slice(0,7)); // YYYY-MM
+  const [courses, setCourses] = useState<Array<{ id: number; custom_id?: string; course_name: string }>>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<number | ''>('');
+  const [loadingCourses, setLoadingCourses] = useState<boolean>(false);
+  const [customers, setCustomers] = useState<Array<{ id: number; custom_id?: string; customer_name: string; address?: string; phone?: string }>>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState<boolean>(false);
 
   const monthLabel = (() => {
     try {
@@ -46,6 +51,40 @@ const BillingOperations: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    (async () => {
+      setLoadingCourses(true);
+      try {
+        const res = await axios.get('/api/masters/courses');
+        setCourses(res.data || []);
+      } catch (e) {
+        console.error('コース一覧取得失敗', e);
+      } finally {
+        setLoadingCourses(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCourseId && outputMonth) {
+      (async () => {
+        // month（YYYY-MM）は将来的に試算・確定額表示に使用予定。現時点では一覧取得のみ。
+        setLoadingCustomers(true);
+        try {
+          const res = await axios.get(`/api/customers/by-course/${Number(selectedCourseId)}`);
+          setCustomers(res.data || []);
+        } catch (e) {
+          console.error('顧客一覧取得失敗', e);
+          setCustomers([]);
+        } finally {
+          setLoadingCustomers(false);
+        }
+      })();
+    } else {
+      setCustomers([]);
+    }
+  }, [selectedCourseId, outputMonth]);
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -53,6 +92,34 @@ const BillingOperations: React.FC = () => {
       </Typography>
 
       <Stack spacing={3}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              請求コース
+            </Typography>
+            <FormControl fullWidth size="small">
+              <InputLabel id="billing-course-select-label">コース</InputLabel>
+              <Select
+                labelId="billing-course-select-label"
+                label="コース"
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(typeof e.target.value === 'number' ? e.target.value : Number(e.target.value))}
+              >
+                {loadingCourses && (
+                  <MenuItem value="">
+                    <CircularProgress size={20} sx={{ mr: 1 }} /> 読み込み中...
+                  </MenuItem>
+                )}
+                {!loadingCourses && courses.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.custom_id ? `${c.custom_id} - ${c.course_name}` : c.course_name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -68,6 +135,40 @@ const BillingOperations: React.FC = () => {
               />
               <Typography variant="body1">{monthLabel}</Typography>
             </Stack>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              顧客一覧
+            </Typography>
+            {!selectedCourseId && (
+              <Typography variant="body2" color="text.secondary">
+                コースを選択してください。
+              </Typography>
+            )}
+            {selectedCourseId && loadingCustomers && (
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <CircularProgress size={20} sx={{ mr: 1 }} /> 読み込み中...
+              </Box>
+            )}
+            {selectedCourseId && !loadingCustomers && customers.length === 0 && (
+              <Typography variant="body2" color="text.secondary">
+                顧客が見つかりません。
+              </Typography>
+            )}
+            {selectedCourseId && !loadingCustomers && customers.length > 0 && (
+              <Box>
+                {customers.map((c) => (
+                  <Box key={c.id} sx={{ mb: 0.5 }}>
+                    <Typography variant="body2">
+                      {c.custom_id ? `[${c.custom_id}] ` : ''}{c.customer_name}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
           </CardContent>
         </Card>
 

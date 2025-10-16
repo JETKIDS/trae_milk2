@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Box } from '@mui/material';
+import { Box, Toolbar } from '@mui/material';
 
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -14,10 +14,13 @@ import ProductList from './pages/ProductList';
 import CourseList from './pages/CourseList';
 import MasterManagement from './pages/MasterManagement';
 import BillingOperations from './pages/BillingOperations';
+import InvoiceIssuance from './pages/InvoiceIssuance';
 import DebitImport from './pages/DebitImport';
 import BulkCollection from './pages/BulkCollection';
 import InvoicePreview from './pages/InvoicePreview';
+import InvoiceBatchPreview from './pages/InvoiceBatchPreview';
 import MonthlyManagement from './pages/MonthlyManagement';
+import NotFound from './pages/NotFound';
 import { CompanyProvider } from './contexts/CompanyContext';
 
 const theme = createTheme({
@@ -39,12 +42,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <CompanyProvider>
-        <Router
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
+        <Router>
           <Box sx={{ display: 'flex' }}>
             <Header />
             <Sidebar />
@@ -53,24 +51,28 @@ function App() {
               sx={{
                 flexGrow: 1,
                 p: 0,
-                pl: 0, // コンテンツの内側余白はゼロに戻す
-                mt: 8, // ヘッダーの高さ分のマージン
-                ml: '40px', // サイドバー幅に合わせず、左マージンを40pxに設定
+                pl: 0,
+                ml: '240px', // サイドバー幅（Drawer 240px）に合わせる
               }}
             >
+              {/* AppBar 分のオフセットを Toolbar で確保 */}
+              <Toolbar />
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/customers" element={<CustomerList />} />
                 <Route path="/customers/:id" element={<CustomerDetail />} />
-                <Route path="/invoice-preview/:id" element={<InvoicePreview />} />
+        <Route path="/invoice-preview/:id" element={<InvoicePreview />} />
+        <Route path="/invoice-preview/batch" element={<InvoiceBatchPreview />} />
                 <Route path="/collections/bulk" element={<BulkCollection />} />
                 <Route path="/debits/import" element={<DebitImport />} />
                 <Route path="/delivery" element={<DeliveryList />} />
                 <Route path="/billing" element={<BillingOperations />} />
+                <Route path="/billing/invoices" element={<InvoiceIssuance />} />
                 <Route path="/monthly" element={<MonthlyManagement />} />
                 <Route path="/products" element={<ProductList />} />
                 <Route path="/courses" element={<CourseList />} />
               <Route path="/masters" element={<MasterManagement />} />
+              <Route path="*" element={<NotFound />} />
               </Routes>
             </Box>
           </Box>

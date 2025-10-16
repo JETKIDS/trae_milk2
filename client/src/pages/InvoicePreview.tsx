@@ -166,22 +166,7 @@ function pad7(customId?: string): string {
     if (id) fetchAll();
   }, [id, year, month]);
 
-  const productTotals = useMemo(() => {
-    const map = new Map<string, { quantity: number; unit: string; unitPrice: number; amount: number }>();
-    calendar.forEach(day => {
-      day.products.forEach(p => {
-        const prev = map.get(p.productName) || { quantity: 0, unit: p.unit, unitPrice: p.unitPrice, amount: 0 };
-        const next = {
-          quantity: prev.quantity + p.quantity,
-          unit: p.unit,
-          unitPrice: p.unitPrice,
-          amount: prev.amount + p.amount,
-        };
-        map.set(p.productName, next);
-      });
-    });
-    return Array.from(map.entries()).map(([productName, v]) => ({ productName, ...v }));
-  }, [calendar]);
+  // 商品別合計（現在UIで未使用のため削除）
 
   
 
@@ -233,25 +218,11 @@ function pad7(customId?: string): string {
     window.print();
   };
 
-  // 1〜月末の全日生成
-  const generateAllMonthDays = (): MonthDay[] => {
-    const startOfMonth = moment(`${year}-${String(month).padStart(2, '0')}-01`).startOf('month');
-    const endOfMonth = startOfMonth.clone().endOf('month');
-    const days: MonthDay[] = [];
-    for (let date = startOfMonth.clone(); date.isSameOrBefore(endOfMonth); date.add(1, 'day')) {
-      days.push({
-        date: date.format('YYYY-MM-DD'),
-        day: date.date(),
-        dayOfWeek: date.day(),
-        isToday: date.isSame(moment(), 'day'),
-      });
-    }
-    return days;
-  };
+  // 1〜月末の全日生成（未使用のため削除）
 
 // Helper: month days split into first/second half
 // 前半は1〜15日、後半は「必ず16〜31日」を表示（対象月外の日は空セル）
-const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } => {
+const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } => {
   const mm = String(month).padStart(2, '0');
   const startOfMonth = moment(`${year}-${mm}-01`).startOf('month');
   const endOfMonth = startOfMonth.clone().endOf('month');
@@ -288,10 +259,10 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
   }
 
   return { firstHalf, secondHalf };
-};
+}, [year, month]);
 
   // Helper: map calendar to product-wise daily quantities
-  const generateProductCalendarData = (): ProductCalendarData[] => {
+  const generateProductCalendarData = useCallback((): ProductCalendarData[] => {
     const productMap: { [productName: string]: ProductCalendarData } = {};
     calendar.forEach((day) => {
       day.products.forEach((product) => {
@@ -306,7 +277,7 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
       });
     });
     return Object.values(productMap);
-  };
+  }, [calendar]);
 
   // Helper: get product id by product name via patterns
   const getProductIdByName = (name: string): number | null => {
@@ -315,49 +286,7 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
   };
 
   // 小計（税抜相当）、内税額（8%/10%を分割）、請求額（端数処理対応）
-  const totals = useMemo(() => {
-    let base = 0;
-    let tax = 0;
-    let tax8 = 0;
-    let tax10 = 0;
-    calendar.forEach((day) => {
-      day.products.forEach((p) => {
-        const rate = getTaxRateForProductName(p.productName);
-        const pm = productMapByName[p.productName];
-        const taxType = pm?.sales_tax_type || pm?.purchase_tax_type || 'standard';
-        let taxPart = 0;
-        if (taxType === 'inclusive') {
-          // 税込価格：税部分は amount * r/(1+r)、ベースは差分
-          taxPart = p.amount * (rate / (1 + rate));
-          base += p.amount - taxPart;
-        } else {
-          // 税抜価格：税部分は amount * r、ベースはそのまま
-          base += p.amount;
-          taxPart = p.amount * rate;
-        }
-        tax += taxPart;
-        if (Math.abs(rate - 0.08) < 0.001) {
-          tax8 += taxPart;
-        } else {
-          // 10%（標準）その他は10%扱い
-          tax10 += taxPart;
-        }
-      });
-    });
-    const baseRounded = Math.round(base);
-    const taxRounded = Math.round(tax);
-    const totalRaw = baseRounded + taxRounded;
-    const totalRounded = roundingEnabled
-      ? Math.floor(totalRaw / 10) * 10 // 顧客詳細ページと同じ「1の位切り捨て」
-      : Math.round(totalRaw);
-    return {
-      base: baseRounded,
-      tax: taxRounded,
-      tax8: Math.round(tax8),
-      tax10: Math.round(tax10),
-      total: totalRounded,
-    };
-  }, [calendar, getTaxRateForProductName, productMapByName, roundingEnabled]);
+  // 小計/税額/合計の詳細は現在UIで表示しないため一旦削除（必要になれば復活）
 
   // 前月請求／前月入金／繰越のサマリ（サーバから取得：暫定実装）
   const [arSummary, setArSummary] = useState<ArSummary | null>(null);
@@ -398,7 +327,7 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
     });
     withTotals.sort((a, b) => b.totalQty - a.totalQty);
     return withTotals as ProductCalendarRow[];
-  }, [calendar]);
+  }, [generateProductCalendarData, calendar]);
 
   // 入金票（契約商品）表示行：最大6行、足りない分は空行でパディング
   const depositRows = useMemo<ProductCalendarRow[]>(() => {
@@ -438,7 +367,7 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
   }, [calendarProducts]);
 
   // 月を前半(1〜15日)と後半(16日〜末日)に分割表示用
-  const { firstHalf: firstHalfDays, secondHalf: secondHalfDays } = useMemo(() => generateMonthDays(), [year, month, generateMonthDays]);
+  const { firstHalf: firstHalfDays, secondHalf: secondHalfDays } = useMemo(() => generateMonthDays(), [generateMonthDays]);
 
   // 前回残高（未入金繰越）：ARサマリの carryover_amount を反映
   const previousBalance = useMemo(() => {
@@ -463,8 +392,7 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
         <Card key={pageIdx} sx={{ mb: 2 }} className="print-page">
           <CardContent>
             <div className="two-up">
-              {[0, 1].map((copyIdx) => (
-                <Box key={copyIdx} className="invoice-grid">
+              <Box className="invoice-grid">
                   {/* 左：入金票／領収証（左右配置） */}
                   <Box className="slips-col" sx={{ height: '100%' }}>
                     <Stack className="slips-row" direction="row" spacing={1} sx={{ height: '100%' }}>
@@ -700,7 +628,6 @@ const generateMonthDays = (): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } 
                     </div>
                   </Box>
                 </Box>
-              ))}
             </div>
           </CardContent>
         </Card>
