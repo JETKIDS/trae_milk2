@@ -125,6 +125,7 @@ router.get('/period', (req, res) => {
       dp.product_id,
       dp.delivery_days,
       dp.daily_quantities,
+      c.custom_id,
       c.customer_name,
       c.address,
       c.phone,
@@ -208,6 +209,7 @@ router.get('/period', (req, res) => {
             if (!customerEntry) {
               customerEntry = {
                 customer_id: row.customer_id,
+                custom_id: row.custom_id,
                 customer_name: row.customer_name,
                 address: row.address,
                 phone: row.phone,

@@ -15,6 +15,7 @@ import { Add as AddIcon, Visibility as VisibilityIcon, Search as SearchIcon } fr
 import axios from 'axios';
 import { FixedSizeList, ListOnItemsRenderedProps } from 'react-window';
 import CustomerForm from '../components/CustomerForm';
+import { pad7 } from '../utils/id';
 
 interface Customer {
   id: number;
@@ -319,7 +320,7 @@ const CustomerList: React.FC = () => {
                 onClick={() => handleViewCustomer(customer.id)}
               >
                 <Box>
-                  <Chip label={customer.custom_id || `#${customer.id}`} variant="outlined" size="small" />
+                  <Chip label={pad7(customer.custom_id)} variant="outlined" size="small" />
                 </Box>
                 <Box>
                   <Typography variant="body2">{customer.customer_name}</Typography>

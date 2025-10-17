@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import axios from 'axios';
+import { pad7 } from '../utils/id';
 
 interface Course {
   id: number;
@@ -389,7 +390,7 @@ const CourseManagement: React.FC = () => {
                                       {customer.address}
                                     </Typography>
                                     <Typography variant="body2" color="textSecondary">
-                                      ID: {customer.custom_id} | TEL: {customer.phone}
+                                      ID: {pad7(customer.custom_id)} | TEL: {customer.phone}
                                     </Typography>
                                   </Box>
                                 </Box>

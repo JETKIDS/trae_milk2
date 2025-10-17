@@ -4,6 +4,7 @@ import {
   Edit as EditIcon,
   MonetizationOn as MonetizationOnIcon,
 } from '@mui/icons-material';
+import { pad7 } from '../utils/id';
 
 interface Props {
   // 概要表示用（任意）
@@ -107,7 +108,7 @@ const CustomerActionsSidebar: React.FC<Props> = ({
                 {renderBillingMethodSelector()}
               </Box>
               <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
-                {customId && <Chip label={`ID: ${customId}`} size="small" variant="outlined" />}
+                {customId !== undefined && <Chip label={`ID: ${pad7(customId)}`} size="small" variant="outlined" />}
                 {courseName && <Chip label={`コース: ${courseName}`} size="small" color="primary" />}
               </Stack>
             </Box>

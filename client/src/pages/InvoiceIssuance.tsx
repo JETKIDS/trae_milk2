@@ -20,6 +20,7 @@ import {
   TableBody,
 } from '@mui/material';
 import axios from 'axios';
+import { pad7 } from '../utils/id';
 import { useNavigate } from 'react-router-dom';
 
 interface Course {
@@ -212,7 +213,7 @@ const InvoiceIssuance: React.FC = () => {
                   return (
                     <TableRow key={c.id}>
                       <TableCell>{typeof c.delivery_order === 'number' ? c.delivery_order : ''}</TableCell>
-                      <TableCell>{c.custom_id}</TableCell>
+                      <TableCell>{pad7(c.custom_id)}</TableCell>
                       <TableCell>{c.customer_name}</TableCell>
                       <TableCell align="right">{typeof a?.amount === 'number' ? a.amount.toLocaleString() : '-'}</TableCell>
                       <TableCell>{a?.confirmed ? '確定済' : '未確定'}</TableCell>

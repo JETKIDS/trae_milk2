@@ -40,6 +40,7 @@ import {
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import axios from 'axios';
 import moment from 'moment';
+import { pad7 } from '../utils/id';
 
 interface Course {
   id: number;
@@ -959,7 +960,7 @@ const CourseList: React.FC = () => {
                                     {customer.address}
                                   </Typography>
                                   <Typography variant="body2" color="textSecondary">
-                                    ID: {customer.custom_id} | TEL: {customer.phone}
+                                    ID: {pad7(customer.custom_id)} | TEL: {customer.phone}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -1091,7 +1092,7 @@ const CourseList: React.FC = () => {
                                       {customer.customer_name}
                                     </Typography>
                                     <Typography variant="body2" color="textSecondary">
-                                      ID: {customer.custom_id}
+                                      ID: {pad7(customer.custom_id)}
                                     </Typography>
                                   </Box>
                                 </Box>
@@ -1150,7 +1151,7 @@ const CourseList: React.FC = () => {
                                   {customer.customer_name}
                                 </Typography>
                                 <Typography variant="body2" color="textSecondary">
-                                  ID: {customer.custom_id}
+                                  ID: {pad7(customer.custom_id)}
                                 </Typography>
                               </Box>
                             </Box>

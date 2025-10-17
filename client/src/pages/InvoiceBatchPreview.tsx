@@ -20,6 +20,7 @@ import {
 import axios from 'axios';
 import moment from 'moment';
 import './InvoicePreview.css';
+import { pad7 } from '../utils/id';
 
 interface CompanyInfo {
   company_name: string;
@@ -89,11 +90,7 @@ interface ArSummary {
   carryover_amount: number;
 }
 
-function pad7(customId?: string | number): string {
-  const s = customId == null ? '' : String(customId);
-  const digits = s.replace(/\D/g, '');
-  return digits.padStart(7, '0');
-}
+// pad7 は共通ユーティリティからインポート
 
 // 単一顧客の請求コンテンツ（96mm高さ）
 const InvoiceContent: React.FC<{

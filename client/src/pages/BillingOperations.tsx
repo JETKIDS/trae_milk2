@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Button, Stack, Divider, Alert, ToggleButtonGroup, ToggleButton, TextField, FormControl, InputLabel, Select, MenuItem, CircularProgress } from '@mui/material';
 import axios from 'axios';
+import { pad7 } from '../utils/id';
 
 const BillingOperations: React.FC = () => {
   const [preview, setPreview] = useState<any | null>(null);
@@ -163,7 +164,7 @@ const BillingOperations: React.FC = () => {
                 {customers.map((c) => (
                   <Box key={c.id} sx={{ mb: 0.5 }}>
                     <Typography variant="body2">
-                      {c.custom_id ? `[${c.custom_id}] ` : ''}{c.customer_name}
+                      [{pad7(c.custom_id)}] {c.customer_name}
                     </Typography>
                   </Box>
                 ))}

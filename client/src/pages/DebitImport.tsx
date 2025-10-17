@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, CircularProgress, Container, Grid, MenuItem, Select, TextField, Typography, Paper } from '@mui/material';
+import { pad7 } from '../utils/id';
 
 interface ParsedItem {
   idx: number;
@@ -248,13 +249,13 @@ export default function DebitImport() {
                     renderValue={(selected) => {
                       if (!selected) return '顧客を選択…';
                       const c = customers.find(cc => cc.id === Number(selected));
-                      return c ? `${c.custom_id} ${c.customer_name}` : '顧客を選択…';
+                      return c ? `${pad7(c.custom_id)} ${c.customer_name}` : '顧客を選択…';
                     }}
                   >
                     <MenuItem value=""><em>未選択</em></MenuItem>
                     {customers.map(c => (
                       <MenuItem key={c.id} value={c.id}>
-                        {c.custom_id} {c.customer_name} {c.yomi ? `(${c.yomi})` : ''}
+                        {pad7(c.custom_id)} {c.customer_name} {c.yomi ? `(${c.yomi})` : ''}
                       </MenuItem>
                     ))}
                   </Select>
@@ -262,7 +263,7 @@ export default function DebitImport() {
                     <Typography variant="caption" sx={{ color: '#1976d2' }}>
                       候補: {(() => {
                         const c = customers.find(cc => cc.id === candidates[it.idx]);
-                        return c ? `${c.custom_id} ${c.customer_name}` : '';
+                        return c ? `${pad7(c.custom_id)} ${c.customer_name}` : '';
                       })()}
                     </Typography>
                   )}

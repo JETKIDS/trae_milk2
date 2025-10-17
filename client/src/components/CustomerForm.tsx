@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import axios from 'axios';
+import { pad7 } from '../utils/id';
 // 日本語入力の拡張（ローマ字変換）は撤去し、標準のTextFieldに戻します
 
 interface Customer {
@@ -185,10 +186,10 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="顧客ID"
-                value={formData.custom_id || ''}
+                label="顧客ID（7桁）"
+                value={formData.custom_id ? pad7(formData.custom_id) : ''}
                 InputProps={{ readOnly: true }}
-                helperText="最小未使用の4桁IDが自動設定されます（編集不可）"
+                helperText="最小未使用の7桁IDが自動設定されます（編集不可）"
               />
             </Grid>
             <Grid item xs={12} md={6}>

@@ -27,9 +27,11 @@ import {
   AccordionSummary,
   AccordionDetails,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Link
 } from '@mui/material';
 import { LocalShipping, Print, GetApp, ExpandMore } from '@mui/icons-material';
+import { pad7 } from '../utils/id';
 
 // Course型の定義
 interface Course {
@@ -929,6 +931,8 @@ const ProductSummaryTab: React.FC = () => {
     const [cancelMap, setCancelMap] = useState<Map<string, Set<string>>>(new Map());
     // 解約した商品の商品名などを補完するためのパターンマップ
     const [patternsMap, setPatternsMap] = useState<Map<string, any>>(new Map());
+    // 顧客の内部ID（customer_id）と7桁ID（custom_id）の対応表
+    const [idToCustomIdMap, setIdToCustomIdMap] = useState<Map<number, string>>(new Map());
   // ローカルストレージから自動計算設定を読み込み（配達リストタブ用）
   const [autoFetch, setAutoFetch] = useState<boolean>(() => {
     const saved = localStorage.getItem('deliveryListTab_autoFetch');
@@ -1026,10 +1030,10 @@ const ProductSummaryTab: React.FC = () => {
         map.set(key, p);
       });
       setPatternsMap(map);
-      return patterns;
+      return { patterns, map };
     } catch (e) {
       console.warn('配達パターンの取得に失敗しました。解約マーカーは表示されない可能性があります:', e);
-      return [];
+      return { patterns: [], map: new Map<string, any>() };
     }
   };
 
@@ -1117,32 +1121,86 @@ const ProductSummaryTab: React.FC = () => {
         });
       });
       // 選択コースの顧客も対象に含める（期間中に配達がない顧客の臨時追加を拾うため）
-      const fetchCustomerIdsBySelection = async (): Promise<number[]> => {
+      // 選択コースに属する顧客のIDと custom_id（7桁）を取得
+      const fetchCustomerIdsBySelection = async (): Promise<{ ids: number[]; idToCustomId: Map<number, string> }> => {
         try {
           // 『全コース（コース別）』も全顧客対象として扱う（期間中に配達がない顧客の臨時追加を拾うため）
           if (selectedCourse === 'all' || selectedCourse === 'all-by-course') {
             const res = await fetch('http://localhost:9000/api/customers');
             if (!res.ok) throw new Error('顧客一覧の取得に失敗しました');
             const rows = await res.json();
-            return Array.isArray(rows) ? rows.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n)) : [];
+            if (!Array.isArray(rows)) return { ids: [], idToCustomId: new Map<number, string>() };
+            const idToCustomId = new Map<number, string>();
+            rows.forEach((r: any) => {
+              const idNum = Number(r.id);
+              if (Number.isFinite(idNum)) {
+                idToCustomId.set(idNum, String(r.custom_id || ''));
+              }
+            });
+            const ids = rows.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n));
+            return { ids, idToCustomId };
           } else {
             const res = await fetch(`http://localhost:9000/api/customers/by-course/${selectedCourse}`);
             if (!res.ok) throw new Error('コース別顧客一覧の取得に失敗しました');
             const rows = await res.json();
-            return Array.isArray(rows) ? rows.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n)) : [];
+            if (!Array.isArray(rows)) return { ids: [], idToCustomId: new Map<number, string>() };
+            const idToCustomId = new Map<number, string>();
+            rows.forEach((r: any) => {
+              const idNum = Number(r.id);
+              if (Number.isFinite(idNum)) {
+                idToCustomId.set(idNum, String(r.custom_id || ''));
+              }
+            });
+            const ids = rows.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n));
+            return { ids, idToCustomId };
           }
         } catch (e) {
           console.warn('顧客一覧の取得に失敗しました（臨時変更の対象拡張は一部スキップされます）:', e);
-          return [];
+          return { ids: [], idToCustomId: new Map<number, string>() };
         }
       };
-      const extraIds = await fetchCustomerIdsBySelection();
+      const { ids: extraIds, idToCustomId } = await fetchCustomerIdsBySelection();
       extraIds.forEach(id => customerIdSet.add(id));
+      // 期間内に登場する顧客（＋選択コースの全顧客）について、7桁IDマップを完全化する
+      const ensureCustomIdsFor = async (customerIds: number[], baseMap: Map<number, string>): Promise<Map<number, string>> => {
+        const localMap = new Map<number, string>(Array.from(baseMap.entries()));
+        const toFetch: number[] = [];
+        customerIds.forEach((cid) => {
+          const existing = localMap.get(cid);
+          if (!existing || existing.length !== 7) {
+            toFetch.push(cid);
+          }
+        });
+        if (toFetch.length === 0) return localMap;
+        // 顧客詳細APIで custom_id を取得（詳細画面と同じソースを信頼する）
+        const results = await Promise.all(
+          toFetch.map(async (cid) => {
+            try {
+              const res = await fetch(`http://localhost:9000/api/customers/${cid}`);
+              if (!res.ok) return { cid, custom_id: '' };
+              const json = await res.json();
+              const customId = String(json?.customer?.custom_id || json?.custom_id || '').trim();
+              return { cid, custom_id: customId };
+            } catch {
+              return { cid, custom_id: '' };
+            }
+          })
+        );
+        results.forEach(({ cid, custom_id }) => {
+          if (custom_id && custom_id.length === 7) {
+            localMap.set(cid, custom_id);
+          }
+        });
+        return localMap;
+      };
+      const idToCustomIdLocal = await ensureCustomIdsFor(Array.from(customerIdSet), idToCustomId);
+      // state に反映（UI はこの値を使用して 7桁ID を表示）
+      setIdToCustomIdMap(idToCustomIdLocal);
       const changes = await fetchTemporaryChangesInRange(startDate, endDate, Array.from(customerIdSet));
       const newSkipMap = buildSkipMap(changes);
       setSkipMap(newSkipMap);
       // 解約マーカー用に配達パターンを取得
-      const patterns = await fetchDeliveryPatternsByCustomers(Array.from(customerIdSet));
+      const { patterns, map: patternsMapLocal } = await fetchDeliveryPatternsByCustomers(Array.from(customerIdSet));
       const newCancelMap = buildCancelMap(patterns, startDate, endDate);
       setCancelMap(newCancelMap);
       // 臨時追加・本数変更の反映
@@ -1221,12 +1279,13 @@ const ProductSummaryTab: React.FC = () => {
         return customer;
       };
 
-      const ensureProductOnCustomer = (customer: any, change: any) => {
+      const ensureProductOnCustomer = (customer: any, change: any, patternMapOverride?: Map<string, any>) => {
         const pid = Number(change.product_id);
         let product = (customer.products || []).find((p: any) => p.product_id === pid);
         if (!product) {
           const patKey = `${customer.customer_id}-${pid}`;
-          const pat = patternsMap.get(patKey);
+          const patSource = patternMapOverride || patternsMap;
+          const pat = patSource.get(patKey);
           product = {
             product_id: pid,
             product_name: pat?.product_name || change.product_name || `商品${pid}`,
@@ -1257,7 +1316,7 @@ const ProductSummaryTab: React.FC = () => {
         if (!courseName) continue;
         const customer = ensureCustomerAtDate(courseName, date, cid);
         mods.forEach((m: any) => {
-          const product = ensureProductOnCustomer(customer, m);
+          const product = ensureProductOnCustomer(customer, m, patternsMapLocal);
           const qty = Number(m.quantity || 0);
           const price = Number(m.unit_price || product.unit_price || 0);
           product.quantity = qty;
@@ -1281,7 +1340,7 @@ const ProductSummaryTab: React.FC = () => {
         if (!courseName) continue;
         const customer = ensureCustomerAtDate(courseName, date, cid);
         adds.forEach((a: any) => {
-          const product = ensureProductOnCustomer(customer, a);
+          const product = ensureProductOnCustomer(customer, a, patternsMapLocal);
           const qty = Number(a.quantity || 0);
           const price = Number(a.unit_price || product.unit_price || 0);
           product.quantity = qty;
@@ -1318,7 +1377,7 @@ const ProductSummaryTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, days, selectedCourse, calculateEndDate, patternsMap]);
+  }, [startDate, days, selectedCourse, calculateEndDate]);
 
   // 手動集計ボタンのハンドラー（未使用のため削除）
 
@@ -1568,6 +1627,10 @@ const ProductSummaryTab: React.FC = () => {
                     if (!customerProductMap.has(key)) {
                       customerProductMap.set(key, {
                         customer_id: customer.customer_id,
+                        // サーバから渡された custom_id を優先、なければ Map から補完
+                        custom_id: (customer.custom_id && String(customer.custom_id).length === 7)
+                          ? String(customer.custom_id)
+                          : (idToCustomIdMap.get(customer.customer_id) || null),
                         customer_name: customer.customer_name,
                         address: customer.address,
                         phone: customer.phone,
@@ -1593,10 +1656,14 @@ const ProductSummaryTab: React.FC = () => {
                       if (!productsWithDelivery.has(cKey)) {
                         return; // 実配達がない商品は補完しない（「解」も表示しない）
                       }
-                      if (!customerProductMap.has(cKey)) {
-                        const pat = patternsMap.get(cKey);
-                        customerProductMap.set(cKey, {
+                        if (!customerProductMap.has(cKey)) {
+                          const pat = patternsMap.get(cKey);
+                          customerProductMap.set(cKey, {
                           customer_id: customer.customer_id,
+                          // サーバの値優先 + Map 補完
+                          custom_id: (customer.custom_id && String(customer.custom_id).length === 7)
+                            ? String(customer.custom_id)
+                            : (idToCustomIdMap.get(customer.customer_id) || null),
                           customer_name: customer.customer_name,
                           address: customer.address,
                           phone: customer.phone,
@@ -1604,13 +1671,13 @@ const ProductSummaryTab: React.FC = () => {
                           product_id: pid,
                           product_name: pat?.product_name || `商品${pid}`,
                           dateQuantities: { [date]: 0 }
-                        });
-                      } else {
-                        const cp = customerProductMap.get(cKey);
-                        if (cp && cp.dateQuantities[date] === undefined) {
-                          cp.dateQuantities[date] = 0;
+                          });
+                        } else {
+                          const cp = customerProductMap.get(cKey);
+                          if (cp && cp.dateQuantities[date] === undefined) {
+                            cp.dateQuantities[date] = 0;
+                          }
                         }
-                      }
                     });
                   }
                 });
@@ -1636,7 +1703,7 @@ const ProductSummaryTab: React.FC = () => {
                         <TableHead>
                           <TableRow>
                             <TableCell>配達順</TableCell>
-                            <TableCell>ID</TableCell>
+                            <TableCell>ID（7桁）</TableCell>
                             <TableCell sx={{ minWidth: isSimpleDisplay ? 150 : 120 }}>顧客名</TableCell>
                             {!isSimpleDisplay && <TableCell>住所</TableCell>}
                             {!isSimpleDisplay && <TableCell>電話番号</TableCell>}
@@ -1660,7 +1727,13 @@ const ProductSummaryTab: React.FC = () => {
                                   {isFirstProductForCustomer ? (customerProduct.delivery_order || '-') : ''}
                                 </TableCell>
                                 <TableCell>
-                                  {isFirstProductForCustomer ? customerProduct.customer_id : ''}
+                                  {isFirstProductForCustomer ? (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                      <Link href={`/customers/${customerProduct.customer_id}`} target="_blank" rel="noopener" underline="hover">
+                                        {pad7(customerProduct.custom_id)}
+                                      </Link>
+                                    </Box>
+                                  ) : ''}
                                 </TableCell>
                                 <TableCell sx={{ fontWeight: isSimpleDisplay ? 'bold' : 'normal' }}>
                                   {isFirstProductForCustomer ? customerProduct.customer_name : ''}

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Checkbox, Container, FormControlLabel, Grid, MenuItem, Paper, Select, TextField, Typography } from '@mui/material';
+import { pad7 } from '../utils/id';
 
 interface Course { id: number; custom_id: string; course_name: string; }
 interface Customer { id: number; custom_id: string; customer_name: string; billing_method?: string; rounding_enabled?: number }
@@ -171,7 +172,7 @@ export default function BulkCollection() {
                   <Checkbox checked={!!checked[c.id]} onChange={(e) => toggleCheck(c.id, e.target.checked)} />
                 </Grid>
                 <Grid item xs={12} sm={5}>
-                  <Typography variant="body2">{c.custom_id} {c.customer_name}</Typography>
+                  <Typography variant="body2">{pad7(c.custom_id)} {c.customer_name}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={3}>
                   <Typography variant="body2" sx={{ textAlign: 'right' }}>

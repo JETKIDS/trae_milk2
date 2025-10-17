@@ -20,6 +20,7 @@ import {
 import axios from 'axios';
 import moment from 'moment';
 import './InvoicePreview.css';
+import { pad7 } from '../utils/id';
 
 interface CompanyInfo {
   company_name: string;
@@ -105,12 +106,6 @@ interface ProductMaster {
 }
 
 // const dowLabels = ['日','月','火','水','木','金','土']; // 未使用
-
-function pad7(customId?: string | number): string {
-  const s = customId == null ? '' : String(customId);
-  const digits = s.replace(/\D/g, '');
-  return digits.padStart(7, '0');
-}
 
   const InvoicePreview: React.FC = () => {
   const { id } = useParams<{ id: string }>();
