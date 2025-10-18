@@ -8,7 +8,7 @@ interface InvoiceItem { customer_id: number; amount: number; confirmed: boolean;
 
 const now = new Date();
 
-export default function BulkCollection() {
+export default function BulkCollection({ method = 'collection' }: { method?: 'collection' | 'debit' }) {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -20,7 +20,7 @@ export default function BulkCollection() {
   const [paidTotals, setPaidTotals] = useState<Record<number, number>>({}); // 指定月入金済み合計（金額）
   const [confirmedMap, setConfirmedMap] = useState<Record<number, boolean>>({});
   const [commonAmount, setCommonAmount] = useState<number>(0);
-  const [note, setNote] = useState<string>('集金一括登録');
+  const [note, setNote] = useState<string>(method === 'debit' ? '口座振替一括登録' : '集金一括登録');
   const [registering, setRegistering] = useState(false);
   const [message, setMessage] = useState('');
   const [hideFullyPaid, setHideFullyPaid] = useState<boolean>(false);
@@ -35,7 +35,7 @@ export default function BulkCollection() {
   }, []);
 
   const loadCustomers = async (cid: number) => {
-    const resp = await fetch(`/api/customers/by-course/${cid}/collection`);
+    const resp = await fetch(`/api/customers/by-course/${cid}/${method === 'debit' ? 'debit' : 'collection'}`);
     const rows: Customer[] = await resp.json();
     setCustomers(rows);
     setChecked({});
@@ -53,7 +53,7 @@ export default function BulkCollection() {
   };
 
   const loadInvoices = async (cid: number, y: number, m: number) => {
-    const resp = await fetch(`/api/customers/by-course/${cid}/invoices-amounts?year=${y}&month=${m}`);
+    const resp = await fetch(`/api/customers/by-course/${cid}/invoices-amounts?year=${y}&month=${m}&method=${method}`);
     const json: { items: InvoiceItem[] } = await resp.json();
     const invMap: Record<number, number> = {};
     const confMap: Record<number, boolean> = {};
@@ -81,7 +81,7 @@ export default function BulkCollection() {
 
   const setAllChecked = (value: boolean) => {
     const next: Record<number, boolean> = {};
-    customers.forEach(c => { next[c.id] = value; });
+    customers.forEach(c => { next[c.id] = value && !!confirmedMap[c.id] && ((remainingMap[c.id] || 0) > 0); });
     setChecked(next);
   };
 
@@ -131,7 +131,7 @@ export default function BulkCollection() {
       setRegistering(true);
       setMessage('');
       const entries = customers
-        .filter(c => checked[c.id])
+        .filter(c => checked[c.id] && confirmedMap[c.id])
         .map(c => {
           const rem = remainingMap[c.id] || 0;
           const override = amounts[c.id];
@@ -139,7 +139,7 @@ export default function BulkCollection() {
           return { customer_id: c.id, amount: planned, note };
         });
       if (entries.length === 0) {
-        setMessage('チェック済みで金額が設定された顧客がありません');
+        setMessage('チェック済みで金額が設定された顧客がありません（未確定の顧客は選択できません）');
         return;
       }
       // 金額0は除外
@@ -151,7 +151,7 @@ export default function BulkCollection() {
       const resp = await fetch('/api/customers/payments/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year, month, entries: filtered })
+        body: JSON.stringify({ year, month, entries: filtered, method })
       });
       const json = await resp.json();
       if (!resp.ok) {
@@ -172,7 +172,7 @@ export default function BulkCollection() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 3 }}>
-      <Typography variant="h5" gutterBottom>コース別 一括入金（集金）</Typography>
+      <Typography variant="h5" gutterBottom>コース別 一括入金（{method === 'debit' ? '口座振替' : '集金'}）</Typography>
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={3}>
@@ -205,7 +205,7 @@ export default function BulkCollection() {
 
       <Paper sx={{ p: 2 }}>
         {customers.length === 0 ? (
-          <Typography color="text.secondary">コースを選択すると集金客が表示されます。</Typography>
+          <Typography color="text.secondary">コースを選択すると{method === 'debit' ? '口座振替顧客' : '集金客'}が表示されます。</Typography>
         ) : (
           <Grid container spacing={1}>
             {customers
@@ -216,15 +216,15 @@ export default function BulkCollection() {
                     <Checkbox
                       checked={!!checked[c.id]}
                       onChange={(e) => toggleCheck(c.id, e.target.checked)}
-                      disabled={(remainingMap[c.id] || 0) <= 0}
+                      disabled={(remainingMap[c.id] || 0) <= 0 || !confirmedMap[c.id]}
                     />
                   </Grid>
                   <Grid item xs={12} sm={4}>
                     <Typography variant="body2">{pad7(c.custom_id)} {c.customer_name}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={2}>
-                    <Typography variant="body2" sx={{ textAlign: 'right' }}>
-                      請求額: ￥{(invoiceAmounts[c.id] || 0).toLocaleString()} {confirmedMap[c.id] ? '（確定済）' : ''}
+                    <Typography variant="body2" sx={{ textAlign: 'right', color: confirmedMap[c.id] ? 'inherit' : '#b71c1c' }}>
+                      請求額: ￥{(invoiceAmounts[c.id] || 0).toLocaleString()} {confirmedMap[c.id] ? '（確定済）' : '（未確定）'}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} sm={2}>
@@ -247,19 +247,17 @@ export default function BulkCollection() {
                         const v = parseInt(e.target.value || '0', 10);
                         setAmounts(prev => ({ ...prev, [c.id]: isNaN(v) ? 0 : v }));
                       }}
-                      disabled={(remainingMap[c.id] || 0) <= 0}
+                      disabled={(remainingMap[c.id] || 0) <= 0 || !confirmedMap[c.id]}
                     />
                   </Grid>
                 </Grid>
               ))}
           </Grid>
         )}
+        {!customers.length && message && (
+          <Typography color="error" sx={{ mt: 1 }}>{message}</Typography>
+        )}
       </Paper>
-      {message && (
-        <Paper sx={{ p: 2, mt: 2 }}>
-          <Typography color={message.startsWith('エラー') ? 'error' : 'primary'}>{message}</Typography>
-        </Paper>
-      )}
     </Container>
   );
 }

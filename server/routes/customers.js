@@ -611,11 +611,38 @@ router.get('/by-course/:courseId/collection', (req, res) => {
   db.close();
 });
 
+// 追加: コース別（口座振替のみ）一覧取得
+router.get('/by-course/:courseId/debit', (req, res) => {
+  const db = getDB();
+  const courseId = req.params.courseId;
+
+  const query = `
+    SELECT c.id, c.custom_id, c.customer_name, c.address, c.phone,
+           dc.course_name, ds.staff_name,
+           cs.billing_method, cs.rounding_enabled
+    FROM customers c
+    LEFT JOIN customer_settings cs ON cs.customer_id = c.id
+    LEFT JOIN delivery_courses dc ON c.course_id = dc.id
+    LEFT JOIN delivery_staff ds ON c.staff_id = ds.id
+    WHERE c.course_id = ? AND cs.billing_method = 'debit'
+    ORDER BY c.delivery_order ASC, c.id ASC
+  `;
+
+  db.all(query, [courseId], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+  db.close();
+});
+
 // 指定月の請求額（確定があればそれを優先／なければ試算）をコース別でまとめて返却
 router.get('/by-course/:courseId/invoices-amounts', async (req, res) => {
   const db = getDB();
   const courseId = req.params.courseId;
-  const { year, month } = req.query;
+  const { year, month, method } = req.query;
   if (!year || !month) {
     db.close();
     return res.status(400).json({ error: 'year と month を指定してください' });
@@ -627,6 +654,8 @@ router.get('/by-course/:courseId/invoices-amounts', async (req, res) => {
     return res.status(400).json({ error: 'year/month の形式が不正です' });
   }
 
+  const methodStr = method === 'debit' ? 'debit' : 'collection';
+
   try {
     await ensureLedgerTables(db);
     const customers = await new Promise((resolve, reject) => {
@@ -635,10 +664,10 @@ router.get('/by-course/:courseId/invoices-amounts', async (req, res) => {
                cs.rounding_enabled
         FROM customers c
         LEFT JOIN customer_settings cs ON cs.customer_id = c.id
-        WHERE c.course_id = ? AND COALESCE(cs.billing_method, 'collection') = 'collection'
+        WHERE c.course_id = ? AND COALESCE(cs.billing_method, 'collection') = ?
         ORDER BY c.delivery_order ASC, c.id ASC
       `;
-      db.all(sql, [courseId], (err, rows) => {
+      db.all(sql, [courseId, methodStr], (err, rows) => {
         if (err) return reject(err);
         resolve(rows || []);
       });
@@ -666,7 +695,7 @@ router.get('/by-course/:courseId/invoices-amounts', async (req, res) => {
     }
 
     db.close();
-    return res.json({ year: y, month: m, items: results });
+    return res.json({ year: y, month: m, method: methodStr, items: results });
   } catch (e) {
     db.close();
     return res.status(500).json({ error: e.message });
@@ -714,10 +743,10 @@ router.get('/by-course/:courseId/payments-sum', async (req, res) => {
   }
 });
 
-// ===== 入金一括登録（集金） =====
+// ===== 入金一括登録（集金／口座振替） =====
 router.post('/payments/batch', async (req, res) => {
   const db = getDB();
-  const { year, month, entries } = req.body; // entries: [{ customer_id, amount, note? }]
+  const { year, month, entries, method } = req.body; // entries: [{ customer_id, amount, note? }]
   if (!year || !month || !entries || !Array.isArray(entries) || entries.length === 0) {
     db.close();
     return res.status(400).json({ error: 'year, month, entries は必須です' });
@@ -728,6 +757,7 @@ router.post('/payments/batch', async (req, res) => {
     db.close();
     return res.status(400).json({ error: 'year/month の形式が不正です' });
   }
+  const methodStr = method === 'debit' ? 'debit' : 'collection';
   try {
     await ensureLedgerTables(db);
 
@@ -751,7 +781,7 @@ router.post('/payments/batch', async (req, res) => {
         db.run('BEGIN TRANSACTION');
         const stmt = db.prepare(
           `INSERT INTO ar_payments (customer_id, year, month, amount, method, note)
-           VALUES (?, ?, ?, ?, 'collection', ?)`
+           VALUES (?, ?, ?, ?, ?, ?)`
         );
         for (const e of entries) {
           const cid = parseInt(String(e.customer_id), 10);
@@ -759,7 +789,7 @@ router.post('/payments/batch', async (req, res) => {
           const note = e.note ? String(e.note) : null;
           if (isNaN(cid) || isNaN(amt) || amt <= 0) { failed++; continue; }
           if (!confirmedSet.has(cid)) { failed++; continue; }
-          stmt.run([cid, y, m, amt, note], (err) => {
+          stmt.run([cid, y, m, amt, methodStr, note], (err) => {
             if (err) { failed++; }
             else { success++; }
           });
@@ -777,7 +807,7 @@ router.post('/payments/batch', async (req, res) => {
       });
     });
     db.close();
-    return res.json({ year: y, month: m, success, failed });
+    return res.json({ year: y, month: m, method: methodStr, success, failed });
   } catch (e) {
     db.close();
     return res.status(500).json({ error: e.message });

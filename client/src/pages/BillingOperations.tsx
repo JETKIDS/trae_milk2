@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Button, Stack, Divider, Alert, ToggleButtonGroup, ToggleButton, TextField, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tabs, Tab } from '@mui/material';
 import BulkCollection from './BulkCollection';
+
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { pad7 } from '../utils/id';
@@ -8,6 +9,7 @@ import { pad7 } from '../utils/id';
 const BillingOperations: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'ops' | 'bulk'>('ops');
+  const [bulkMethod, setBulkMethod] = useState<'collection' | 'debit'>('collection');
   const [preview, setPreview] = useState<any | null>(null);
   const [parse, setParse] = useState<any | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -25,11 +27,21 @@ const BillingOperations: React.FC = () => {
     if (tab === 'bulk' || tab === 'ops') {
       setActiveTab(tab);
     }
+    const method = searchParams.get('method');
+    if (method === 'collection' || method === 'debit') {
+      setBulkMethod(method as 'collection' | 'debit');
+    }
   }, [searchParams]);
 
   const handleChangeTab = (_e: React.SyntheticEvent, value: 'ops' | 'bulk') => {
     setActiveTab(value);
-    setSearchParams({ tab: value });
+    setSearchParams({ tab: value, ...(value === 'bulk' ? { method: bulkMethod } : {}) });
+  };
+
+  const handleChangeBulkMethod = (_e: React.SyntheticEvent, value: 'collection' | 'debit') => {
+    if (!value) return;
+    setBulkMethod(value);
+    setSearchParams({ tab: 'bulk', method: value });
   };
 
   const monthLabel = (() => {
@@ -119,7 +131,27 @@ const BillingOperations: React.FC = () => {
         </Card>
 
         {activeTab === 'bulk' && (
-          <BulkCollection />
+          <>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>集金方法</Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  value={bulkMethod}
+                  onChange={handleChangeBulkMethod}
+                  size="small"
+                >
+                  <ToggleButton value="collection">現金集金</ToggleButton>
+                  <ToggleButton value="debit">口座振替（引き落し）</ToggleButton>
+                </ToggleButtonGroup>
+              </CardContent>
+            </Card>
+            {bulkMethod === 'collection' ? (
+              <BulkCollection method={bulkMethod} />
+            ) : (
+              <BulkCollection method={bulkMethod} />
+            )}
+          </>
         )}
 
         {activeTab === 'ops' && (
@@ -251,34 +283,19 @@ const BillingOperations: React.FC = () => {
                 ))}
               </Box>
             )}
-            <Divider sx={{ my: 2 }} />
             {parse?.error && <Alert severity="error">{parse.error}</Alert>}
             {parse && !parse.error && (
               <Box sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 12 }}>
+                <Typography variant="subtitle2">items: {Array.isArray(parse.items) ? parse.items.length : 0}</Typography>
                 <Typography variant="subtitle2">linesAnalyzed: {parse.linesAnalyzed}</Typography>
-                <Typography variant="subtitle2">totalAmountCandidate: {parse.totalAmountCandidate}</Typography>
                 <Divider sx={{ my: 1 }} />
                 {Array.isArray(parse.items) && parse.items.map((it: any, idx: number) => (
                   <Box key={idx} sx={{ mb: 0.5 }}>
-                    [{it.index}] len={it.length} name?={it.name} amt?={it.amountCandidate} raw={it.raw}
+                    [#{it.idx}] len={it.length} name={it.name} amt?={it.amountCandidate}
                   </Box>
                 ))}
               </Box>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              請求書PDF（テンプレート）
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              会社情報（マスタ）からヘッダーを構成し、レイアウトは提供画像をもとに作成予定です。
-            </Typography>
-            <Button variant="contained" disabled>
-              生成（準備中）
-            </Button>
           </CardContent>
         </Card>
         </>

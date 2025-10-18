@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, Checkbox, FormControlLabel, ToggleButtonGroup, ToggleButton, Popover, TextField } from '@mui/material';
+import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, Checkbox, FormControlLabel, Popover, TextField, Menu, MenuItem } from '@mui/material';
 import {
   Edit as EditIcon,
   MonetizationOn as MonetizationOnIcon,
@@ -95,18 +95,33 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   };
   const handleClose = () => setAnchorEl(null);
 
+  // 集金方法プルダウン（メニュー）
+  const [methodMenuAnchor, setMethodMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const methodMenuOpen = Boolean(methodMenuAnchor);
+  const handleOpenMethodMenu = (e: React.MouseEvent<HTMLElement>) => setMethodMenuAnchor(e.currentTarget);
+  const handleCloseMethodMenu = () => setMethodMenuAnchor(null);
+  const currentMethodLabel = (billingMethod === 'debit') ? '口座振替' : '集金';
+
+  const handleSelectMethod = (next: 'collection' | 'debit') => {
+    handleCloseMethodMenu();
+    if (next === billingMethod) return; // 変更なし
+    const nextLabel = next === 'debit' ? '口座振替' : '集金';
+    const ok = window.confirm(`請求方法を「${currentMethodLabel}」から「${nextLabel}」へ変更します。保存しますか？`);
+    if (ok && onChangeBillingMethod) {
+      onChangeBillingMethod(next);
+    }
+  };
+
   const renderBillingMethodSelector = () => (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <Typography variant="body2" color="text.secondary">請求方法</Typography>
-      <ToggleButtonGroup
-        size="small"
-        exclusive
-        value={billingMethod || 'collection'}
-        onChange={(_, value) => value && onChangeBillingMethod && onChangeBillingMethod(value)}
-      >
-        <ToggleButton value="collection">集金</ToggleButton>
-        <ToggleButton value="debit">引き落し</ToggleButton>
-      </ToggleButtonGroup>
+      <Button variant="outlined" size="small" onClick={handleOpenMethodMenu}>
+        {currentMethodLabel}（変更）
+      </Button>
+      <Menu anchorEl={methodMenuAnchor} open={methodMenuOpen} onClose={handleCloseMethodMenu}>
+        <MenuItem onClick={() => handleSelectMethod('collection')}>集金</MenuItem>
+        <MenuItem onClick={() => handleSelectMethod('debit')}>口座振替</MenuItem>
+      </Menu>
     </Box>
   );
 
@@ -163,10 +178,11 @@ const CustomerActionsSidebar: React.FC<Props> = ({
               <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
                 <Box sx={{ p: 2, maxWidth: 300 }}>
                   <Typography variant="subtitle2" gutterBottom>前月分 入金登録</Typography>
-                  <ToggleButtonGroup size="small" exclusive value={entryMode} onChange={(_, v) => v && setEntryMode(v)} sx={{ mb: 1 }}>
-                    <ToggleButton value="auto">自動（前月請求額）</ToggleButton>
-                    <ToggleButton value="manual">手動</ToggleButton>
-                  </ToggleButtonGroup>
+                  {/* 入金モード切替 */}
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    <Button size="small" variant={entryMode === 'auto' ? 'contained' : 'outlined'} onClick={() => setEntryMode('auto')}>自動（前月請求額）</Button>
+                    <Button size="small" variant={entryMode === 'manual' ? 'contained' : 'outlined'} onClick={() => setEntryMode('manual')}>手動</Button>
+                  </Box>
                   {/* 入金月の指定（デフォルトは前月） */}
                   <TextField
                     label="入金月"
