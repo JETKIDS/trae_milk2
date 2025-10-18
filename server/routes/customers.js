@@ -1478,6 +1478,124 @@ router.post('/:id/payments', async (req, res) => {
   }
 });
 
+// ===== 入金一覧取得（フィルタ・検索） =====
+router.get('/:id/payments', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const { year, month, method, q, limit, offset } = req.query;
+  const y = year ? parseInt(String(year), 10) : undefined;
+  const m = month ? parseInt(String(month), 10) : undefined;
+  const lim = limit ? parseInt(String(limit), 10) : 100;
+  const off = offset ? parseInt(String(offset), 10) : 0;
+  if ([y, m, lim, off].some((v) => typeof v !== 'undefined' && isNaN(Number(v)))) {
+    db.close();
+    return res.status(400).json({ error: 'year/month/limit/offset の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+    const where = ['customer_id = ?'];
+    const params = [customerId];
+    if (typeof y === 'number') { where.push('year = ?'); params.push(y); }
+    if (typeof m === 'number') { where.push('month = ?'); params.push(m); }
+    if (method && ['collection','debit'].includes(String(method))) { where.push('method = ?'); params.push(String(method)); }
+    if (q && String(q).trim() !== '') { where.push('note LIKE ?'); params.push(`%${String(q).trim()}%`); }
+    const sql = `
+      SELECT id, customer_id, year, month, amount, method, note, created_at
+      FROM ar_payments
+      WHERE ${where.join(' AND ')}
+      ORDER BY created_at DESC, id DESC
+      LIMIT ? OFFSET ?
+    `;
+    params.push(lim);
+    params.push(off);
+    const rows = await new Promise((resolve, reject) => {
+      db.all(sql, params, (err, r) => { if (err) return reject(err); resolve(r || []); });
+    });
+    db.close();
+    return res.json(rows);
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== 入金メモ編集 =====
+router.patch('/:id/payments/:paymentId', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const paymentId = parseInt(String(req.params.paymentId), 10);
+  const { note } = req.body || {};
+  if (isNaN(paymentId)) {
+    db.close();
+    return res.status(400).json({ error: 'paymentId が不正です' });
+  }
+  try {
+    await ensureLedgerTables(db);
+    await new Promise((resolve, reject) => {
+      db.run('UPDATE ar_payments SET note = ? WHERE id = ? AND customer_id = ?', [note || null, paymentId, customerId], function(err) {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+    const row = await new Promise((resolve, reject) => {
+      db.get('SELECT id, customer_id, year, month, amount, method, note, created_at FROM ar_payments WHERE id = ?', [paymentId], (err, r) => {
+        if (err) return reject(err);
+        resolve(r);
+      });
+    });
+    db.close();
+    return res.json(row);
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== 入金取消（マイナス入金の自動登録） =====
+router.post('/:id/payments/:paymentId/cancel', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const paymentId = parseInt(String(req.params.paymentId), 10);
+  if (isNaN(paymentId)) {
+    db.close();
+    return res.status(400).json({ error: 'paymentId が不正です' });
+  }
+  try {
+    await ensureLedgerTables(db);
+    const orig = await new Promise((resolve, reject) => {
+      db.get('SELECT id, customer_id, year, month, amount, method, note FROM ar_payments WHERE id = ? AND customer_id = ?', [paymentId, customerId], (err, r) => {
+        if (err) return reject(err);
+        resolve(r || null);
+      });
+    });
+    if (!orig) {
+      db.close();
+      return res.status(404).json({ error: '対象の入金が見つかりません' });
+    }
+    await new Promise((resolve, reject) => {
+      const sql = `INSERT INTO ar_payments (customer_id, year, month, amount, method, note) VALUES (?, ?, ?, ?, ?, ?)`;
+      const cancelNote = `取消: ${orig.id}${orig.note ? ` (${orig.note})` : ''}`;
+      db.run(sql, [customerId, orig.year, orig.month, -Math.abs(orig.amount), String(orig.method), cancelNote], function(err) {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+    // 取消レコードを返す（最新の作成分）
+    const created = await new Promise((resolve, reject) => {
+      db.get('SELECT id, customer_id, year, month, amount, method, note, created_at FROM ar_payments WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [customerId], (err, r) => {
+        if (err) return reject(err);
+        resolve(r);
+      });
+    });
+    db.close();
+    return res.json(created);
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
 
 // AR（売掛）サマリ: 前月請求額／前月入金額／繰越額（暫定版）

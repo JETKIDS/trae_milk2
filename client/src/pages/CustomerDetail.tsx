@@ -8,6 +8,9 @@ import CustomerForm from '../components/CustomerForm';
 import CustomerActionsSidebar from '../components/CustomerActionsSidebar';
 import DeliveryPatternManager from '../components/DeliveryPatternManager';
 import TemporaryChangeManager from '../components/TemporaryChangeManager';
+// 追記: 入金履歴ダイアログと型
+import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
+import { ArInvoiceStatus } from '../types/ledger';
 
 // 型定義補完（このファイルで参照されるが、別ページにのみ存在していたためローカルに定義）
 interface CalendarProduct {
@@ -130,6 +133,10 @@ const CustomerDetail: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(moment());
   // 当月請求の確定状態
   const [invoiceConfirmed, setInvoiceConfirmed] = useState<boolean>(false);
+  // 追記: 確定日時
+  const [invoiceConfirmedAt, setInvoiceConfirmedAt] = useState<string | null>(null);
+  // 追記: 前月請求の確定状態（入金処理のガード用）
+  const [prevInvoiceConfirmed, setPrevInvoiceConfirmed] = useState<boolean | null>(null);
   // カレンダーの曜日表示用（0=日〜6=土）
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -189,6 +196,8 @@ const CustomerDetail: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
   const [paymentNote, setPaymentNote] = useState<string>('');
   const [paymentSaving, setPaymentSaving] = useState<boolean>(false);
+  // 追記: 入金履歴ダイアログ開閉
+  const [openPaymentHistory, setOpenPaymentHistory] = useState<boolean>(false);
 
   // 単価変更ダイアログ
   const [openUnitPriceChange, setOpenUnitPriceChange] = useState<boolean>(false);
@@ -241,10 +250,28 @@ const CustomerDetail: React.FC = () => {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
       const res = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
-      setInvoiceConfirmed(Boolean(res?.data?.confirmed));
+      const status: ArInvoiceStatus = res?.data || {} as any;
+      setInvoiceConfirmed(Boolean(status?.confirmed));
+      setInvoiceConfirmedAt(status?.confirmed_at || null);
     } catch (e) {
       console.error('請求確定状態取得エラー', e);
       setInvoiceConfirmed(false);
+      setInvoiceConfirmedAt(null);
+    }
+  };
+
+  // 追記: 前月の請求確定状態取得
+  const fetchPrevInvoiceStatus = async () => {
+    try {
+      const y = arSummary?.prev_year;
+      const m = arSummary?.prev_month;
+      if (!y || !m) { setPrevInvoiceConfirmed(null); return; }
+      const res = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
+      const status: ArInvoiceStatus = res?.data || {} as any;
+      setPrevInvoiceConfirmed(Boolean(status?.confirmed));
+    } catch (e) {
+      console.error('前月請求確定状態取得エラー', e);
+      setPrevInvoiceConfirmed(null);
     }
   };
 
@@ -292,6 +319,10 @@ const CustomerDetail: React.FC = () => {
     fetchInvoiceStatus();
     fetchArSummary();
   }, [id, currentDate]);
+  // 追加: ARサマリの前月値が揃ったら前月確定状態も取得
+  useEffect(() => {
+    fetchPrevInvoiceStatus();
+  }, [arSummary?.prev_year, arSummary?.prev_month]);
   // ===== 追記ここまで =====
 
   // セルに紐づく商品IDから、指定日の有効な定期パターンを取得
@@ -924,6 +955,21 @@ const CustomerDetail: React.FC = () => {
     }
   };
 
+  // 追記: 月次確定取消（当月）
+  const handleUnconfirmInvoice = async () => {
+    try {
+      const y = currentDate.year();
+      const m = currentDate.month() + 1;
+      await axios.post(`/api/customers/${id}/invoices/unconfirm`, { year: y, month: m });
+      alert('当月の請求確定を取り消しました。');
+      await fetchArSummary();
+      await fetchInvoiceStatus();
+    } catch (e) {
+      console.error('請求確定取消エラー', e);
+      alert('請求確定の取消に失敗しました。時間をおいて再度お試しください。');
+    }
+  };
+
   // 入金登録（指定の年月に紐づけて保存。デフォルトは前月）
   const savePrevPayment = async (amount: number, mode: 'auto' | 'manual', year?: number, month?: number) => {
     try {
@@ -1333,6 +1379,10 @@ const CustomerDetail: React.FC = () => {
                     <Button sx={{ ml: 1 }} variant="outlined" color="secondary" onClick={openCollectionDialog} disabled={!invoiceConfirmed}>
                        現金集金を登録
                      </Button>
+                    {/* 追記: 入金履歴へのショートカット（サイドバー以外にも配置） */}
+                    <Button sx={{ ml: 1 }} variant="outlined" onClick={() => setOpenPaymentHistory(true)}>
+                      入金履歴
+                    </Button>
                   </Box>
                 </CardContent>
               </Card>
@@ -1420,13 +1470,16 @@ const CustomerDetail: React.FC = () => {
           courseName={customer.course_name}
           monthlyTotal={monthlyTotal}
           invoiceConfirmed={invoiceConfirmed}
+          invoiceConfirmedAt={invoiceConfirmedAt || undefined}
           onConfirmInvoice={handleConfirmInvoice}
+          onUnconfirmInvoice={handleUnconfirmInvoice}
           currentYear={currentDate.year()}
           currentMonth={currentDate.month() + 1}
           prevInvoiceAmount={arSummary?.prev_invoice_amount}
           prevPaymentAmount={arSummary?.prev_payment_amount}
           prevYear={arSummary?.prev_year}
           prevMonth={arSummary?.prev_month}
+          prevMonthConfirmed={prevInvoiceConfirmed ?? undefined}
           onSavePrevPayment={savePrevPayment}
           billingRoundingEnabled={billingRoundingEnabled}
           onToggleBillingRounding={handleToggleBillingRounding}
@@ -1435,6 +1488,7 @@ const CustomerDetail: React.FC = () => {
           onOpenEditForm={handleOpenEditForm}
           onOpenUnitPriceChange={() => setOpenUnitPriceChange(true)}
           onOpenBankInfo={() => setOpenBankInfo(true)}
+          onOpenPaymentHistory={() => setOpenPaymentHistory(true)}
         />
       </Grid>
 
@@ -1592,6 +1646,18 @@ const CustomerDetail: React.FC = () => {
             </Box>
           </Box>
         </Dialog>
+      </Grid>
+
+      {/* 入金履歴 */}
+      <Grid item xs={12}>
+        <PaymentHistoryDialog
+          customerId={Number(id)}
+          open={openPaymentHistory}
+          onClose={() => setOpenPaymentHistory(false)}
+          defaultYear={currentDate.year()}
+          defaultMonth={currentDate.month() + 1}
+          onUpdated={async () => { await fetchArSummary(); }}
+        />
       </Grid>
 
       {/* 口座情報（引き落し選択時の詳細設定） */}

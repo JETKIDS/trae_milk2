@@ -17,6 +17,8 @@ interface Props {
   onConfirmInvoice?: () => Promise<void> | void;
   currentYear?: number;
   currentMonth?: number;
+  // 追記: 確定日時の表示
+  invoiceConfirmedAt?: string;
   // 前月サマリ
   prevInvoiceAmount?: number;
   prevPaymentAmount?: number;
@@ -30,6 +32,12 @@ interface Props {
   onOpenEditForm?: () => void;
   onOpenUnitPriceChange?: () => void;
   onOpenBankInfo?: () => void; // 口座情報
+  // 追記: 入金履歴ダイアログを開く
+  onOpenPaymentHistory?: () => void;
+  // 追記: 月次確定取消
+  onUnconfirmInvoice?: () => void;
+  // 追記: 前月の請求確定有無（入金処理ガード用）
+  prevMonthConfirmed?: boolean;
   // onOpenBillingRounding?: () => void; // （UI移動により非使用）
 }
 
@@ -42,6 +50,8 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   onConfirmInvoice,
   currentYear,
   currentMonth,
+  // 追加: 確定日時
+  invoiceConfirmedAt,
   prevInvoiceAmount,
   prevPaymentAmount,
   prevYear,
@@ -54,6 +64,12 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   onOpenEditForm,
   onOpenUnitPriceChange,
   onOpenBankInfo,
+  // 追加: 入金履歴ダイアログ
+  onOpenPaymentHistory,
+  // 追加: 月次確定取消
+  onUnconfirmInvoice,
+  // 追加: 前月確定フラグ
+  prevMonthConfirmed,
   // onOpenBillingRounding,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
@@ -67,6 +83,11 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   const [payMonth, setPayMonth] = React.useState<number>(defaultMonth);
   const open = Boolean(anchorEl);
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
+    // 前月未確定なら警告して開かない
+    if (prevMonthConfirmed === false) {
+      alert('前月の請求が未確定のため、入金処理はできません。先に「月次請求確定」を実行してください。');
+      return;
+    }
     // ポップオーバーを開くたびにデフォルト（前月）に初期化
     setPayYear(prevYear || defaultYear);
     setPayMonth(prevMonth || defaultMonth);
@@ -103,8 +124,11 @@ const CustomerActionsSidebar: React.FC<Props> = ({
           </Typography>
           {customerName ? (
             <Box sx={{ mb: 1 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body1" fontWeight={600}>{customerName}</Typography>
+              {/* 顧客名は1行固定（折り返し回避）、集金方法は1段下に表示 */}
+              <Box>
+                <Typography variant="body1" fontWeight={600} noWrap>{customerName}</Typography>
+              </Box>
+              <Box sx={{ mt: 1 }}>
                 {renderBillingMethodSelector()}
               </Box>
               <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
@@ -128,8 +152,13 @@ const CustomerActionsSidebar: React.FC<Props> = ({
                 <Typography variant="body2" color="text.secondary">繰越額（差分）</Typography>
                 <Typography variant="body1">¥{diffCarryover.toLocaleString()}</Typography>
               </Box>
-              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button size="small" variant="outlined" onClick={handleOpen}>入金処理</Button>
+              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+                <Button size="small" variant="outlined" onClick={handleOpen} sx={{ opacity: prevMonthConfirmed === false ? 0.5 : 1 }}>入金処理</Button>
+                {prevMonthConfirmed === false && (
+                  <Typography variant="caption" color="warning.main" sx={{ ml: 1 }}>
+                    前月が未確定のため入金処理はできません
+                  </Typography>
+                )}
               </Box>
               <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
                 <Box sx={{ p: 2, maxWidth: 300 }}>
@@ -199,11 +228,23 @@ const CustomerActionsSidebar: React.FC<Props> = ({
               {/* 月次確定ステータス */}
               <Box sx={{ mt: 1 }}>
                 {invoiceConfirmed ? (
-                  <Chip label={`${currentYear}/${currentMonth} は確定済み`} size="small" color="success" variant="outlined" />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Chip label={`${currentYear}/${currentMonth} は確定済み`} size="small" color="success" variant="outlined" />
+                    {invoiceConfirmedAt && (
+                      <Typography variant="caption" color="text.secondary">確定日時: {new Date(invoiceConfirmedAt).toLocaleString('ja-JP')}</Typography>
+                    )}
+                    <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button size="small" variant="outlined" color="error" onClick={onUnconfirmInvoice}>確定取消</Button>
+                      <Button size="small" variant="outlined" onClick={onOpenPaymentHistory}>入金履歴</Button>
+                    </Box>
+                  </Box>
                 ) : (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Typography variant="caption" color="warning.main">未確定：パターン変更で金額が変動する可能性があります</Typography>
-                    <Button size="small" variant="outlined" onClick={onConfirmInvoice}>月次確定</Button>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button size="small" variant="outlined" onClick={onConfirmInvoice}>月次確定</Button>
+                      <Button size="small" variant="outlined" onClick={onOpenPaymentHistory}>入金履歴</Button>
+                    </Box>
                   </Box>
                 )}
               </Box>
@@ -257,6 +298,8 @@ const CustomerActionsSidebar: React.FC<Props> = ({
           >
             単価変更
           </Button>
+
+          {/* 入金履歴ボタンは月次セクションへ移動しました（視認性向上のため） */}
 
           {/* 口座情報（引き落し選択時のみ表示） */}
           {billingMethod === 'debit' && (
