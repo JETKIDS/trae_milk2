@@ -20,7 +20,7 @@ export default function BulkCollection({ method = 'collection' }: { method?: 'co
   const [paidTotals, setPaidTotals] = useState<Record<number, number>>({}); // 指定月入金済み合計（金額）
   const [confirmedMap, setConfirmedMap] = useState<Record<number, boolean>>({});
   const [commonAmount, setCommonAmount] = useState<number>(0);
-  const [note, setNote] = useState<string>(method === 'debit' ? '口座振替一括登録' : '集金一括登録');
+  const [note, setNote] = useState<string>(method === 'debit' ? '引き落し一括登録' : '集金一括登録');
   const [registering, setRegistering] = useState(false);
   const [message, setMessage] = useState('');
   const [hideFullyPaid, setHideFullyPaid] = useState<boolean>(false);
@@ -172,7 +172,7 @@ export default function BulkCollection({ method = 'collection' }: { method?: 'co
 
   return (
     <Container maxWidth="lg" sx={{ mt: 3 }}>
-      <Typography variant="h5" gutterBottom>コース別 一括入金（{method === 'debit' ? '口座振替' : '集金'}）</Typography>
+      <Typography variant="h5" gutterBottom>コース別 一括入金（{method === 'debit' ? '引き落し' : '集金'}）</Typography>
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={3}>
@@ -205,7 +205,7 @@ export default function BulkCollection({ method = 'collection' }: { method?: 'co
 
       <Paper sx={{ p: 2 }}>
         {customers.length === 0 ? (
-          <Typography color="text.secondary">コースを選択すると{method === 'debit' ? '口座振替顧客' : '集金客'}が表示されます。</Typography>
+          <Typography color="text.secondary">コースを選択すると{method === 'debit' ? '引き落し顧客' : '集金客'}が表示されます。</Typography>
         ) : (
           <Grid container spacing={1}>
             {customers

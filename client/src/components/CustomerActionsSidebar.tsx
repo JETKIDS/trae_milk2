@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, Checkbox, FormControlLabel, Popover, TextField, Menu, MenuItem } from '@mui/material';
+import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, Checkbox, FormControlLabel, Popover, TextField, Menu, MenuItem, Snackbar, Alert } from '@mui/material';
 import {
   Edit as EditIcon,
   MonetizationOn as MonetizationOnIcon,
@@ -100,17 +100,46 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   const methodMenuOpen = Boolean(methodMenuAnchor);
   const handleOpenMethodMenu = (e: React.MouseEvent<HTMLElement>) => setMethodMenuAnchor(e.currentTarget);
   const handleCloseMethodMenu = () => setMethodMenuAnchor(null);
-  const currentMethodLabel = (billingMethod === 'debit') ? '口座振替' : '集金';
+  const [draftMethod, setDraftMethod] = React.useState<'collection' | 'debit' | null>(null);
+  const effectiveMethod: 'collection' | 'debit' = draftMethod || billingMethod || 'collection';
+  const currentMethodLabel = (effectiveMethod === 'debit') ? '引き落し' : '集金';
+  const [savingMethod, setSavingMethod] = React.useState<boolean>(false);
+  const [snackbarOpen, setSnackbarOpen] = React.useState<boolean>(false);
+  const [snackbarMsg, setSnackbarMsg] = React.useState<string>('');
+  const [snackbarSeverity, setSnackbarSeverity] = React.useState<'success' | 'error'>('success');
 
-  const handleSelectMethod = (next: 'collection' | 'debit') => {
-    handleCloseMethodMenu();
-    if (next === billingMethod) return; // 変更なし
-    const nextLabel = next === 'debit' ? '口座振替' : '集金';
-    const ok = window.confirm(`請求方法を「${currentMethodLabel}」から「${nextLabel}」へ変更します。保存しますか？`);
-    if (ok && onChangeBillingMethod) {
-      onChangeBillingMethod(next);
-    }
-  };
+const handleSelectMethod = (next: 'collection' | 'debit') => {
+  handleCloseMethodMenu();
+  // 選択はドラフトとして保持し、保存までは反映しない
+  if (next === billingMethod) {
+    setDraftMethod(null);
+    return;
+  }
+  setDraftMethod(next);
+};
+
+const saveMethodChange = async () => {
+  if (!draftMethod || draftMethod === billingMethod) { setDraftMethod(null); return; }
+  const oldLabel = (billingMethod === 'debit') ? '引き落し' : '集金';
+  const newLabel = (draftMethod === 'debit') ? '引き落し' : '集金';
+  const ok = window.confirm(`請求方法を「${oldLabel}」から「${newLabel}」へ変更します。保存しますか？`);
+  if (!ok) return;
+  try {
+    setSavingMethod(true);
+    await Promise.resolve(onChangeBillingMethod?.(draftMethod));
+    setSnackbarMsg('請求方法を保存しました');
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+    setDraftMethod(null);
+  } catch (e) {
+    console.error(e);
+    setSnackbarMsg('請求方法の保存に失敗しました');
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  } finally {
+    setSavingMethod(false);
+  }
+};
 
   const renderBillingMethodSelector = () => (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -120,8 +149,23 @@ const CustomerActionsSidebar: React.FC<Props> = ({
       </Button>
       <Menu anchorEl={methodMenuAnchor} open={methodMenuOpen} onClose={handleCloseMethodMenu}>
         <MenuItem onClick={() => handleSelectMethod('collection')}>集金</MenuItem>
-        <MenuItem onClick={() => handleSelectMethod('debit')}>口座振替</MenuItem>
+        <MenuItem onClick={() => handleSelectMethod('debit')}>引き落し</MenuItem>
       </Menu>
+      {draftMethod && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Chip label="未保存" color="warning" size="small" />
+          <Button size="small" variant="contained" onClick={saveMethodChange} disabled={savingMethod}>保存</Button>
+          <Button size="small" onClick={() => setDraftMethod(null)} disabled={savingMethod}>キャンセル</Button>
+        </Box>
+      )}
+      {effectiveMethod === 'debit' && (
+        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+          引き落しを利用する場合は口座情報の登録・確認が必要です。
+          {onOpenBankInfo && (
+            <Button size="small" sx={{ ml: 1 }} onClick={onOpenBankInfo}>口座情報を開く</Button>
+          )}
+        </Typography>
+      )}
     </Box>
   );
 
@@ -314,29 +358,18 @@ const CustomerActionsSidebar: React.FC<Props> = ({
           >
             単価変更
           </Button>
-
-          {/* 入金履歴ボタンは月次セクションへ移動しました（視認性向上のため） */}
-
-          {/* 口座情報（引き落し選択時のみ表示） */}
-          {billingMethod === 'debit' && (
-            <Button
-              variant="outlined"
-              fullWidth
-              sx={{ mb: 1 }}
-              onClick={onOpenBankInfo}
-            >
-              口座情報
-            </Button>
-          )}
-
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="caption" color="text.secondary">
-            ヒント: 操作は保存後にすぐ左側のカレンダーと月次集計へ反映されます。
-          </Typography>
         </CardContent>
       </Card>
+      {/* 保存完了/失敗の通知 */}
+      <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMsg}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
+
+
 
 export default CustomerActionsSidebar;

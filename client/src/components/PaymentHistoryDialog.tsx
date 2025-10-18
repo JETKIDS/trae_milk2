@@ -120,8 +120,8 @@ const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defa
           </TextField>
           <TextField label="方法" select value={method} onChange={(e) => setMethod((e.target.value as any) || '')} size="small" sx={{ minWidth: 160 }}>
             <MenuItem value="">すべて</MenuItem>
-            <MenuItem value="collection">現金集金</MenuItem>
-            <MenuItem value="debit">口座振替</MenuItem>
+            <MenuItem value="collection">集金</MenuItem>
+            <MenuItem value="debit">引き落し</MenuItem>
           </TextField>
           <TextField label="メモ検索" value={q} onChange={(e) => setQ(e.target.value)} size="small" sx={{ flex: 1 }} />
         </Stack>
@@ -144,7 +144,7 @@ const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defa
                 <TableCell>{r.year}/{String(r.month).padStart(2, '0')}</TableCell>
                 <TableCell align="right">{amountFmt(r.amount)}</TableCell>
                 <TableCell>
-                  <Chip label={r.method === 'collection' ? '現金集金' : '口座振替'} size="small" />
+                  <Chip label={r.method === 'collection' ? '集金' : '引き落し'} size="small" />
                 </TableCell>
                 <TableCell>
                   {editingId === r.id ? (

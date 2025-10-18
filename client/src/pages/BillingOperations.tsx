@@ -141,8 +141,8 @@ const BillingOperations: React.FC = () => {
                   onChange={handleChangeBulkMethod}
                   size="small"
                 >
-                  <ToggleButton value="collection">現金集金</ToggleButton>
-                  <ToggleButton value="debit">口座振替（引き落し）</ToggleButton>
+                  <ToggleButton value="collection">集金</ToggleButton>
+                  <ToggleButton value="debit">引き落し</ToggleButton>
                 </ToggleButtonGroup>
               </CardContent>
             </Card>

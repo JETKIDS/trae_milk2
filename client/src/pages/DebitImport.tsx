@@ -174,7 +174,7 @@ export default function DebitImport() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 3 }}>
-      <Typography variant="h5" gutterBottom>口座振替CSVインポート</Typography>
+      <Typography variant="h5" gutterBottom>引き落しCSVインポート</Typography>
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={3}>

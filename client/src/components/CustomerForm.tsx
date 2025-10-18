@@ -13,6 +13,11 @@ import {
   MenuItem,
   Box,
   Typography,
+  Chip,
+  Snackbar,
+  Alert,
+  Menu,
+  Card,
 } from '@mui/material';
 import axios from 'axios';
 import { pad7 } from '../utils/id';
@@ -29,6 +34,8 @@ interface Customer {
   course_id: number;
   contract_start_date: string;
   notes?: string;
+  billing_method?: 'collection' | 'debit';
+  rounding_enabled?: number;
 }
 
 interface Course {
@@ -43,8 +50,9 @@ interface CustomerFormProps {
   open: boolean;
   onClose: () => void;
   onSave: () => void;
-  customer?: Customer | null;
   isEdit?: boolean;
+  customer?: Customer | null;
+  onOpenBankInfo?: () => void; // 引き落し時の関連情報リンク
 }
 
 const CustomerForm: React.FC<CustomerFormProps> = ({
@@ -53,6 +61,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
   onSave,
   customer,
   isEdit = false,
+  onOpenBankInfo,
 }) => {
   const [formData, setFormData] = useState<Customer>({
     customer_name: '',
@@ -66,7 +75,64 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
   });
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 請求方法（編集フォーム内でも統一のプルダウン＋確認フロー）
+  const [billingMethod, setBillingMethod] = useState<'collection'|'debit'>(customer?.billing_method === 'debit' ? 'debit' : 'collection');
+  const [draftBillingMethod, setDraftBillingMethod] = useState<'collection'|'debit'|null>(null);
+  const [bmMenuAnchor, setBmMenuAnchor] = useState<HTMLElement|null>(null);
+  const [savingBilling, setSavingBilling] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMsg, setSnackbarMsg] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success'|'error'|'info'>('success');
+
+  const openBmMenu = (e: React.MouseEvent<HTMLButtonElement>) => setBmMenuAnchor(e.currentTarget);
+  const closeBmMenu = () => setBmMenuAnchor(null);
+  const selectBillingMethod = (method: 'collection'|'debit') => {
+    setDraftBillingMethod(method);
+    closeBmMenu();
+  };
+
+  const saveBillingMethodChange = async () => {
+    if (!customer?.id || !draftBillingMethod) return;
+    const currentLabel = billingMethod === 'debit' ? '引き落し' : '集金';
+    const newLabel = draftBillingMethod === 'debit' ? '引き落し' : '集金';
+    const ok = window.confirm(`請求方法を「${currentLabel}」から「${newLabel}」に変更して保存します。よろしいですか？`);
+    if (!ok) return;
+    setSavingBilling(true);
+    try {
+      // 現在の端数設定を取得して維持
+      let roundingEnabled = 1;
+      try {
+        const res = await axios.get(`/api/customers/${customer.id}`);
+        roundingEnabled = typeof res.data?.settings?.rounding_enabled === 'number'
+          ? res.data.settings.rounding_enabled
+          : (res.data?.settings?.rounding_enabled ? 1 : 0);
+      } catch (e) {
+        // 取得失敗時は1で保存（丸め有り）
+        console.warn('端数設定の取得に失敗しました。1として保存します。', e);
+      }
+      await axios.put(`/api/customers/${customer.id}/settings`, {
+        billing_method: draftBillingMethod,
+        rounding_enabled: roundingEnabled,
+      });
+      setBillingMethod(draftBillingMethod);
+      setDraftBillingMethod(null);
+      setSnackbarSeverity('success');
+      setSnackbarMsg('請求方法を保存しました');
+      setSnackbarOpen(true);
+    } catch (e) {
+      console.error('請求方法の保存に失敗しました', e);
+      setSnackbarSeverity('error');
+      setSnackbarMsg('請求方法の保存に失敗しました');
+      setSnackbarOpen(true);
+    } finally {
+      setSavingBilling(false);
+    }
+  };
+
+  const cancelBillingMethodDraft = () => setDraftBillingMethod(null);
+
 
   useEffect(() => {
     if (open) {
@@ -183,6 +249,35 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
       <DialogContent>
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={3}>
+            {/* 請求方法（プルダウン＋確認フロー） */}
+            {isEdit && (
+              <Grid item xs={12} md={6}>
+                <Card variant="outlined" sx={{ p: 2 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>請求方法</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Chip label={billingMethod === 'debit' ? '引き落し' : '集金'} color={billingMethod === 'debit' ? 'primary' : 'default'} />
+                    <Button size="small" variant="text" onClick={openBmMenu}>変更</Button>
+                    <Menu anchorEl={bmMenuAnchor} open={!!bmMenuAnchor} onClose={closeBmMenu}>
+                      <MenuItem onClick={() => selectBillingMethod('collection')}>集金</MenuItem>
+                      <MenuItem onClick={() => selectBillingMethod('debit')}>引き落し</MenuItem>
+                    </Menu>
+
+                    {draftBillingMethod && (
+                      <>
+                        <Chip label="未保存" color="warning" variant="outlined" />
+                        <Button size="small" variant="contained" onClick={saveBillingMethodChange} disabled={savingBilling}>保存</Button>
+                        <Button size="small" onClick={cancelBillingMethodDraft}>キャンセル</Button>
+                      </>
+                    )}
+                  </Box>
+                  {(draftBillingMethod ?? billingMethod) === 'debit' && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      引き落し設定の際は口座情報の登録が必要です。{onOpenBankInfo ? (<Button size="small" onClick={onOpenBankInfo}>口座情報を開く</Button>) : null}
+                    </Typography>
+                  )}
+                </Card>
+              </Grid>
+            )}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -311,6 +406,12 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
           {loading ? '保存中...' : (isEdit ? '更新' : '登録')}
         </Button>
       </DialogActions>
+     {/* 保存完了/失敗の通知 */}
+     <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+       <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
+         {snackbarMsg}
+       </Alert>
+     </Snackbar>
     </Dialog>
   );
 };

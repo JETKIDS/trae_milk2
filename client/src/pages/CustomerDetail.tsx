@@ -277,10 +277,12 @@ const CustomerDetail: React.FC = () => {
 
   const fetchSettings = async () => {
     try {
-      const res = await axios.get(`/api/customers/${id}/settings`);
-      const { billing_method, rounding_enabled } = res.data || {};
-      if (billing_method === 'debit' || billing_method === 'collection') setBillingMethod(billing_method);
-      setBillingRoundingEnabled(!!rounding_enabled);
+      const res = await axios.get(`/api/customers/${id}`);
+      const settings = res.data?.settings || null;
+      const bm = settings?.billing_method;
+      const re = settings?.rounding_enabled;
+      if (bm === 'debit' || bm === 'collection') setBillingMethod(bm);
+      setBillingRoundingEnabled(re === undefined || re === null ? true : !!re);
     } catch (e) {
       console.error('請求設定取得エラー', e);
     }
@@ -1003,7 +1005,7 @@ const CustomerDetail: React.FC = () => {
     }
   };
 
-  // 現金集金の登録
+  // 集金の登録
   const openCollectionDialog = () => {
     if (!invoiceConfirmed) {
       alert('当月の請求が未確定のため、入金登録はできません。先に「月次請求確定」を実行してください。');
@@ -1046,7 +1048,7 @@ const CustomerDetail: React.FC = () => {
       });
       setPaymentSaving(false);
       setOpenPaymentDialog(false);
-      alert('入金（現金集金）を登録しました。');
+      alert('入金（集金）を登録しました。');
     } catch (e) {
       console.error('入金登録エラー', e);
       setPaymentSaving(false);
@@ -1377,7 +1379,7 @@ const CustomerDetail: React.FC = () => {
                       月次請求確定
                     </Button>
                     <Button sx={{ ml: 1 }} variant="outlined" color="secondary" onClick={openCollectionDialog} disabled={!invoiceConfirmed}>
-                       現金集金を登録
+                       集金を登録
                      </Button>
                     {/* 追記: 入金履歴へのショートカット（サイドバー以外にも配置） */}
                     <Button sx={{ ml: 1 }} variant="outlined" onClick={() => setOpenPaymentHistory(true)}>
@@ -1457,6 +1459,7 @@ const CustomerDetail: React.FC = () => {
             onSave={handleCustomerUpdated}
             isEdit={true}
             customer={customer}
+            onOpenBankInfo={() => setOpenBankInfo(true)}
           />
         )}
       </Box>
@@ -1613,11 +1616,11 @@ const CustomerDetail: React.FC = () => {
         </Dialog>
       </Grid>
 
-      {/* 入金登録（現金集金） */}
+      {/* 入金登録（集金） */}
       <Grid item xs={12}>
         <Dialog open={openPaymentDialog} onClose={closeCollectionDialog} fullWidth maxWidth="sm">
           <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>入金登録（現金集金）</Typography>
+            <Typography variant="h6" gutterBottom>入金登録（集金）</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               当月の集金金額を入力して登録します。
             </Typography>
