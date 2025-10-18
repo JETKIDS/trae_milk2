@@ -673,6 +673,47 @@ router.get('/by-course/:courseId/invoices-amounts', async (req, res) => {
   }
 });
 
+// 指定月の入金合計（金額）をコース別でまとめて返却（重複登録防止のための参考値）
+router.get('/by-course/:courseId/payments-sum', async (req, res) => {
+  const db = getDB();
+  const courseId = req.params.courseId;
+  const { year, month } = req.query;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+    const sql = `
+      SELECT c.id AS customer_id, COALESCE(SUM(p.amount), 0) AS total
+      FROM customers c
+      LEFT JOIN ar_payments p
+        ON p.customer_id = c.id AND p.year = ? AND p.month = ?
+      WHERE c.course_id = ?
+      GROUP BY c.id
+      ORDER BY c.delivery_order ASC, c.id ASC
+    `;
+    const rows = await new Promise((resolve, reject) => {
+      db.all(sql, [y, m, courseId], (err, r) => {
+        if (err) return reject(err);
+        resolve(r || []);
+      });
+    });
+    db.close();
+    return res.json({ year: y, month: m, items: rows });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // ===== 入金一括登録（集金） =====
 router.post('/payments/batch', async (req, res) => {
   const db = getDB();
@@ -689,6 +730,20 @@ router.post('/payments/batch', async (req, res) => {
   }
   try {
     await ensureLedgerTables(db);
+
+    // 対象年月が月次確定済みの顧客のみ入金登録を許可する
+    const confirmedRows = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT customer_id FROM ar_invoices WHERE year = ? AND month = ?',
+        [y, m],
+        (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        }
+      );
+    });
+    const confirmedSet = new Set(confirmedRows.map(r => Number(r.customer_id)));
+
     let success = 0;
     let failed = 0;
     await new Promise((resolve, reject) => {
@@ -703,6 +758,7 @@ router.post('/payments/batch', async (req, res) => {
           const amt = parseInt(String(e.amount), 10);
           const note = e.note ? String(e.note) : null;
           if (isNaN(cid) || isNaN(amt) || amt <= 0) { failed++; continue; }
+          if (!confirmedSet.has(cid)) { failed++; continue; }
           stmt.run([cid, y, m, amt, note], (err) => {
             if (err) { failed++; }
             else { success++; }
@@ -1057,7 +1113,8 @@ router.post('/:id/invoices/confirm', async (req, res) => {
     const roundingEnabled = roundingRow ? (roundingRow.rounding_enabled === 1) : true;
 
     const totalRaw = await computeMonthlyTotal(db, customerId, y, m);
-    const amount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+    const amountRaw = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+    const amount = Math.max(0, amountRaw);
 
     // UPSERT（顧客×年月は一意）
     await new Promise((resolve, reject) => {
@@ -1193,7 +1250,8 @@ router.post('/invoices/confirm-batch', async (req, res) => {
                 const roundingEnabled = roundingRow ? (roundingRow.rounding_enabled === 1) : true;
 
                 const totalRaw = await computeMonthlyTotal(db, customerId, y, m);
-                const amount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+                const amountRaw = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+                const amount = Math.max(0, amountRaw);
 
                 await new Promise((res3, rej3) => {
                   const sql = `
@@ -1385,6 +1443,23 @@ router.post('/:id/payments', async (req, res) => {
 
   try {
     await ensureLedgerTables(db);
+
+    // 対象年月が月次確定済みかをチェック（未確定の場合は入金登録を拒否）
+    const inv = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT status FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?',
+        [customerId, y, m],
+        (err, row) => {
+          if (err) return reject(err);
+          resolve(row || null);
+        }
+      );
+    });
+    if (!inv || String(inv.status) !== 'confirmed') {
+      db.close();
+      return res.status(400).json({ error: '指定年月の請求が確定されていないため、入金登録できません。先に月次確定を行ってください。' });
+    }
+
     await new Promise((resolve, reject) => {
       const sql = `
         INSERT INTO ar_payments (customer_id, year, month, amount, method, note)

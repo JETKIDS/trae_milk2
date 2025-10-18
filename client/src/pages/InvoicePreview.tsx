@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -120,6 +120,8 @@ interface ProductMaster {
   const [patterns, setPatterns] = useState<DeliveryPattern[]>([]);
   const [temporaryChanges, setTemporaryChanges] = useState<any[]>([]);
   const [productMapByName, setProductMapByName] = useState<Record<string, ProductMaster>>({});
+  const [confirmedStatus, setConfirmedStatus] = useState<{ confirmed: boolean; amount?: number; rounding_enabled?: boolean; confirmed_at?: string } | null>(null);
+  const navigate = useNavigate();
 
   const now = new Date();
   const year = searchParams.get('year') || String(now.getFullYear());
@@ -135,7 +137,14 @@ interface ProductMaster {
         const cus = axios.get(`/api/customers/${id}`);
         const cal = axios.get(`/api/customers/${id}/calendar/${year}/${month}`);
         const prods = axios.get('/api/products');
-        const [companyRes, customerRes, calendarRes, productsRes] = await Promise.all([cop, cus, cal, prods]);
+        const st = axios.get(`/api/customers/${id}/invoices/status`, { params: { year, month } });
+        const [companyRes, customerRes, calendarRes, productsRes, statusRes] = await Promise.all([cop, cus, cal, prods, st]);
+        const status = statusRes.data || { confirmed: false };
+        setConfirmedStatus(status);
+        if (!status.confirmed) {
+          setError('対象月は月次未確定のため、請求書プレビューはできません。月次管理で確定後に再度お試しください。');
+          return;
+        }
         setCompany(companyRes.data);
         setCustomer(customerRes.data.customer);
         setPatterns(customerRes.data.patterns || []);
@@ -171,10 +180,9 @@ interface ProductMaster {
   }, [calendar]);
 
   const monthlyTotal = useMemo(() => {
-    if (roundingEnabled) {
-      return Math.floor(monthlyTotalRaw / 10) * 10;
-    }
-    return monthlyTotalRaw;
+    let amt = roundingEnabled ? Math.floor(monthlyTotalRaw / 10) * 10 : monthlyTotalRaw;
+    if (amt < 0) amt = 0;
+    return amt;
   }, [monthlyTotalRaw, roundingEnabled]);
 
   // 税率取得（商品マスタの数値を優先。なければ種別から推定）
@@ -213,6 +221,9 @@ interface ProductMaster {
   const handlePrint = () => {
     window.print();
   };
+
+  // 月次未確定時はブロック表示フラグ（Hook順序維持のため早期returnは行わない）
+  const isBlocked = confirmedStatus && !confirmedStatus.confirmed;
 
   // 1〜月末の全日生成（未使用のため削除）
 
@@ -377,18 +388,30 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
 
   return (
     <Box sx={{ p: 2 }} className="invoice-root print-root">
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-        <Typography variant="h6" className="title no-print">請求書プレビュー</Typography>
-        <Button variant="contained" className="no-print" onClick={handlePrint}>印刷</Button>
-      </Stack>
+      {isBlocked ? (
+        <>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            対象月は月次未確定のため、請求書プレビューを表示できません。月次管理で確定後に再度お試しください。
+          </Alert>
+          <Stack direction="row" spacing={2}>
+            <Button variant="outlined" onClick={() => navigate('/monthly')}>月次管理へ</Button>
+            <Button variant="contained" onClick={() => navigate('/billing/invoices')}>請求書発行一覧へ戻る</Button>
+          </Stack>
+        </>
+      ) : (
+        <>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+            <Typography variant="h6" className="title no-print">請求書プレビュー</Typography>
+            <Button variant="contained" className="no-print" onClick={handlePrint}>印刷</Button>
+          </Stack>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {calendarPages.map((rows, pageIdx) => (
-        <Card key={pageIdx} sx={{ mb: 2 }} className="print-page">
-          <CardContent>
-            <div className="two-up">
-              <Box className="invoice-grid">
+          {calendarPages.map((rows, pageIdx) => (
+            <Card key={pageIdx} sx={{ mb: 2 }} className="print-page">
+              <CardContent>
+                <div className="two-up">
+                  <Box className="invoice-grid">
                   {/* 左：入金票／領収証（左右配置） */}
                   <Box className="slips-col" sx={{ height: '100%' }}>
                     <Stack className="slips-row" direction="row" spacing={1} sx={{ height: '100%' }}>
@@ -628,6 +651,9 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
           </CardContent>
         </Card>
       ))}
+
+        </>
+      )}
 
       {/* 旧セクションは新レイアウトに統合済み */}
     </Box>

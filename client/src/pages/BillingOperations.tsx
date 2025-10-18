@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Card, CardContent, Button, Stack, Divider, Alert, ToggleButtonGroup, ToggleButton, TextField, FormControl, InputLabel, Select, MenuItem, CircularProgress } from '@mui/material';
+import { Box, Typography, Card, CardContent, Button, Stack, Divider, Alert, ToggleButtonGroup, ToggleButton, TextField, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tabs, Tab } from '@mui/material';
+import BulkCollection from './BulkCollection';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { pad7 } from '../utils/id';
 
 const BillingOperations: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'ops' | 'bulk'>('ops');
   const [preview, setPreview] = useState<any | null>(null);
   const [parse, setParse] = useState<any | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -15,6 +19,18 @@ const BillingOperations: React.FC = () => {
   const [loadingCourses, setLoadingCourses] = useState<boolean>(false);
   const [customers, setCustomers] = useState<Array<{ id: number; custom_id?: string; customer_name: string; address?: string; phone?: string }>>([]);
   const [loadingCustomers, setLoadingCustomers] = useState<boolean>(false);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'bulk' || tab === 'ops') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const handleChangeTab = (_e: React.SyntheticEvent, value: 'ops' | 'bulk') => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
 
   const monthLabel = (() => {
     try {
@@ -93,6 +109,21 @@ const BillingOperations: React.FC = () => {
       </Typography>
 
       <Stack spacing={3}>
+        <Card>
+          <CardContent>
+            <Tabs value={activeTab} onChange={handleChangeTab} aria-label="billing tabs">
+              <Tab label="請求業務" value="ops" />
+              <Tab label="一括入金" value="bulk" />
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {activeTab === 'bulk' && (
+          <BulkCollection />
+        )}
+
+        {activeTab === 'ops' && (
+        <>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -250,6 +281,8 @@ const BillingOperations: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
+        </>
+        )}
       </Stack>
     </Box>
   );

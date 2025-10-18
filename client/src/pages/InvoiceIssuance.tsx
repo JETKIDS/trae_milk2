@@ -52,6 +52,7 @@ const InvoiceIssuance: React.FC = () => {
   const [amounts, setAmounts] = useState<AmountItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const hasUnconfirmed = useMemo(() => amounts.some(a => !a.confirmed), [amounts]);
 
   const year = useMemo(() => {
     try { return parseInt(outputMonth.slice(0,4), 10); } catch { return new Date().getFullYear(); }
@@ -124,6 +125,11 @@ const InvoiceIssuance: React.FC = () => {
       setError('コースを選択してください');
       return;
     }
+    // 月次未確定が含まれていれば一括プレビュー不可
+    if (hasUnconfirmed) {
+      setError('未確定の顧客が含まれるため、一括プレビューは実行できません。月次管理で確定後に再試行してください。');
+      return;
+    }
     navigate(`/invoice-preview/batch?courseId=${selectedCourseId}&year=${year}&month=${month}`);
   };
 
@@ -179,11 +185,22 @@ const InvoiceIssuance: React.FC = () => {
               <Button variant="contained" onClick={handleLoadList} disabled={loading}>
                 一覧読み込み
               </Button>
-              <Button variant="contained" color="secondary" onClick={handleBatchPreview} disabled={!selectedCourseId}>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleBatchPreview}
+                disabled={!selectedCourseId || amounts.length === 0 || hasUnconfirmed}
+                title={hasUnconfirmed ? '未確定の顧客が含まれるため一括発行はできません' : ''}
+              >
                 請求書発行（2アップ一括）
               </Button>
             </Stack>
             {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+            {!error && hasUnconfirmed && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                未確定の顧客が含まれています。月次管理画面で当月の「月次確定」を行ってから請求書発行をしてください。
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -218,7 +235,13 @@ const InvoiceIssuance: React.FC = () => {
                       <TableCell align="right">{typeof a?.amount === 'number' ? a.amount.toLocaleString() : '-'}</TableCell>
                       <TableCell>{a?.confirmed ? '確定済' : '未確定'}</TableCell>
                       <TableCell>
-                        <Button variant="outlined" size="small" onClick={() => handlePreview(c.id)} disabled={!a}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => handlePreview(c.id)}
+                          disabled={!a || !a.confirmed}
+                          title={!a ? '金額情報が未取得です' : (!a.confirmed ? '月次未確定のためプレビューできません' : '')}
+                        >
                           請求書プレビュー
                         </Button>
                       </TableCell>

@@ -1,55 +1,29 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Typography,
-  Box,
-  Card,
-  CardContent,
-  Grid,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Dialog,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Popover,
-} from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-  ArrowForward as ArrowForwardIcon,
-  Edit as EditIcon,
-  Undo as UndoIcon,
-} from '@mui/icons-material';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { Box, Button, IconButton, Grid, Card, CardContent, Typography, Chip, Paper, Table, TableHead, TableRow, TableCell, TableBody, TextField, Dialog, Popover, FormControl, InputLabel, Select, MenuItem, TableContainer } from '@mui/material';
+import { Undo as UndoIcon, Edit as EditIcon, ArrowBack as ArrowBackIcon, ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import axios from 'axios';
 import moment from 'moment';
-import DeliveryPatternManager, { DeliveryPatternManagerHandle } from '../components/DeliveryPatternManager';
-import TemporaryChangeManager, { TemporaryChangeManagerHandle } from '../components/TemporaryChangeManager';
+import { useParams, useNavigate } from 'react-router-dom';
 import CustomerForm from '../components/CustomerForm';
 import CustomerActionsSidebar from '../components/CustomerActionsSidebar';
+import DeliveryPatternManager from '../components/DeliveryPatternManager';
+import TemporaryChangeManager from '../components/TemporaryChangeManager';
 
-interface Customer {
-  id: number;
-  custom_id?: string;
-  customer_name: string;
-  yomi?: string;
-  address: string;
-  phone: string;
-  email?: string;
-  course_id: number;
-  course_name: string;
-  contract_start_date: string;
-  notes?: string;
-  delivery_order?: number;
+// 型定義補完（このファイルで参照されるが、別ページにのみ存在していたためローカルに定義）
+interface CalendarProduct {
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  unit: string;
+  amount: number;
+}
+
+interface CalendarDay {
+  date: string; // YYYY-MM-DD
+  day: number;
+  dayOfWeek: number; // 0..6
+  isToday?: boolean;
+  products: CalendarProduct[];
 }
 
 interface DeliveryPattern {
@@ -59,13 +33,33 @@ interface DeliveryPattern {
   product_name?: string;
   manufacturer_name?: string;
   unit?: string;
-  quantity: number; // 後方互換性のため残す
+  quantity: number;
   unit_price: number;
-  delivery_days: number[];
-  daily_quantities?: { [dayOfWeek: number]: number }; // 曜日ごとの数量 (0=日曜, 1=月曜, ...)
+  delivery_days: number[] | string;
+  daily_quantities?: { [dayOfWeek: number]: number } | string | null;
   start_date: string;
-  end_date?: string;
+  end_date?: string | null;
   is_active: boolean;
+}
+
+interface MonthDay {
+  date: string;
+  day: number;
+  dayOfWeek: number;
+  isToday: boolean;
+}
+
+interface ProductMaster {
+  product_name: string;
+  sales_tax_type?: 'inclusive' | 'standard' | 'reduced' | string | null;
+  purchase_tax_type?: 'inclusive' | 'standard' | 'reduced' | string | null;
+  sales_tax_rate?: number | null;
+}
+
+interface ProductCalendarData {
+  productName: string;
+  specification: string;
+  dailyQuantities: { [date: string]: number };
 }
 
 interface TemporaryChange {
@@ -83,209 +77,12 @@ interface TemporaryChange {
   created_at?: string;
 }
 
-interface CalendarDay {
-  date: string;
-  day: number;
-  dayOfWeek: number;
-  products: {
-    productName: string;
-    quantity: number;
-    unitPrice: number;
-    unit: string;
-    amount: number;
-  }[];
-}
-
-interface ProductCalendarData {
-  productName: string;
-  specification: string;
-  dailyQuantities: { [date: string]: number };
-}
-
-  interface MonthDay {
-    date: string;
-    day: number;
-    dayOfWeek: number;
-    isToday: boolean;
-  }
-
-  interface ProductMaster {
-    product_name: string;
-    sales_tax_type?: 'inclusive' | 'standard' | 'reduced';
-    purchase_tax_type?: 'inclusive' | 'standard' | 'reduced';
-    sales_tax_rate?: number | null;
-  }
-
-// Undo アクションの型
-interface UndoAction {
-  description: string;
-  revert: () => Promise<void>;
-}
-
-  const CustomerDetail: React.FC = () => {
+const CustomerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [patterns, setPatterns] = useState<DeliveryPattern[]>([]);
-  const [calendar, setCalendar] = useState<CalendarDay[]>([]);
-  const [currentDate, setCurrentDate] = useState(moment());
-  const [loading, setLoading] = useState(true);
-  const [temporaryChanges, setTemporaryChanges] = useState<TemporaryChange[]>([]);
-  const [openEditForm, setOpenEditForm] = useState(false);
-  // 右側操作メニュー用のダイアログ状態
-  const [openUnitPriceChange, setOpenUnitPriceChange] = useState(false);
-  // 単価変更フォーム用の状態
-  const [unitPriceChangeTargetId, setUnitPriceChangeTargetId] = useState<number | ''>('');
-  const [unitPriceChangeNewPrice, setUnitPriceChangeNewPrice] = useState<number | ''>('');
-  const [unitPriceChangeStartMonth, setUnitPriceChangeStartMonth] = useState<string>(moment().format('YYYY-MM'));
-  const [unitPriceChangeSaving, setUnitPriceChangeSaving] = useState(false);
-  const [openTemporaryQuantityChange, setOpenTemporaryQuantityChange] = useState(false);
-  const [openSuspendProduct, setOpenSuspendProduct] = useState(false);
-  const [openCancelProduct, setOpenCancelProduct] = useState(false);
-  const [openBillingRounding, setOpenBillingRounding] = useState(false);
-  // 入金登録ダイアログ
-  const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
-  const [paymentNote, setPaymentNote] = useState<string>('');
-  const [paymentSaving, setPaymentSaving] = useState(false);
-
-  // ダイアログをセルのポップオーバーから開くための参照
-  const dpManagerRef = useRef<DeliveryPatternManagerHandle>(null);
-  const tempChangeManagerRef = useRef<TemporaryChangeManagerHandle>(null);
-  const [billingRoundingEnabled, setBillingRoundingEnabled] = useState(true); // デフォルトON
-  const [billingMethod, setBillingMethod] = useState<'collection' | 'debit'>('collection');
-  const [openBankInfo, setOpenBankInfo] = useState(false);
-  // 前月サマリ（AR）
-  const [arSummary, setArSummary] = useState<{ prev_year: number; prev_month: number; prev_invoice_amount: number; prev_payment_amount: number; carryover_amount: number } | null>(null);
-  // 月次確定ステータス
-  const [invoiceConfirmed, setInvoiceConfirmed] = useState<boolean>(false);
-
-  // Undo スタック
-  const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
-  const pushUndo = (action: UndoAction) => {
-    setUndoStack(prev => [...prev, action]);
-  };
-  // 子コンポーネント（配達パターン管理など）からのUndo記録用ヘルパー
-  const recordUndoFromChild = (action: UndoAction | UndoAction[]) => {
-    if (Array.isArray(action)) {
-      action.forEach(a => pushUndo(a));
-    } else {
-      pushUndo(action);
-    }
-  };
-
-  // カレンダーセル編集用の状態
-  const [cellMenuAnchor, setCellMenuAnchor] = useState<HTMLElement | null>(null);
-  const [selectedCell, setSelectedCell] = useState<{ date: string; productName: string; quantity?: number } | null>(null);
-  const [openQuantityDialog, setOpenQuantityDialog] = useState(false);
-  const [editQuantityValue, setEditQuantityValue] = useState<number | ''>('');
-  // 休配（期間）入力用の状態（開始・終了）
-  const [skipStartDate, setSkipStartDate] = useState<string>('');
-  const [skipEndDate, setSkipEndDate] = useState<string>('');
-  // 休配解除（期間）入力用の状態（開始・終了）
-  const [unskipStartDate, setUnskipStartDate] = useState<string>('');
-  const [unskipEndDate, setUnskipEndDate] = useState<string>('');
-  // 休配・休配解除の期間入力ダイアログ
-  const [openSkipDialog, setOpenSkipDialog] = useState<boolean>(false);
-  const [openUnskipDialog, setOpenUnskipDialog] = useState<boolean>(false);
-
-  const handleUndo = async () => {
-    if (undoStack.length === 0) return;
-    const last = undoStack[undoStack.length - 1];
-    try {
-      await last.revert();
-    } catch (err) {
-      console.error('元に戻すの実行に失敗しました:', err);
-    } finally {
-      setUndoStack(prev => prev.slice(0, prev.length - 1));
-      await fetchCalendarData();
-      await handlePatternsChange();
-    }
-  };
-
-  const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-
-  const fetchArSummary = useCallback(async () => {
-    try {
-      const y = currentDate.year();
-      const m = currentDate.month() + 1;
-      const resp = await axios.get(`/api/customers/${id}/ar-summary`, { params: { year: y, month: m } });
-      setArSummary(resp.data);
-    } catch (err) {
-      console.error('ARサマリの取得に失敗しました:', err);
-    }
-  }, [id, currentDate]);
-
-  const fetchInvoiceStatus = useCallback(async () => {
-    try {
-      const y = currentDate.year();
-      const m = currentDate.month() + 1;
-      const resp = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
-      const confirmed = resp.data && resp.data.confirmed === true;
-      setInvoiceConfirmed(Boolean(confirmed));
-    } catch (err) {
-      console.error('請求ステータスの取得に失敗しました:', err);
-      setInvoiceConfirmed(false);
-    }
-  }, [id, currentDate]);
-
-  const fetchCustomerData = useCallback(async () => {
-    try {
-      const response = await axios.get(`/api/customers/${id}`);
-      setCustomer(response.data.customer);
-      setPatterns(response.data.patterns);
-      // 顧客設定の反映（存在しない場合はデフォルト適用）
-      const settings = response.data.settings;
-      if (settings) {
-        setBillingMethod(settings.billing_method === 'debit' ? 'debit' : 'collection');
-        setBillingRoundingEnabled(settings.rounding_enabled === 1 || settings.rounding_enabled === true);
-      } else {
-        setBillingMethod('collection');
-        setBillingRoundingEnabled(true);
-      }
-      // 顧客取得後にARサマリも取得
-      await fetchArSummary();
-      await fetchInvoiceStatus();
-    } catch (error) {
-      console.error('顧客データの取得に失敗しました:', error);
-    }
-  }, [id, fetchArSummary, fetchInvoiceStatus]);
-
-  const fetchCalendarData = useCallback(async () => {
-    try {
-      const year = currentDate.year();
-      const month = currentDate.month() + 1;
-      const response = await axios.get(`/api/customers/${id}/calendar/${year}/${month}`);
-      setCalendar(response.data.calendar);
-      setTemporaryChanges(response.data.temporaryChanges);
-    } catch (error) {
-      console.error('カレンダーデータの取得に失敗しました:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [id, currentDate]);
-
-  useEffect(() => {
-    if (id) {
-      fetchCustomerData();
-      fetchCalendarData();
-      // 月が変わったらARサマリも再取得（保険的に明示）
-      fetchArSummary();
-      fetchInvoiceStatus();
-    }
-  }, [id, currentDate, fetchCustomerData, fetchCalendarData, fetchArSummary, fetchInvoiceStatus]);
-
-  const handlePatternsChange = () => {
-    fetchCustomerData(); // 配達パターンが変更されたらカレンダーデータも更新
-    fetchCalendarData();
-  };
-
-  const handleTemporaryChangesUpdate = () => {
-    fetchCalendarData(); // 臨時変更が更新されたらカレンダーデータを更新
-  };
-
-  // 商品マスタ（税設定）
+  // 商品マスタの名前→マスタ情報のMap
   const [productMapByName, setProductMapByName] = useState<Record<string, ProductMaster>>({});
+  // 商品マスタの取得（初回）
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -317,6 +114,185 @@ interface UndoAction {
     if (type === 'reduced') return 0.08;
     return 0.10;
   }, [productMapByName]);
+
+  // ===== ここから追記：不足していた状態・関数群の定義 =====
+  // 読み込み状態
+  const [loading, setLoading] = useState<boolean>(true);
+  // 顧客情報
+  const [customer, setCustomer] = useState<any | null>(null);
+  // カレンダー（日毎の配達）
+  const [calendar, setCalendar] = useState<CalendarDay[]>([]);
+  // 定期パターン
+  const [patterns, setPatterns] = useState<DeliveryPattern[]>([]);
+  // 臨時変更一覧
+  const [temporaryChanges, setTemporaryChanges] = useState<TemporaryChange[]>([]);
+  // 表示中の年月
+  const [currentDate, setCurrentDate] = useState(moment());
+  // 当月請求の確定状態
+  const [invoiceConfirmed, setInvoiceConfirmed] = useState<boolean>(false);
+  // カレンダーの曜日表示用（0=日〜6=土）
+  const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+
+  // 請求設定
+  const [billingMethod, setBillingMethod] = useState<'collection' | 'debit'>('collection');
+  const [billingRoundingEnabled, setBillingRoundingEnabled] = useState<boolean>(true);
+
+  // 前月請求/入金/繰越サマリー
+  const [arSummary, setArSummary] = useState<any | null>(null);
+
+  // Undoスタック
+  const [undoStack, setUndoStack] = useState<Array<{ description: string; revert: () => Promise<void> }>>([]);
+  const pushUndo = (u: { description: string; revert: () => Promise<void> }) => setUndoStack(prev => [u, ...prev]);
+  const handleUndo = async () => {
+    if (undoStack.length === 0) return;
+    const [head, ...rest] = undoStack;
+    setUndoStack(rest);
+    try {
+      await head.revert();
+      await fetchCustomerData();
+      await fetchCalendarData();
+    } catch (e) {
+      console.error('Undo失敗', e);
+    }
+  };
+  // DeliveryPatternManager からのUndo記録（単体 or 配列の両方を受け付ける）
+  const recordUndoFromChild = (
+    action: { description: string; revert: () => Promise<void> } | { description: string; revert: () => Promise<void> }[]
+  ) => {
+    const actions = Array.isArray(action) ? action : [action];
+    actions.forEach((a) => pushUndo(a));
+  };
+
+  // 参照（子ダイアログ制御）
+  const dpManagerRef = useRef<any>(null);
+  const tempChangeManagerRef = useRef<any>(null);
+
+  // 編集フォーム
+  const [openEditForm, setOpenEditForm] = useState<boolean>(false);
+
+  // セル編集ポップオーバー関連
+  const [cellMenuAnchor, setCellMenuAnchor] = useState<HTMLElement | null>(null);
+  const [selectedCell, setSelectedCell] = useState<{ productName: string; date: string; quantity?: number } | null>(null);
+  const [openQuantityDialog, setOpenQuantityDialog] = useState<boolean>(false);
+  const [editQuantityValue, setEditQuantityValue] = useState<number | ''>('');
+
+  // 休配/休配解除ダイアログ
+  const [openSkipDialog, setOpenSkipDialog] = useState<boolean>(false);
+  const [skipStartDate, setSkipStartDate] = useState<string>('');
+  const [skipEndDate, setSkipEndDate] = useState<string>('');
+  const [openUnskipDialog, setOpenUnskipDialog] = useState<boolean>(false);
+  const [unskipStartDate, setUnskipStartDate] = useState<string>('');
+  const [unskipEndDate, setUnskipEndDate] = useState<string>('');
+
+  // 入金登録ダイアログ
+  const [openPaymentDialog, setOpenPaymentDialog] = useState<boolean>(false);
+  const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
+  const [paymentNote, setPaymentNote] = useState<string>('');
+  const [paymentSaving, setPaymentSaving] = useState<boolean>(false);
+
+  // 単価変更ダイアログ
+  const [openUnitPriceChange, setOpenUnitPriceChange] = useState<boolean>(false);
+  const [unitPriceChangeTargetId, setUnitPriceChangeTargetId] = useState<number | ''>('');
+  const [unitPriceChangeNewPrice, setUnitPriceChangeNewPrice] = useState<number | ''>('');
+  const [unitPriceChangeStartMonth, setUnitPriceChangeStartMonth] = useState<string>(moment().format('YYYY-MM'));
+  const [unitPriceChangeSaving, setUnitPriceChangeSaving] = useState<boolean>(false);
+
+  // その他ダイアログ（未実装のプレースホルダー）
+  const [openTemporaryQuantityChange, setOpenTemporaryQuantityChange] = useState<boolean>(false);
+  const [openSuspendProduct, setOpenSuspendProduct] = useState<boolean>(false);
+  const [openCancelProduct, setOpenCancelProduct] = useState<boolean>(false);
+  const [openBillingRounding, setOpenBillingRounding] = useState<boolean>(false);
+  const [openBankInfo, setOpenBankInfo] = useState<boolean>(false);
+
+  // ===== データ取得関数 =====
+  const fetchCustomerData = async () => {
+    try {
+      const res = await axios.get(`/api/customers/${id}`);
+      const data = res.data || {};
+      if (data.customer) {
+        setCustomer(data.customer);
+        setPatterns(data.patterns || []);
+      } else {
+        setCustomer(data);
+        setPatterns(data.patterns || []);
+      }
+      setLoading(false);
+    } catch (e) {
+      console.error('顧客データ取得エラー', e);
+      setLoading(false);
+    }
+  };
+
+  const fetchCalendarData = async () => {
+    try {
+      const y = currentDate.year();
+      const m = currentDate.month() + 1;
+      const res = await axios.get(`/api/customers/${id}/calendar/${y}/${m}`);
+      const data = res.data || {};
+      setCalendar(data.calendar || []);
+      setTemporaryChanges(data.temporaryChanges || []);
+    } catch (e) {
+      console.error('カレンダー取得エラー', e);
+    }
+  };
+
+  const fetchInvoiceStatus = async () => {
+    try {
+      const y = currentDate.year();
+      const m = currentDate.month() + 1;
+      const res = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
+      setInvoiceConfirmed(Boolean(res?.data?.confirmed));
+    } catch (e) {
+      console.error('請求確定状態取得エラー', e);
+      setInvoiceConfirmed(false);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const res = await axios.get(`/api/customers/${id}/settings`);
+      const { billing_method, rounding_enabled } = res.data || {};
+      if (billing_method === 'debit' || billing_method === 'collection') setBillingMethod(billing_method);
+      setBillingRoundingEnabled(!!rounding_enabled);
+    } catch (e) {
+      console.error('請求設定取得エラー', e);
+    }
+  };
+
+  const fetchArSummary = async () => {
+    try {
+      const y = currentDate.year();
+      const m = currentDate.month() + 1;
+      const res = await axios.get(`/api/customers/${id}/ar-summary`, { params: { year: y, month: m } });
+      setArSummary(res.data || null);
+    } catch (e) {
+      console.error('ARサマリ取得エラー', e);
+      setArSummary(null);
+    }
+  };
+
+  const handlePatternsChange = async () => {
+    await fetchCustomerData();
+    await fetchCalendarData();
+  };
+
+  const handleTemporaryChangesUpdate = async () => {
+    await fetchCalendarData();
+  };
+
+  // 初期化（顧客情報/設定）
+  useEffect(() => {
+    fetchCustomerData();
+    fetchSettings();
+  }, [id]);
+
+  // 月変更時にカレンダー/請求状態/ARサマリを再取得
+  useEffect(() => {
+    fetchCalendarData();
+    fetchInvoiceStatus();
+    fetchArSummary();
+  }, [id, currentDate]);
+  // ===== 追記ここまで =====
 
   // セルに紐づく商品IDから、指定日の有効な定期パターンを取得
   const findPatternForSelectedCell = (): DeliveryPattern | null => {
@@ -623,7 +599,7 @@ interface UndoAction {
             try {
               await axios.delete(`/api/temporary-changes/${tid}`);
             } catch (e) {
-              console.error('休配（期間）取り消しの一部削除に失敗:', e);
+              console.error('休配（期間）取り消しの一部削除:', e);
             }
           }
         },
@@ -904,9 +880,10 @@ interface UndoAction {
   const monthlyQuantities = calculateMonthlyQuantity();
   const monthlyTotalRaw = calculateMonthlyTotal();
   // 今月概算合計は「当月概算 + 前月繰越（前月請求額 - 前月入金額）」で表示
-  const baseMonthlyTotal = billingRoundingEnabled
+  const tmpBaseMonthlyTotal = billingRoundingEnabled
     ? Math.floor(monthlyTotalRaw / 10) * 10 // 1の位切り捨て（当月分のみ）
     : monthlyTotalRaw;
+  const baseMonthlyTotal = Math.max(0, tmpBaseMonthlyTotal);
   const carryoverFromPrev = (arSummary?.carryover_amount ?? ((arSummary?.prev_invoice_amount || 0) - (arSummary?.prev_payment_amount || 0))) || 0;
   const monthlyTotal = baseMonthlyTotal + carryoverFromPrev;
 
@@ -956,6 +933,15 @@ interface UndoAction {
         alert('入金対象の年月が取得できていません');
         return;
       }
+
+      // 対象年月の請求確定状態を再確認（未確定なら入金登録禁止）
+      const statusRes = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
+      const { confirmed } = statusRes.data || {};
+      if (!confirmed) {
+        alert('対象の月の請求が未確定のため、入金登録はできません。先に「月次請求確定」を実行してください。');
+        return;
+      }
+
       await axios.post(`/api/customers/${id}/payments`, {
         year: y,
         month: m,
@@ -973,6 +959,10 @@ interface UndoAction {
 
   // 現金集金の登録
   const openCollectionDialog = () => {
+    if (!invoiceConfirmed) {
+      alert('当月の請求が未確定のため、入金登録はできません。先に「月次請求確定」を実行してください。');
+      return;
+    }
     setPaymentAmount('');
     setPaymentNote('');
     setOpenPaymentDialog(true);
@@ -992,6 +982,15 @@ interface UndoAction {
       setPaymentSaving(true);
       const y = currentDate.year();
       const m = currentDate.month() + 1;
+
+      // 現在月が未確定ならサーバ側でも拒否されるが、事前にチェックしてユーザーへ分かりやすく通知
+      const statusRes = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
+      if (!statusRes?.data?.confirmed) {
+        setPaymentSaving(false);
+        alert('当月の請求が未確定のため、入金登録はできません。先に「月次請求確定」を実行してください。');
+        return;
+      }
+
       await axios.post(`/api/customers/${id}/payments`, {
         year: y,
         month: m,
@@ -1331,9 +1330,9 @@ interface UndoAction {
                     <Button sx={{ ml: 1 }} variant="outlined" color="primary" onClick={handleConfirmInvoice}>
                       月次請求確定
                     </Button>
-                    <Button sx={{ ml: 1 }} variant="outlined" color="secondary" onClick={openCollectionDialog}>
-                      現金集金を登録
-                    </Button>
+                    <Button sx={{ ml: 1 }} variant="outlined" color="secondary" onClick={openCollectionDialog} disabled={!invoiceConfirmed}>
+                       現金集金を登録
+                     </Button>
                   </Box>
                 </CardContent>
               </Card>
@@ -1351,11 +1350,40 @@ interface UndoAction {
             moment(p.start_date).isSameOrBefore(monthEnd, 'day') &&
             (!p.end_date || moment(p.end_date).isSameOrAfter(monthStart, 'day'))
           );
+          // DeliveryPatternManager に渡す前に型・データを正規化
+          const toNumArray = (days: number[] | string): number[] => {
+            if (Array.isArray(days)) return days;
+            try {
+              const parsed = JSON.parse(days);
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return [];
+            }
+          };
+          const toDQObject = (
+            dq: { [dayOfWeek: number]: number } | string | null | undefined
+          ): { [dayOfWeek: number]: number } | undefined => {
+            if (!dq) return undefined;
+            if (typeof dq === 'string') {
+              try {
+                const parsed = JSON.parse(dq);
+                return parsed && typeof parsed === 'object' ? parsed as { [dayOfWeek: number]: number } : undefined;
+              } catch {
+                return undefined;
+              }
+            }
+            return dq as { [dayOfWeek: number]: number };
+          };
+          const visiblePatternsForManager = visiblePatterns.map(p => ({
+            ...p,
+            delivery_days: toNumArray(p.delivery_days),
+            daily_quantities: toDQObject(p.daily_quantities),
+          }));
           return (
             <DeliveryPatternManager
               ref={dpManagerRef}
               customerId={Number(id)}
-              patterns={visiblePatterns}
+              patterns={visiblePatternsForManager as any}
               onPatternsChange={handlePatternsChange}
               onTemporaryChangesUpdate={handleTemporaryChangesUpdate}
               onRecordUndo={recordUndoFromChild}
@@ -1440,6 +1468,8 @@ interface UndoAction {
                 value={unitPriceChangeNewPrice}
                 onChange={(e) => setUnitPriceChangeNewPrice(e.target.value === '' ? '' : Number(e.target.value))}
                 fullWidth
+                error={unitPriceChangeNewPrice !== '' && Number(unitPriceChangeNewPrice) < 0}
+                helperText={unitPriceChangeNewPrice !== '' && Number(unitPriceChangeNewPrice) < 0 ? '0以上の値を入力してください' : ''}
               />
 
               <TextField
@@ -1455,7 +1485,7 @@ interface UndoAction {
               <Button onClick={() => setOpenUnitPriceChange(false)}>閉じる</Button>
               <Button
                 variant="contained"
-                disabled={unitPriceChangeSaving || unitPriceChangeTargetId === '' || unitPriceChangeNewPrice === '' || !unitPriceChangeStartMonth}
+                disabled={unitPriceChangeSaving || unitPriceChangeTargetId === '' || unitPriceChangeNewPrice === '' || !unitPriceChangeStartMonth || (typeof unitPriceChangeNewPrice === 'number' && unitPriceChangeNewPrice < 0)}
                 onClick={handleUnitPriceChangeSave}
               >
                 {unitPriceChangeSaving ? '保存中...' : '保存'}
@@ -1556,9 +1586,9 @@ interface UndoAction {
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
               <Button onClick={closeCollectionDialog} disabled={paymentSaving}>キャンセル</Button>
-              <Button variant="contained" onClick={saveCollection} disabled={paymentSaving || paymentAmount === '' || Number(paymentAmount) <= 0}>
-                {paymentSaving ? '保存中…' : '保存'}
-              </Button>
+               <Button variant="contained" onClick={saveCollection} disabled={!invoiceConfirmed || paymentSaving || paymentAmount === '' || Number(paymentAmount) <= 0}>
+                 {paymentSaving ? '保存中…' : '保存'}
+               </Button>
             </Box>
           </Box>
         </Dialog>

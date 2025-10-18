@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -185,10 +185,9 @@ const InvoiceContent: React.FC<{
   }, [calendar]);
 
   const monthlyTotal = useMemo(() => {
-    if (roundingEnabled) {
-      return Math.floor(monthlyTotalRaw / 10) * 10;
-    }
-    return monthlyTotalRaw;
+    let amt = roundingEnabled ? Math.floor(monthlyTotalRaw / 10) * 10 : monthlyTotalRaw;
+    if (amt < 0) amt = 0;
+    return amt;
   }, [monthlyTotalRaw, roundingEnabled]);
 
   const previousBalance = useMemo(() => {
@@ -517,6 +516,8 @@ const InvoiceBatchPreview: React.FC = () => {
   const [productMasters, setProductMasters] = useState<ProductMaster[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [autoPrinted, setAutoPrinted] = useState<boolean>(false);
+  const [hasUnconfirmed, setHasUnconfirmed] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStatic = async () => {
@@ -560,6 +561,23 @@ const InvoiceBatchPreview: React.FC = () => {
     fetchCustomers();
   }, [courseId]);
 
+  // 月次確定ステータス確認（コース内顧客）
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        if (!courseId) { setHasUnconfirmed(false); return; }
+        const res = await axios.get(`/api/customers/by-course/${courseId}/invoices-amounts`, { params: { year, month } });
+        const items: Array<{ confirmed?: boolean }> = res.data?.items || [];
+        setHasUnconfirmed(items.some(i => !i.confirmed));
+      } catch (e) {
+        console.error('請求ステータス取得エラー（バッチ）', e);
+        // ステータス取得失敗時は安全側でブロック
+        setHasUnconfirmed(true);
+      }
+    };
+    fetchStatus();
+  }, [courseId, year, month]);
+
   const pairs: Array<[Customer | null, Customer | null]> = useMemo(() => {
     const arr: Array<[Customer | null, Customer | null]> = [];
     for (let i = 0; i < customers.length; i += 2) {
@@ -587,12 +605,24 @@ const InvoiceBatchPreview: React.FC = () => {
     <Box sx={{ p: 2 }} className="invoice-root print-root">
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="h6" className="title no-print">請求書一括印刷プレビュー（2アップ）</Typography>
-        <Button variant="contained" className="no-print" onClick={handlePrint}>印刷</Button>
+        <Button variant="contained" className="no-print" onClick={handlePrint} disabled={hasUnconfirmed} title={hasUnconfirmed ? '未確定の顧客が含まれているため印刷できません' : ''}>印刷</Button>
       </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {hasUnconfirmed && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          未確定の顧客が含まれているため、一括プレビューを表示できません。月次管理で当月の「月次確定」を行ってから再度お試しください。
+        </Alert>
+      )}
 
-      {pairs.map((pair, pageIdx) => (
+      {hasUnconfirmed && (
+        <Stack direction="row" spacing={2} className="no-print" sx={{ mb: 2 }}>
+          <Button variant="outlined" onClick={() => navigate('/monthly')}>月次管理へ</Button>
+          <Button variant="contained" onClick={() => navigate('/billing/invoices')}>請求書発行一覧へ戻る</Button>
+        </Stack>
+      )}
+
+      {!hasUnconfirmed && pairs.map((pair, pageIdx) => (
         <Card key={pageIdx} sx={{ mb: 2 }} className="print-page">
           <CardContent>
             <div className="two-up">
