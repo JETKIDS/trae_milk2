@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, Toolbar } from '@mui/material';
@@ -67,8 +67,8 @@ function App() {
                 <Route path="/debits/import" element={<DebitImport />} />
                 <Route path="/delivery" element={<DeliveryList />} />
                 <Route path="/billing" element={<BillingOperations />} />
-                <Route path="/billing/invoices" element={<InvoiceIssuance />} />
-                <Route path="/monthly" element={<MonthlyManagement />} />
+                <Route path="/billing/invoices" element={<Navigate to="/billing?tab=invoices" replace />} />
+                <Route path="/monthly" element={<Navigate to="/billing?tab=monthly" replace />} />
                 <Route path="/products" element={<ProductList />} />
                 <Route path="/courses" element={<CourseList />} />
               <Route path="/masters" element={<MasterManagement />} />

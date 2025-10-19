@@ -590,7 +590,7 @@ router.get('/by-course/:courseId/collection', (req, res) => {
   const courseId = req.params.courseId;
 
   const query = `
-    SELECT c.id, c.custom_id, c.customer_name, c.address, c.phone,
+    SELECT c.id, c.custom_id, c.customer_name, c.address, c.phone, c.delivery_order,
            dc.course_name, ds.staff_name,
            cs.billing_method, cs.rounding_enabled
     FROM customers c
@@ -617,7 +617,7 @@ router.get('/by-course/:courseId/debit', (req, res) => {
   const courseId = req.params.courseId;
 
   const query = `
-    SELECT c.id, c.custom_id, c.customer_name, c.address, c.phone,
+    SELECT c.id, c.custom_id, c.customer_name, c.address, c.phone, c.delivery_order,
            dc.course_name, ds.staff_name,
            cs.billing_method, cs.rounding_enabled
     FROM customers c

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Button, Stack, Divider, Alert, ToggleButtonGroup, ToggleButton, TextField, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tabs, Tab } from '@mui/material';
 import BulkCollection from './BulkCollection';
+import InvoiceIssuance from './InvoiceIssuance';
+import MonthlyManagement from './MonthlyManagement';
 
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -8,7 +10,7 @@ import { pad7 } from '../utils/id';
 
 const BillingOperations: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'ops' | 'bulk'>('ops');
+  const [activeTab, setActiveTab] = useState<'invoices' | 'monthly' | 'bulk' | 'debitData' | 'collectionList'>('invoices');
   const [bulkMethod, setBulkMethod] = useState<'collection' | 'debit'>('collection');
   const [preview, setPreview] = useState<any | null>(null);
   const [parse, setParse] = useState<any | null>(null);
@@ -24,8 +26,8 @@ const BillingOperations: React.FC = () => {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'bulk' || tab === 'ops') {
-      setActiveTab(tab);
+    if (tab === 'bulk' || tab === 'invoices' || tab === 'monthly' || tab === 'debitData' || tab === 'collectionList') {
+      setActiveTab(tab as 'invoices' | 'monthly' | 'bulk' | 'debitData' | 'collectionList');
     }
     const method = searchParams.get('method');
     if (method === 'collection' || method === 'debit') {
@@ -33,7 +35,7 @@ const BillingOperations: React.FC = () => {
     }
   }, [searchParams]);
 
-  const handleChangeTab = (_e: React.SyntheticEvent, value: 'ops' | 'bulk') => {
+  const handleChangeTab = (_e: React.SyntheticEvent, value: 'invoices' | 'monthly' | 'bulk' | 'debitData' | 'collectionList') => {
     setActiveTab(value);
     setSearchParams({ tab: value, ...(value === 'bulk' ? { method: bulkMethod } : {}) });
   };
@@ -124,7 +126,10 @@ const BillingOperations: React.FC = () => {
         <Card>
           <CardContent>
             <Tabs value={activeTab} onChange={handleChangeTab} aria-label="billing tabs">
-              <Tab label="請求業務" value="ops" />
+              <Tab label="請求書発行" value="invoices" />
+              <Tab label="月次管理" value="monthly" />
+              <Tab label="集金一覧表" value="collectionList" />
+              <Tab label="引き落しデータ作成" value="debitData" />
               <Tab label="一括入金" value="bulk" />
             </Tabs>
           </CardContent>
@@ -154,151 +159,63 @@ const BillingOperations: React.FC = () => {
           </>
         )}
 
-        {activeTab === 'ops' && (
-        <>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              請求コース
-            </Typography>
-            <FormControl fullWidth size="small">
-              <InputLabel id="billing-course-select-label">コース</InputLabel>
-              <Select
-                labelId="billing-course-select-label"
-                label="コース"
-                value={selectedCourseId}
-                onChange={(e) => setSelectedCourseId(typeof e.target.value === 'number' ? e.target.value : Number(e.target.value))}
-              >
-                {loadingCourses && (
-                  <MenuItem value="">
-                    <CircularProgress size={20} sx={{ mr: 1 }} /> 読み込み中...
-                  </MenuItem>
-                )}
-                {!loadingCourses && courses.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {c.custom_id ? `${c.custom_id} - ${c.course_name}` : c.course_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </CardContent>
-        </Card>
+        {activeTab === 'collectionList' && (
+          <BulkCollection method="both" readOnly />
+        )}
 
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              対象月
-            </Typography>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <TextField
-                label="出力月"
-                type="month"
-                value={outputMonth}
-                onChange={(e) => setOutputMonth(e.target.value)}
-                size="small"
-              />
-              <Typography variant="body1">{monthLabel}</Typography>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              顧客一覧
-            </Typography>
-            {!selectedCourseId && (
-              <Typography variant="body2" color="text.secondary">
-                コースを選択してください。
+        {activeTab === 'debitData' && (
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                引き落しデータ作成
               </Typography>
-            )}
-            {selectedCourseId && loadingCustomers && (
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <CircularProgress size={20} sx={{ mr: 1 }} /> 読み込み中...
-              </Box>
-            )}
-            {selectedCourseId && !loadingCustomers && customers.length === 0 && (
-              <Typography variant="body2" color="text.secondary">
-                顧客が見つかりません。
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                引き落し用ファイル（全国銀行協会フォーマット）のプレビュー／解析を実行します。
               </Typography>
-            )}
-            {selectedCourseId && !loadingCustomers && customers.length > 0 && (
-              <Box>
-                {customers.map((c) => (
-                  <Box key={c.id} sx={{ mb: 0.5 }}>
-                    <Typography variant="body2">
-                      [{pad7(c.custom_id)}] {c.customer_name}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </CardContent>
-        </Card>
+              <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                <Button variant="outlined" onClick={handleLoadPreview} disabled={loadingPreview}>
+                  プレビューを取得
+                </Button>
+                <Button variant="outlined" onClick={handleLoadParse} disabled={loadingParse}>
+                  解析を取得
+                </Button>
+              </Stack>
+              {preview?.error && <Alert severity="error">{preview.error}</Alert>}
+              {preview && !preview.error && (
+                <Box sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 12 }}>
+                  <Typography variant="subtitle2">encoding: {preview.encoding}</Typography>
+                  <Typography variant="subtitle2">totalLines: {preview.totalLines}</Typography>
+                  <Divider sx={{ my: 1 }} />
+                  {Array.isArray(preview.preview) && preview.preview.map((l: any) => (
+                    <Box key={l.index} sx={{ mb: 0.5 }}>
+                      [{l.index}] type={l.recordType} len={l.length} amt?={l.amountCandidate} text={l.sample}
+                    </Box>
+                  ))}
+                </Box>
+              )}
+              {parse?.error && <Alert severity="error">{parse.error}</Alert>}
+              {parse && !parse.error && (
+                <Box sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 12 }}>
+                  <Typography variant="subtitle2">items: {Array.isArray(parse.items) ? parse.items.length : 0}</Typography>
+                  <Typography variant="subtitle2">linesAnalyzed: {parse.linesAnalyzed}</Typography>
+                  <Divider sx={{ my: 1 }} />
+                  {Array.isArray(parse.items) && parse.items.map((it: any, idx: number) => (
+                    <Box key={idx} sx={{ mb: 0.5 }}>
+                      [#{it.idx}] len={it.length} name={it.name} amt?={it.amountCandidate}
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              端数処理ルール
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              税計算は各商品ごとに行い、合算後に最終丸めを適用します。
-            </Typography>
-            <ToggleButtonGroup
-              exclusive
-              value={roundingRule}
-              onChange={(_, v) => v && setRoundingRule(v)}
-              size="small"
-            >
-              <ToggleButton value="round">四捨五入（1円単位）</ToggleButton>
-              <ToggleButton value="floor">切り捨て（1円単位）</ToggleButton>
-              <ToggleButton value="ceil">切り上げ（1円単位）</ToggleButton>
-            </ToggleButtonGroup>
-          </CardContent>
-        </Card>
+        {activeTab === 'invoices' && (
+          <InvoiceIssuance />
+        )}
 
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              引き落し用ファイル（Zengin）プレビュー／解析
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-              <Button variant="outlined" onClick={handleLoadPreview} disabled={loadingPreview}>
-                プレビューを取得
-              </Button>
-              <Button variant="outlined" onClick={handleLoadParse} disabled={loadingParse}>
-                解析を取得
-              </Button>
-            </Stack>
-            {preview?.error && <Alert severity="error">{preview.error}</Alert>}
-            {preview && !preview.error && (
-              <Box sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 12 }}>
-                <Typography variant="subtitle2">encoding: {preview.encoding}</Typography>
-                <Typography variant="subtitle2">totalLines: {preview.totalLines}</Typography>
-                <Divider sx={{ my: 1 }} />
-                {Array.isArray(preview.preview) && preview.preview.map((l: any) => (
-                  <Box key={l.index} sx={{ mb: 0.5 }}>
-                    [{l.index}] type={l.recordType} len={l.length} amt?={l.amountCandidate} text={l.sample}
-                  </Box>
-                ))}
-              </Box>
-            )}
-            {parse?.error && <Alert severity="error">{parse.error}</Alert>}
-            {parse && !parse.error && (
-              <Box sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 12 }}>
-                <Typography variant="subtitle2">items: {Array.isArray(parse.items) ? parse.items.length : 0}</Typography>
-                <Typography variant="subtitle2">linesAnalyzed: {parse.linesAnalyzed}</Typography>
-                <Divider sx={{ my: 1 }} />
-                {Array.isArray(parse.items) && parse.items.map((it: any, idx: number) => (
-                  <Box key={idx} sx={{ mb: 0.5 }}>
-                    [#{it.idx}] len={it.length} name={it.name} amt?={it.amountCandidate}
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </CardContent>
-        </Card>
-        </>
+        {activeTab === 'monthly' && (
+          <MonthlyManagement />
         )}
       </Stack>
     </Box>
