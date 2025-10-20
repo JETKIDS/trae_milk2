@@ -70,6 +70,7 @@ interface DeliveryPatternManagerProps {
   onPatternsChange: () => void;
   onTemporaryChangesUpdate?: () => void;
   onRecordUndo?: (action: { description: string; revert: () => Promise<void> } | { description: string; revert: () => Promise<void> }[]) => void;
+  readOnly?: boolean;
 }
 
 export interface DeliveryPatternManagerHandle {
@@ -83,6 +84,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
   onPatternsChange,
   onTemporaryChangesUpdate,
   onRecordUndo,
+  readOnly,
 }, ref) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
@@ -118,6 +120,10 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
   };
 
   const handleOpenDialog = (pattern?: DeliveryPattern, defaultStartDate?: string) => {
+    if (readOnly) {
+      setSnackbar({ open: true, message: '確定済みの月のため編集できません。', severity: 'error' });
+      return;
+    }
     if (pattern) {
       setEditingPattern(pattern);
       const deliveryDays = ensureArrayDays(pattern.delivery_days);
@@ -209,6 +215,10 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
 
   const handleSave = async () => {
     try {
+      if (readOnly) {
+        setSnackbar({ open: true, message: '確定済みの月のため編集できません。', severity: 'error' });
+        return;
+      }
       if (isTemporaryMode) {
         // 臨時配達の保存
         if (!formData.product_id || !temporaryQuantity || temporaryQuantity <= 0) {
@@ -416,6 +426,10 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
   };
 
   const handleDelete = async (patternId: number) => {
+    if (readOnly) {
+      setSnackbar({ open: true, message: '確定済みの月のため編集できません。', severity: 'error' });
+      return;
+    }
     if (!window.confirm('この配達パターンを削除しますか？')) {
       return;
     }
@@ -506,6 +520,8 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpenDialog()}
+            disabled={readOnly}
+            title={readOnly ? '確定済みの月のため編集不可' : undefined}
           >
             パターン追加
           </Button>
@@ -547,6 +563,8 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                     <IconButton
                       size="small"
                       onClick={() => handleOpenDialog(pattern)}
+                      disabled={readOnly}
+                      title={readOnly ? '確定済みの月のため編集不可' : undefined}
                     >
                       <EditIcon />
                     </IconButton>
@@ -554,6 +572,8 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                       size="small"
                       color="error"
                       onClick={() => handleDelete(pattern.id!)}
+                      disabled={readOnly}
+                      title={readOnly ? '確定済みの月のため編集不可' : undefined}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -749,7 +769,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
             <Button onClick={handleCloseDialog} startIcon={<CancelIcon />}>
               キャンセル
             </Button>
-            <Button onClick={handleSave} variant="contained" startIcon={<SaveIcon />}>
+            <Button onClick={handleSave} variant="contained" startIcon={<SaveIcon />} disabled={readOnly} title={readOnly ? '確定済みの月のため編集不可' : undefined}>
               保存
             </Button>
           </DialogActions>

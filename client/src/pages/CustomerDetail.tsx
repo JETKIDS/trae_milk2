@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Box, Button, IconButton, Grid, Card, CardContent, Typography, Chip, Paper, Table, TableHead, TableRow, TableCell, TableBody, TextField, Dialog, Popover, FormControl, InputLabel, Select, MenuItem, TableContainer } from '@mui/material';
+import { Box, Button, IconButton, Grid, Card, CardContent, Typography, Chip, Paper, Table, TableHead, TableRow, TableCell, TableBody, TextField, Dialog, Popover, FormControl, InputLabel, Select, MenuItem, TableContainer, Alert } from '@mui/material';
 import { Undo as UndoIcon, Edit as EditIcon, ArrowBack as ArrowBackIcon, ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import axios from 'axios';
 import moment from 'moment';
@@ -343,6 +343,10 @@ const CustomerDetail: React.FC = () => {
 
   // 解約（この日以降）：選択日の前日で旧パターンを終了し、以後非表示にする
   const handleCancelFromSelectedDate = async () => {
+    if (invoiceConfirmed) {
+      alert('この月は確定済みのため編集できません。');
+      return;
+    }
     if (!selectedCell) return;
     const pattern = findPatternForSelectedCell();
     if (!pattern || !pattern.id) {
@@ -396,6 +400,11 @@ const CustomerDetail: React.FC = () => {
 
   // パターン変更：既存の「配達パターン設定」ダイアログを開く
   const handleOpenPatternChange = () => {
+    if (invoiceConfirmed) {
+      alert('この月は確定済みのため編集できません。');
+      closeCellMenu();
+      return;
+    }
     const pattern = findPatternForSelectedCell();
     if (!pattern) {
       alert('このセルに対応する定期パターンが見つかりません。');
@@ -433,6 +442,10 @@ const CustomerDetail: React.FC = () => {
 
   // 解約取り消し：選択セルが「解」の場合、前日で終了したパターンの end_date を解除（null）
   const handleCancelUndoFromSelectedCell = async () => {
+    if (invoiceConfirmed) {
+      alert('この月は確定済みのため編集できません。');
+      return;
+    }
     if (!selectedCell) return;
     const pid = getProductIdByName(selectedCell.productName);
     if (!pid) return;
@@ -509,6 +522,11 @@ const CustomerDetail: React.FC = () => {
 
   // 本数変更ダイアログを開く
   const openChangeQuantity = () => {
+    if (invoiceConfirmed) {
+      alert('この月は確定済みのため編集できません。');
+      closeCellMenu();
+      return;
+    }
     if (!selectedCell) return;
     setEditQuantityValue(selectedCell.quantity ?? 0);
     setOpenQuantityDialog(true);
@@ -563,6 +581,10 @@ const CustomerDetail: React.FC = () => {
 
   // 本数変更の保存（当日の数量を上書き）
   const saveChangeQuantity = async () => {
+    if (invoiceConfirmed) {
+      alert('この月は確定済みのため編集できません。');
+      return;
+    }
     if (editQuantityValue === '' || Number(editQuantityValue) < 0) return;
     await postTemporaryChange('modify', { product_id: null, quantity: Number(editQuantityValue) });
   };
@@ -607,6 +629,10 @@ const CustomerDetail: React.FC = () => {
 
   // 休配（期間）：開始日は選択日、終了日が空なら当日のみ、指定されていれば範囲で適用
   const applySkipForPeriod = async () => {
+    if (invoiceConfirmed) {
+      alert('この月は確定済みのため編集できません。');
+      return;
+    }
     if (!selectedCell) return;
     const start = skipStartDate || selectedCell.date;
     const end = skipEndDate || start;
@@ -642,6 +668,10 @@ const CustomerDetail: React.FC = () => {
 
   // 休配解除：開始日〜終了日の範囲で、この商品の skip を削除（終了日が空なら当日のみ）
   const cancelSkipForPeriod = async () => {
+    if (invoiceConfirmed) {
+      alert('この月は確定済みのため編集できません。');
+      return;
+    }
     if (!selectedCell) return;
     const start = unskipStartDate || selectedCell.date;
     const end = unskipEndDate || start;
@@ -1057,7 +1087,7 @@ const CustomerDetail: React.FC = () => {
   };
 
   return (
-    <Grid container spacing={2}>
+    <Grid container spacing={2} sx={{ bgcolor: invoiceConfirmed ? '#ffcdd2' : 'transparent', transition: 'background-color 0.2s ease' }}>
       {/* 左：メインコンテンツ（少し狭く） */}
       <Grid item xs={12} md={9}>
         <Box>
@@ -1119,6 +1149,13 @@ const CustomerDetail: React.FC = () => {
             </Box>
           </Box>
 
+          {invoiceConfirmed && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              この月は確定済みのため編集できません
+              {invoiceConfirmedAt ? `（${moment(invoiceConfirmedAt).format('YYYY/MM/DD HH:mm')} に確定）` : ''}
+            </Alert>
+          )}
+          
           {/* 商品別カレンダー */}
           {(() => {
             const { firstHalf, secondHalf } = generateMonthDays();
@@ -1439,6 +1476,7 @@ const CustomerDetail: React.FC = () => {
               onPatternsChange={handlePatternsChange}
               onTemporaryChangesUpdate={handleTemporaryChangesUpdate}
               onRecordUndo={recordUndoFromChild}
+              readOnly={invoiceConfirmed}
             />
           );
         })()}
@@ -1449,6 +1487,7 @@ const CustomerDetail: React.FC = () => {
           customerId={Number(id)}
           changes={temporaryChanges}
           onChangesUpdate={handleTemporaryChangesUpdate}
+          readOnly={invoiceConfirmed}
         />
 
         {/* 顧客編集フォーム */}
@@ -1692,11 +1731,11 @@ const CustomerDetail: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, p: 1 }}>
             {/* 1. パターン変更 */}
-            <Button size="small" onClick={handleOpenPatternChange}>
+            <Button size="small" onClick={handleOpenPatternChange} disabled={invoiceConfirmed}>
               パターン変更
             </Button>
             {/* 2. 本数変更 */}
-            <Button size="small" onClick={() => { closeCellMenu(); openChangeQuantity(); }}>
+            <Button size="small" onClick={() => { closeCellMenu(); openChangeQuantity(); }} disabled={invoiceConfirmed}>
               本数変更
             </Button>
             {/* 3. 商品追加 */}
@@ -1706,24 +1745,24 @@ const CustomerDetail: React.FC = () => {
                 // 配達パターン管理ダイアログを開く（開始日/臨時日を当日で初期化）
                 dpManagerRef.current?.openForPattern(undefined, selectedCell.date);
               }
-            }}>
+            }} disabled={invoiceConfirmed}>
               商品追加
             </Button>
             {/* 4. 休配処理 */}
-            <Button size="small" onClick={() => { closeCellMenu(); setOpenSkipDialog(true); }}>
+            <Button size="small" onClick={() => { closeCellMenu(); setOpenSkipDialog(true); }} disabled={invoiceConfirmed}>
               休配処理
             </Button>
             {/* 5. 休配解除 */}
-            <Button size="small" color="primary" onClick={() => { closeCellMenu(); setOpenUnskipDialog(true); }}>
+            <Button size="small" color="primary" onClick={() => { closeCellMenu(); setOpenUnskipDialog(true); }} disabled={invoiceConfirmed}>
               休配解除
             </Button>
             {/* 6. 解約関連：セルが『解』のときは取り消し、それ以外は解約処理 */}
             {selectedCellHasCancel() ? (
-              <Button size="small" color="error" onClick={handleCancelUndoFromSelectedCell}>
+              <Button size="small" color="error" onClick={handleCancelUndoFromSelectedCell} disabled={invoiceConfirmed}>
                 解約取り消し
               </Button>
             ) : (
-              <Button size="small" color="error" onClick={handleCancelFromSelectedDate}>
+              <Button size="small" color="error" onClick={handleCancelFromSelectedDate} disabled={invoiceConfirmed}>
                 解約処理
               </Button>
             )}
@@ -1758,7 +1797,7 @@ const CustomerDetail: React.FC = () => {
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
             <Button onClick={() => setOpenSkipDialog(false)}>キャンセル</Button>
-            <Button variant="contained" onClick={async () => { await applySkipForPeriod(); setOpenSkipDialog(false); }}>
+            <Button variant="contained" onClick={async () => { await applySkipForPeriod(); setOpenSkipDialog(false); }} disabled={invoiceConfirmed}>
               適用
             </Button>
           </Box>
@@ -1792,7 +1831,7 @@ const CustomerDetail: React.FC = () => {
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
             <Button onClick={() => setOpenUnskipDialog(false)}>キャンセル</Button>
-            <Button variant="contained" color="primary" onClick={async () => { await cancelSkipForPeriod(); setOpenUnskipDialog(false); }}>
+            <Button variant="contained" color="primary" onClick={async () => { await cancelSkipForPeriod(); setOpenUnskipDialog(false); }} disabled={invoiceConfirmed}>
               解除
             </Button>
           </Box>
@@ -1817,7 +1856,7 @@ const CustomerDetail: React.FC = () => {
           />
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
             <Button onClick={closeChangeQuantity}>キャンセル</Button>
-            <Button variant="contained" onClick={saveChangeQuantity} disabled={editQuantityValue === '' || Number(editQuantityValue) < 0}>
+            <Button variant="contained" onClick={saveChangeQuantity} disabled={invoiceConfirmed || editQuantityValue === '' || Number(editQuantityValue) < 0}>
               保存
             </Button>
           </Box>

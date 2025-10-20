@@ -485,6 +485,7 @@ const ProductSummaryTab: React.FC = () => {
     fetchSummaryData();
   };
 
+
   // autoFetchの状態をローカルストレージに保存
   useEffect(() => {
     localStorage.setItem('deliveryList_autoFetch', JSON.stringify(autoFetch));
@@ -535,44 +536,7 @@ const ProductSummaryTab: React.FC = () => {
     setSelectedManufacturer(value);
   };
 
-  // コース月次確定（今月）処理
-  const [confirmingCourseFinalize, setConfirmingCourseFinalize] = useState(false);
-  const handleCourseMonthlyFinalize = async () => {
-    // コースが未選択（全体表示）では実行不可
-    if (selectedCourse === 'all' || selectedCourse === 'all-by-course') {
-      alert('月次確定する配達コースを選択してください。');
-      return;
-    }
 
-    const courseIdNum = Number(selectedCourse);
-    if (Number.isNaN(courseIdNum)) {
-      alert('有効な配達コースを選択してください。');
-      return;
-    }
-
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // 1-12
-    const courseLabel = courses.find((c) => c.id.toString() === selectedCourse)?.course_name || '選択コース';
-
-    setConfirmingCourseFinalize(true);
-    try {
-      const res = await fetch('/api/customers/invoices/confirm-batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year: currentYear, month: currentMonth, course_id: courseIdNum })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || '月次確定に失敗しました');
-      }
-      alert(`${currentYear}/${String(currentMonth).padStart(2, '0')} 「${courseLabel}」 月次確定完了: ${data.confirmedCount}/${data.targetsCount}`);
-    } catch (e: any) {
-      alert(`月次確定に失敗しました: ${e?.message || e}`);
-    } finally {
-      setConfirmingCourseFinalize(false);
-    }
-  };
 
   // 金額をフォーマット
   const formatCurrency = (amount: number): string => {
@@ -703,17 +667,8 @@ const ProductSummaryTab: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-            <Button
-              variant="outlined"
-              color="warning"
-              size="small"
-              onClick={handleCourseMonthlyFinalize}
-              disabled={confirmingCourseFinalize || selectedCourse === 'all' || selectedCourse === 'all-by-course'}
-            >
-              コース月次確定（今月）
-            </Button>
-          </Box>
+
+
         </Grid>
 
         <Grid item xs={12} md={4}>
@@ -943,6 +898,7 @@ const ProductSummaryTab: React.FC = () => {
     const saved = localStorage.getItem('deliveryList_simpleDisplay');
     return saved ? JSON.parse(saved) : false;
   });
+
 
   // 終了日を計算する関数
   const calculateEndDate = useCallback((start: string, dayCount: number): string => {
@@ -1377,7 +1333,7 @@ const ProductSummaryTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, days, selectedCourse, calculateEndDate]);
+  }, [startDate, days, selectedCourse, calculateEndDate, patternsMap]);
 
   // 手動集計ボタンのハンドラー（未使用のため削除）
 

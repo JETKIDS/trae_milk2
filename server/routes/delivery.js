@@ -13,15 +13,34 @@ router.post('/patterns', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, 1)
   `;
   
-  db.run(query, [customer_id, product_id, JSON.stringify(delivery_days), quantity, start_date, end_date], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
+  // 対象期間に確定済みの月が含まれていないかチェック
+  const startKey = Number(String(start_date).slice(0, 4)) * 100 + Number(String(start_date).slice(5, 7));
+  const endKey = end_date ? (Number(String(end_date).slice(0, 4)) * 100 + Number(String(end_date).slice(5, 7))) : startKey;
+  const checkSql = 'SELECT year, month, status FROM ar_invoices WHERE customer_id = ? AND (year*100 + month) BETWEEN ? AND ?';
+
+  db.all(checkSql, [customer_id, startKey, endKey], (chkErr, rows) => {
+    if (chkErr) {
+      res.status(500).json({ error: '確定状況の確認に失敗しました' });
+      db.close();
       return;
     }
-    res.json({ id: this.lastID, message: '配達パターンが正常に保存されました' });
+    const hasConfirmed = (rows || []).some(r => String(r.status) === 'confirmed');
+    if (hasConfirmed) {
+      res.status(400).json({ error: '指定期間に確定済みの月が含まれるため配達パターンを保存できません。先に確定解除を行ってください。' });
+      db.close();
+      return;
+    }
+
+    db.run(query, [customer_id, product_id, JSON.stringify(delivery_days), quantity, start_date, end_date], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        db.close();
+        return;
+      }
+      res.json({ id: this.lastID, message: '配達パターンが正常に保存されました' });
+      db.close();
+    });
   });
-  
-  db.close();
 });
 
 // 日別配達データ取得

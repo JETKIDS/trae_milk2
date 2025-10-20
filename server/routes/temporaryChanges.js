@@ -80,26 +80,49 @@ router.post('/', (req, res) => {
     ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
-  db.run(query, [
-    customer_id,
-    change_date,
-    change_type,
-    product_id || null,
-    quantity || null,
-    unit_price || null,
-    reason || null
-  ], function(err) {
-    if (err) {
-      console.error('臨時変更作成エラー:', err);
-      res.status(500).json({ error: '臨時変更の作成に失敗しました' });
-    } else {
-      res.status(201).json({ 
-        id: this.lastID,
-        message: '臨時変更が作成されました'
+  // 対象年月が確定済みかチェック（確定済みなら作成を拒否）
+  try {
+    const y = Number(String(change_date).slice(0, 4));
+    const m = Number(String(change_date).slice(5, 7));
+    const checkSql = 'SELECT status FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?';
+    db.get(checkSql, [customer_id, y, m], (chkErr, inv) => {
+      if (chkErr) {
+        console.error('確定状況チェックエラー:', chkErr);
+        res.status(500).json({ error: '確定状況の確認に失敗しました' });
+        db.close();
+        return;
+      }
+      if (inv && String(inv.status) === 'confirmed') {
+        res.status(400).json({ error: '指定年月は確定済みのため臨時変更を登録できません。先に確定解除を行ってください。' });
+        db.close();
+        return;
+      }
+      db.run(query, [
+        customer_id,
+        change_date,
+        change_type,
+        product_id || null,
+        quantity || null,
+        unit_price || null,
+        reason || null
+      ], function(err) {
+        if (err) {
+          console.error('臨時変更作成エラー:', err);
+          res.status(500).json({ error: '臨時変更の作成に失敗しました' });
+        } else {
+          res.status(201).json({ 
+            id: this.lastID,
+            message: '臨時変更が作成されました'
+          });
+        }
+        db.close();
       });
-    }
+    });
+  } catch (e) {
+    console.error('確定状況チェック処理エラー:', e);
+    res.status(500).json({ error: '確定状況の確認に失敗しました' });
     db.close();
-  });
+  }
 });
 
 // 臨時変更更新
@@ -123,24 +146,75 @@ router.put('/:id', (req, res) => {
     WHERE id = ?
   `;
 
-  db.run(query, [
-    change_date,
-    change_type,
-    product_id || null,
-    quantity || null,
-    unit_price || null,
-    reason || null,
-    id
-  ], function(err) {
-    if (err) {
-      console.error('臨時変更更新エラー:', err);
-      res.status(500).json({ error: '臨時変更の更新に失敗しました' });
-    } else if (this.changes === 0) {
-      res.status(404).json({ error: '臨時変更が見つかりません' });
-    } else {
-      res.json({ message: '臨時変更が更新されました' });
+  // 更新前後の対象年月が確定済みかチェック（確定済みなら更新を拒否）
+  const selectSql = 'SELECT customer_id, change_date FROM temporary_changes WHERE id = ?';
+  db.get(selectSql, [id], (selErr, row) => {
+    if (selErr) {
+      console.error('既存臨時変更取得エラー:', selErr);
+      res.status(500).json({ error: '既存データの取得に失敗しました' });
+      db.close();
+      return;
     }
-    db.close();
+    if (!row) {
+      res.status(404).json({ error: '臨時変更が見つかりません' });
+      db.close();
+      return;
+    }
+    const cid = row.customer_id;
+    const oldY = Number(String(row.change_date).slice(0, 4));
+    const oldM = Number(String(row.change_date).slice(5, 7));
+    const newY = Number(String(change_date).slice(0, 4));
+    const newM = Number(String(change_date).slice(5, 7));
+
+    const checkSql = 'SELECT status FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?';
+    // 新しい年月の確定チェック
+    db.get(checkSql, [cid, newY, newM], (chkErrNew, invNew) => {
+      if (chkErrNew) {
+        console.error('確定状況チェックエラー(新):', chkErrNew);
+        res.status(500).json({ error: '確定状況の確認に失敗しました' });
+        db.close();
+        return;
+      }
+      if (invNew && String(invNew.status) === 'confirmed') {
+        res.status(400).json({ error: '指定年月は確定済みのため臨時変更を更新できません。先に確定解除を行ってください。' });
+        db.close();
+        return;
+      }
+      // 既存（旧）年月の確定チェック
+      db.get(checkSql, [cid, oldY, oldM], (chkErrOld, invOld) => {
+        if (chkErrOld) {
+          console.error('確定状況チェックエラー(旧):', chkErrOld);
+          res.status(500).json({ error: '確定状況の確認に失敗しました' });
+          db.close();
+          return;
+        }
+        if (invOld && String(invOld.status) === 'confirmed') {
+          res.status(400).json({ error: '指定年月は確定済みのため臨時変更を更新できません。先に確定解除を行ってください。' });
+          db.close();
+          return;
+        }
+        // 確定済みでない場合のみ更新を実行
+        db.run(query, [
+          change_date,
+          change_type,
+          product_id || null,
+          quantity || null,
+          unit_price || null,
+          reason || null,
+          id
+        ], function(err) {
+          if (err) {
+            console.error('臨時変更更新エラー:', err);
+            res.status(500).json({ error: '臨時変更の更新に失敗しました' });
+          } else if (this.changes === 0) {
+            res.status(404).json({ error: '臨時変更が見つかりません' });
+          } else {
+            res.json({ message: '臨時変更が更新されました' });
+          }
+          db.close();
+        });
+      });
+    });
   });
 });
 
@@ -150,17 +224,49 @@ router.delete('/:id', (req, res) => {
   const db = getDB();
 
   const query = 'DELETE FROM temporary_changes WHERE id = ?';
-  
-  db.run(query, [id], function(err) {
-    if (err) {
-      console.error('臨時変更削除エラー:', err);
-      res.status(500).json({ error: '臨時変更の削除に失敗しました' });
-    } else if (this.changes === 0) {
-      res.status(404).json({ error: '臨時変更が見つかりません' });
-    } else {
-      res.json({ message: '臨時変更が削除されました' });
+
+  // 対象年月が確定済みかチェック（確定済みなら削除を拒否）
+  const selectSql = 'SELECT customer_id, change_date FROM temporary_changes WHERE id = ?';
+  db.get(selectSql, [id], (selErr, row) => {
+    if (selErr) {
+      console.error('既存臨時変更取得エラー:', selErr);
+      res.status(500).json({ error: '既存データの取得に失敗しました' });
+      db.close();
+      return;
     }
-    db.close();
+    if (!row) {
+      res.status(404).json({ error: '臨時変更が見つかりません' });
+      db.close();
+      return;
+    }
+    const y = Number(String(row.change_date).slice(0, 4));
+    const m = Number(String(row.change_date).slice(5, 7));
+    const checkSql = 'SELECT status FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?';
+    db.get(checkSql, [row.customer_id, y, m], (chkErr, inv) => {
+      if (chkErr) {
+        console.error('確定状況チェックエラー:', chkErr);
+        res.status(500).json({ error: '確定状況の確認に失敗しました' });
+        db.close();
+        return;
+      }
+      if (inv && String(inv.status) === 'confirmed') {
+        res.status(400).json({ error: '指定年月は確定済みのため臨時変更を削除できません。先に確定解除を行ってください。' });
+        db.close();
+        return;
+      }
+
+      db.run(query, [id], function(err) {
+        if (err) {
+          console.error('臨時変更削除エラー:', err);
+          res.status(500).json({ error: '臨時変更の削除に失敗しました' });
+        } else if (this.changes === 0) {
+          res.status(404).json({ error: '臨時変更が見つかりません' });
+        } else {
+          res.json({ message: '臨時変更が削除されました' });
+        }
+        db.close();
+      });
+    });
   });
 });
 

@@ -67,6 +67,7 @@ interface TemporaryChangeManagerProps {
   customerId: number;
   changes: TemporaryChange[];
   onChangesUpdate: () => void;
+  readOnly?: boolean;
 }
 
 export interface TemporaryChangeManagerHandle {
@@ -77,6 +78,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
   customerId,
   changes,
   onChangesUpdate,
+  readOnly,
 }, ref) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
@@ -104,6 +106,10 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
   };
 
   const handleOpenDialog = (change?: TemporaryChange) => {
+    if (readOnly) {
+      setSnackbar({ open: true, message: '確定済みの月のため編集できません。', severity: 'error' });
+      return;
+    }
     if (change) {
       setEditingChange(change);
       setFormData(change);
@@ -123,6 +129,10 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
   // 外部から「臨時商品追加」ダイアログを開くためのハンドル
   useImperativeHandle(ref, () => ({
     openAddForDate: (date: string) => {
+      if (readOnly) {
+        setSnackbar({ open: true, message: '確定済みの月のため編集できません。', severity: 'error' });
+        return;
+      }
       setEditingChange(null);
       setFormData({
         customer_id: customerId,
@@ -163,6 +173,10 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
 
   const handleSave = async () => {
     try {
+      if (readOnly) {
+        setSnackbar({ open: true, message: '確定済みの月のため編集できません。', severity: 'error' });
+        return;
+      }
       if (!formData.change_date) {
         setSnackbar({
           open: true,
@@ -210,6 +224,10 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
   };
 
   const handleDelete = async (changeId: number) => {
+    if (readOnly) {
+      setSnackbar({ open: true, message: '確定済みの月のため編集できません。', severity: 'error' });
+      return;
+    }
     if (!window.confirm('この臨時変更を削除しますか？')) {
       return;
     }
@@ -267,8 +285,10 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpenDialog()}
+            disabled={readOnly}
+            title={readOnly ? '確定済みの月のため編集不可' : undefined}
           >
-            臨時変更追加
+            変更追加
           </Button>
         </Box>
 
@@ -310,6 +330,8 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
                     <IconButton
                       size="small"
                       onClick={() => handleOpenDialog(change)}
+                      disabled={readOnly}
+                      title={readOnly ? '確定済みの月のため編集不可' : undefined}
                     >
                       <EditIcon />
                     </IconButton>
@@ -317,6 +339,8 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
                       size="small"
                       color="error"
                       onClick={() => handleDelete(change.id!)}
+                      disabled={readOnly}
+                      title={readOnly ? '確定済みの月のため編集不可' : undefined}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -423,7 +447,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
             <Button onClick={handleCloseDialog} startIcon={<CancelIcon />}>
               キャンセル
             </Button>
-            <Button onClick={handleSave} variant="contained" startIcon={<SaveIcon />}>
+            <Button onClick={handleSave} variant="contained" startIcon={<SaveIcon />} disabled={readOnly} title={readOnly ? '確定済みの月のため編集不可' : undefined}>
               保存
             </Button>
           </DialogActions>
