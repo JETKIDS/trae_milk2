@@ -218,9 +218,54 @@ interface ProductMaster {
     return Math.round(taxSum);
   }, [calendar, productMapByName, getTaxRateForProductName]);
 
+  // 印刷時の向きを動的に切り替えるヘルパー（A4 横／余白込み）
+  const PRINT_ORIENTATION_STYLE_ID = 'print-page-orientation';
+  const injectPrintOrientation = (orientation: 'landscape' | 'portrait') => {
+    try {
+      let el = document.getElementById(PRINT_ORIENTATION_STYLE_ID) as HTMLStyleElement | null;
+      if (!el) {
+        el = document.createElement('style');
+        el.id = PRINT_ORIENTATION_STYLE_ID;
+        el.media = 'print';
+        document.head.appendChild(el);
+      }
+      const margin = orientation === 'landscape' ? 'margin: 6mm 7mm 6mm 8mm;' : '';
+      el.textContent = `@page { size: A4 ${orientation}; ${margin} }`;
+    } catch (e) {
+      // noop
+    }
+  };
+  const removePrintOrientation = () => {
+    try {
+      const el = document.getElementById(PRINT_ORIENTATION_STYLE_ID);
+      if (el) el.remove();
+    } catch (e) {
+      // noop
+    }
+  };
+
   const handlePrint = () => {
+    // 請求書は横向きに設定してから印刷
+    injectPrintOrientation('landscape');
     window.print();
   };
+
+  // ブラウザの印刷（Ctrl+P 等）にも対応：beforeprint/afterprint で向きを適用・解除
+  useEffect(() => {
+    const onBeforePrint = () => injectPrintOrientation('landscape');
+    const onAfterPrint = () => removePrintOrientation();
+    window.addEventListener('beforeprint', onBeforePrint);
+    window.addEventListener('afterprint', onAfterPrint);
+    const mql = window.matchMedia('print');
+    const onChange = (e: MediaQueryListEvent) => { if (e.matches) onBeforePrint(); else onAfterPrint(); };
+    try { mql.addEventListener('change', onChange); } catch { /* Safari等 */ mql.addListener(onChange as any); }
+    return () => {
+      window.removeEventListener('beforeprint', onBeforePrint);
+      window.removeEventListener('afterprint', onAfterPrint);
+      try { mql.removeEventListener('change', onChange); } catch { mql.removeListener(onChange as any); }
+      removePrintOrientation();
+    };
+  }, []);
 
   // 月次未確定時はブロック表示フラグ（Hook順序維持のため早期returnは行わない）
   const isBlocked = confirmedStatus && !confirmedStatus.confirmed;

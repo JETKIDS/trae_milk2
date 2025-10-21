@@ -3,6 +3,7 @@ import { Box, Typography, Card, CardContent, Button, Stack, Divider, Alert, Togg
 import BulkCollection from './BulkCollection';
 import InvoiceIssuance from './InvoiceIssuance';
 import MonthlyManagement from './MonthlyManagement';
+import CollectionList from './CollectionList';
 
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -118,12 +119,14 @@ const BillingOperations: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+      {/* 印刷時はタイトルを非表示 */}
+      <Typography variant="h4" component="h1" gutterBottom className="no-print">
         請求業務
       </Typography>
 
       <Stack spacing={3}>
-        <Card>
+        {/* タブカードも印刷時は非表示 */}
+        <Card className="no-print">
           <CardContent>
             <Tabs value={activeTab} onChange={handleChangeTab} aria-label="billing tabs">
               <Tab label="請求書発行" value="invoices" />
@@ -136,7 +139,7 @@ const BillingOperations: React.FC = () => {
         </Card>
 
         {activeTab === 'bulk' && (
-          <>
+          <> 
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>集金方法</Typography>
@@ -160,7 +163,7 @@ const BillingOperations: React.FC = () => {
         )}
 
         {activeTab === 'collectionList' && (
-          <BulkCollection method="both" readOnly />
+          <CollectionList />
         )}
 
         {activeTab === 'debitData' && (

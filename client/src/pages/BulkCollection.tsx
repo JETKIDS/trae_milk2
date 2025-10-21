@@ -8,6 +8,19 @@ interface InvoiceItem { customer_id: number; amount: number; confirmed: boolean;
 
 const now = new Date();
 
+// fetchのタイムアウトユーティリティ（デフォルト30秒）
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit & { timeoutMs?: number }) {
+  const controller = new AbortController();
+  const timeoutMs = init?.timeoutMs ?? 30_000;
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(input, { ...init, signal: controller.signal });
+    return resp;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export default function BulkCollection({ method = 'collection', readOnly = false }: { method?: 'collection' | 'debit' | 'both'; readOnly?: boolean }) {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -29,23 +42,33 @@ export default function BulkCollection({ method = 'collection', readOnly = false
 
   useEffect(() => {
     const loadCourses = async () => {
-      const resp = await fetch('/api/masters/courses');
-      const rows: Course[] = await resp.json();
-      setCourses(rows);
+      try {
+        const resp = await fetchWithTimeout('/api/masters/courses');
+        const rows: Course[] = await resp.json();
+        setCourses(rows);
+      } catch (e) {
+        console.error('コース一覧の取得に失敗（タイムアウト/ネットワーク）:', e);
+        setCourses([]);
+      }
     };
     loadCourses();
   }, []);
 
   const fetchInvoicesAmounts = async (cid: number, y: number, m: number, meth: 'collection' | 'debit') => {
-    const resp = await fetch(`/api/customers/by-course/${cid}/invoices-amounts?year=${y}&month=${m}&method=${meth}`);
-    const json: { items: InvoiceItem[] } = await resp.json();
-    const invMap: Record<number, number> = {};
-    const confMap: Record<number, boolean> = {};
-    for (const it of (json.items || [])) {
-      invMap[it.customer_id] = it.amount;
-      confMap[it.customer_id] = !!it.confirmed;
+    try {
+      const resp = await fetchWithTimeout(`/api/customers/by-course/${cid}/invoices-amounts?year=${y}&month=${m}&method=${meth}`);
+      const json: { items: InvoiceItem[] } = await resp.json();
+      const invMap: Record<number, number> = {};
+      const confMap: Record<number, boolean> = {};
+      for (const it of (json.items || [])) {
+        invMap[it.customer_id] = it.amount;
+        confMap[it.customer_id] = !!it.confirmed;
+      }
+      return { invMap, confMap };
+    } catch (e) {
+      console.error('請求額取得に失敗（タイムアウト/ネットワーク）:', e);
+      return { invMap: {}, confMap: {} };
     }
-    return { invMap, confMap };
   };
 
   const fetchInvoicesAmountsMerged = async (cid: number, y: number, m: number) => {
@@ -55,39 +78,58 @@ export default function BulkCollection({ method = 'collection', readOnly = false
   };
 
   const fetchPaymentsSumMap = async (cid: number, y: number, m: number) => {
-    const resp = await fetch(`/api/customers/by-course/${cid}/payments-sum?year=${y}&month=${m}`);
-    const json: { items: { customer_id: number; total: number }[] } = await resp.json();
-    const paidMap: Record<number, number> = {};
-    for (const it of (json.items || [])) {
-      paidMap[it.customer_id] = it.total || 0;
+    try {
+      const resp = await fetchWithTimeout(`/api/customers/by-course/${cid}/payments-sum?year=${y}&month=${m}`);
+      const json: { items: { customer_id: number; total: number }[] } = await resp.json();
+      const paidMap: Record<number, number> = {};
+      for (const it of (json.items || [])) {
+        paidMap[it.customer_id] = it.total || 0;
+      }
+      return paidMap;
+    } catch (e) {
+      console.error('入金済み合計取得に失敗（タイムアウト/ネットワーク）:', e);
+      return {};
     }
-    return paidMap;
   };
 
   const loadCustomers = async (cid: number) => {
-    const co = courses.find(c => c.id === cid);
-    const addCourseInfo = (list: Customer[]) => list.map(c => ({ ...c, course_name: co?.course_name, course_custom_id: co?.custom_id }));
-    let rows: Customer[] = [];
-    if (readOnly || method === 'both') {
-      const respC = await fetch(`/api/customers/by-course/${cid}/collection`);
-      const coll: Customer[] = await respC.json();
-      const respD = await fetch(`/api/customers/by-course/${cid}/debit`);
-      const deb: Customer[] = await respD.json();
-      rows = addCourseInfo(coll.map(c => ({ ...c, billing_method: c.billing_method || 'collection' })))
-        .concat(addCourseInfo(deb.map(c => ({ ...c, billing_method: c.billing_method || 'debit' }))));
-    } else {
-      const resp = await fetch(`/api/customers/by-course/${cid}/${method === 'debit' ? 'debit' : 'collection'}`);
-      const list: Customer[] = await resp.json();
-      rows = addCourseInfo(list.map(c => ({ ...c, billing_method: c.billing_method || (method === 'debit' ? 'debit' : 'collection') })));
+    try {
+      const co = courses.find(c => c.id === cid);
+      const addCourseInfo = (list: Customer[]) => list.map(c => ({ ...c, course_name: co?.course_name, course_custom_id: co?.custom_id }));
+      let rows: Customer[] = [];
+      if (readOnly || method === 'both') {
+        try {
+          const respC = await fetchWithTimeout(`/api/customers/by-course/${cid}/collection`);
+          const coll: Customer[] = await respC.json();
+          const respD = await fetchWithTimeout(`/api/customers/by-course/${cid}/debit`);
+          const deb: Customer[] = await respD.json();
+          rows = addCourseInfo(coll.map(c => ({ ...c, billing_method: c.billing_method || 'collection' })))
+            .concat(addCourseInfo(deb.map(c => ({ ...c, billing_method: c.billing_method || 'debit' }))));
+        } catch (e) {
+          console.error('顧客リスト取得に失敗（タイムアウト/ネットワーク）:', e);
+          rows = [];
+        }
+      } else {
+        try {
+          const resp = await fetchWithTimeout(`/api/customers/by-course/${cid}/${method === 'debit' ? 'debit' : 'collection'}`);
+          const list: Customer[] = await resp.json();
+          rows = addCourseInfo(list.map(c => ({ ...c, billing_method: c.billing_method || (method === 'debit' ? 'debit' : 'collection') })));
+        } catch (e) {
+          console.error('顧客リスト取得に失敗（タイムアウト/ネットワーク）:', e);
+          rows = [];
+        }
+      }
+      setCustomers(rows);
+      setChecked({});
+      setAmounts({});
+      const { invMap, confMap } = await fetchInvoicesAmountsMerged(cid, year, month);
+      setInvoiceAmounts(prev => ({ ...prev, ...invMap }));
+      setConfirmedMap(prev => ({ ...prev, ...confMap }));
+      const paidMap = await fetchPaymentsSumMap(cid, year, month);
+      setPaidTotals(prev => ({ ...prev, ...paidMap }));
+    } catch (e) {
+      console.error('顧客・請求関連データ取得に失敗:', e);
     }
-    setCustomers(rows);
-    setChecked({});
-    setAmounts({});
-    const { invMap, confMap } = await fetchInvoicesAmountsMerged(cid, year, month);
-    setInvoiceAmounts(prev => ({ ...prev, ...invMap }));
-    setConfirmedMap(prev => ({ ...prev, ...confMap }));
-    const paidMap = await fetchPaymentsSumMap(cid, year, month);
-    setPaidTotals(prev => ({ ...prev, ...paidMap }));
   };
 
   const loadAllCoursesData = async () => {
@@ -98,16 +140,26 @@ export default function BulkCollection({ method = 'collection', readOnly = false
     for (const co of courses) {
       let rows: Customer[] = [];
       if (readOnly || method === 'both') {
-        const respC = await fetch(`/api/customers/by-course/${co.id}/collection`);
-        const coll: Customer[] = await respC.json();
-        const respD = await fetch(`/api/customers/by-course/${co.id}/debit`);
-        const deb: Customer[] = await respD.json();
-        rows = coll.map(c => ({ ...c, billing_method: c.billing_method || 'collection', course_name: co.course_name, course_custom_id: co.custom_id }))
-          .concat(deb.map(c => ({ ...c, billing_method: c.billing_method || 'debit', course_name: co.course_name, course_custom_id: co.custom_id })));
+        try {
+          const respC = await fetchWithTimeout(`/api/customers/by-course/${co.id}/collection`);
+          const coll: Customer[] = await respC.json();
+          const respD = await fetchWithTimeout(`/api/customers/by-course/${co.id}/debit`);
+          const deb: Customer[] = await respD.json();
+          rows = coll.map(c => ({ ...c, billing_method: c.billing_method || 'collection', course_name: co.course_name, course_custom_id: co.custom_id }))
+            .concat(deb.map(c => ({ ...c, billing_method: c.billing_method || 'debit', course_name: co.course_name, course_custom_id: co.custom_id })));
+        } catch (e) {
+          console.error('全コース顧客取得に失敗（タイムアウト/ネットワーク）:', e);
+          rows = [];
+        }
       } else {
-        const resp = await fetch(`/api/customers/by-course/${co.id}/${method === 'debit' ? 'debit' : 'collection'}`);
-        const list: Customer[] = await resp.json();
-        rows = list.map(c => ({ ...c, billing_method: c.billing_method || (method === 'debit' ? 'debit' : 'collection'), course_name: co.course_name, course_custom_id: co.custom_id }));
+        try {
+          const resp = await fetchWithTimeout(`/api/customers/by-course/${co.id}/${method === 'debit' ? 'debit' : 'collection'}`);
+          const list: Customer[] = await resp.json();
+          rows = list.map(c => ({ ...c, billing_method: c.billing_method || (method === 'debit' ? 'debit' : 'collection'), course_name: co.course_name, course_custom_id: co.custom_id }));
+        } catch (e) {
+          console.error('全コース顧客取得に失敗（タイムアウト/ネットワーク）:', e);
+          rows = [];
+        }
       }
       allRows = allRows.concat(rows);
       const { invMap, confMap } = await fetchInvoicesAmountsMerged(co.id, year, month);
@@ -218,11 +270,9 @@ export default function BulkCollection({ method = 'collection', readOnly = false
     return customers.reduce((sum, c) => {
       if (!checked[c.id]) return sum;
       const rem = remainingMap[c.id] || 0;
-      const override = amounts[c.id];
-      const planned = override && override > 0 ? Math.min(override, rem) : rem;
-      return sum + (isNaN(planned) ? 0 : planned);
+      return sum + (amounts[c.id] || Math.min(rem, commonAmount || 0));
     }, 0);
-  }, [customers, checked, remainingMap, amounts]);
+  }, [customers, checked, remainingMap, amounts, commonAmount]);
 
   const register = async () => {
     try {
@@ -233,37 +283,46 @@ export default function BulkCollection({ method = 'collection', readOnly = false
         .map(c => {
           const rem = remainingMap[c.id] || 0;
           const override = amounts[c.id];
-          const planned = override && override > 0 ? Math.min(override, rem) : rem;
+          const planned = (override && override > 0) ? Math.min(override, rem) : rem;
           return { customer_id: c.id, amount: planned, note };
         });
       if (entries.length === 0) {
         setMessage('チェック済みで金額が設定された顧客がありません（未確定の顧客は選択できません）');
         return;
       }
-      // 金額0は除外
       const filtered = entries.filter(e => e.amount && e.amount > 0);
       if (filtered.length === 0) {
         setMessage('残額がないため登録できません');
         return;
       }
-      const resp = await fetch('/api/customers/payments/batch', {
+      const resp = await fetchWithTimeout('/api/customers/payments/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year, month, entries: filtered, method })
+        body: JSON.stringify({ year, month, entries: filtered, method }),
       });
       const json = await resp.json();
       if (!resp.ok) {
         setMessage(`エラー: ${json?.error || resp.statusText}`);
       } else {
         setMessage(`登録完了: 成功 ${json.success} 件 / 失敗 ${json.failed} 件`);
-        // 登録後は入金済み合計を再取得して残額を更新し、選択状態と手入力額をクリア
         if (typeof courseId === 'number') {
           const paidMap = await fetchPaymentsSumMap(courseId, year, month);
           setPaidTotals(prev => ({ ...prev, ...paidMap }));
+        } else {
+          // 全コース表示時は全コースのpaidTotalsを再構成
+          const paidAll: Record<number, number> = {};
+          for (const co of courses) {
+            const pm = await fetchPaymentsSumMap(co.id, year, month);
+            Object.assign(paidAll, pm);
+          }
+          setPaidTotals(paidAll);
         }
         setChecked({});
         setAmounts({});
       }
+    } catch (e) {
+      console.error('一括入金登録に失敗（タイムアウト/ネットワーク）:', e);
+      setMessage('登録に失敗しました（ネットワーク/タイムアウト）');
     } finally {
       setRegistering(false);
     }
@@ -272,6 +331,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
   return (
     <Container maxWidth="lg" sx={{ mt: 3 }}>
       <Typography variant="h5" gutterBottom>{readOnly ? '集金一覧表' : `コース別 一括入金（${method === 'debit' ? '引き落し' : '集金'}）`}</Typography>
+
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={3}>
@@ -290,6 +350,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
               <Box />
             )}
           </Grid>
+
           {viewMode === 'perCourse' && (
             <Grid item xs={12} sm={6}>
               <Select fullWidth displayEmpty value={courseId} onChange={onChangeCourse}>
@@ -300,6 +361,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
               </Select>
             </Grid>
           )}
+
           <Grid item xs={12}>
             <Box display="flex" gap={2} alignItems="center" justifyContent="flex-end">
               {!readOnly && (
@@ -328,6 +390,10 @@ export default function BulkCollection({ method = 'collection', readOnly = false
           </Grid>
         </Grid>
       </Paper>
+
+      {message && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{message}</Typography>
+      )}
 
       <Paper sx={{ p: 2 }}>
         {customersSorted.length === 0 ? (

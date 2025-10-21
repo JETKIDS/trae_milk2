@@ -1,8 +1,5 @@
-@page {
-  size: A4 landscape;
-  /* 余白調整：右を短く、左を長く（上下 6mm に戻す） */
-  margin: 6mm 7mm 6mm 8mm;
-}
+/* 印刷時の用紙サイズ・向き・余白は動的に注入します（InvoicePreview/InvoiceBatchPreview で beforeprint に @page を追加）。
+   ここでは固定の @page を宣言しないことで、他ページ（集金一覧など）に横向き設定が波及しないようにします。 */
 
 .invoice-root {
   font-family: 'MS Mincho', 'Yu Mincho', 'Noto Serif JP', serif;
