@@ -11,6 +11,7 @@ import TemporaryChangeManager from '../components/TemporaryChangeManager';
 // 追記: 入金履歴ダイアログと型
 import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
 import { ArInvoiceStatus } from '../types/ledger';
+import BankAccountDialog from '../components/BankAccountDialog';
 
 // 型定義補完（このファイルで参照されるが、別ページにのみ存在していたためローカルに定義）
 interface CalendarProduct {
@@ -143,6 +144,12 @@ const CustomerDetail: React.FC = () => {
   // 請求設定
   const [billingMethod, setBillingMethod] = useState<'collection' | 'debit'>('collection');
   const [billingRoundingEnabled, setBillingRoundingEnabled] = useState<boolean>(true);
+  // 口座情報 state（引き落し設定時に使用）
+  const [bankCode, setBankCode] = useState<string>('');
+  const [branchCode, setBranchCode] = useState<string>('');
+  const [accountType, setAccountType] = useState<number | null>(null);
+  const [accountNumber, setAccountNumber] = useState<string>('');
+  const [accountHolderKatakana, setAccountHolderKatakana] = useState<string>('');
 
   // 前月請求/入金/繰越サマリー
   const [arSummary, setArSummary] = useState<any | null>(null);
@@ -283,6 +290,13 @@ const CustomerDetail: React.FC = () => {
       const re = settings?.rounding_enabled;
       if (bm === 'debit' || bm === 'collection') setBillingMethod(bm);
       setBillingRoundingEnabled(re === undefined || re === null ? true : !!re);
+      // 口座情報の読込（存在すれば事前に埋める）
+      setBankCode(settings?.bank_code || '');
+      setBranchCode(settings?.branch_code || '');
+      const at = settings?.account_type;
+      setAccountType(typeof at === 'number' ? at : (typeof at === 'string' && at !== '' ? Number(at) : null));
+      setAccountNumber(settings?.account_number || '');
+      setAccountHolderKatakana(settings?.account_holder_katakana || '');
     } catch (e) {
       console.error('請求設定取得エラー', e);
     }
@@ -1498,7 +1512,7 @@ const CustomerDetail: React.FC = () => {
             onSave={handleCustomerUpdated}
             isEdit={true}
             customer={customer}
-            onOpenBankInfo={() => setOpenBankInfo(true)}
+            onOpenBankInfo={() => { fetchSettings().then(() => setOpenBankInfo(true)).catch(() => setOpenBankInfo(true)); }}
           />
         )}
       </Box>
@@ -1529,8 +1543,14 @@ const CustomerDetail: React.FC = () => {
           onChangeBillingMethod={handleChangeBillingMethod}
           onOpenEditForm={handleOpenEditForm}
           onOpenUnitPriceChange={() => setOpenUnitPriceChange(true)}
-          onOpenBankInfo={() => setOpenBankInfo(true)}
+          onOpenBankInfo={() => { fetchSettings().then(() => setOpenBankInfo(true)).catch(() => setOpenBankInfo(true)); }}
           onOpenPaymentHistory={() => setOpenPaymentHistory(true)}
+          // 表示用口座情報
+          bankCode={bankCode || ''}
+          branchCode={branchCode || ''}
+          accountType={accountType ?? null}
+          accountNumber={accountNumber || ''}
+          accountHolderKatakana={accountHolderKatakana || ''}
         />
       </Grid>
 
@@ -1704,18 +1724,24 @@ const CustomerDetail: React.FC = () => {
 
       {/* 口座情報（引き落し選択時の詳細設定） */}
       <Grid item xs={12}>
-        <Dialog open={openBankInfo} onClose={() => setOpenBankInfo(false)} fullWidth maxWidth="sm">
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>口座情報</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              ここに金融機関名、支店名、口座種別、口座番号、名義などの入力欄を追加します。（未実装）
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button onClick={() => setOpenBankInfo(false)}>閉じる</Button>
-              <Button variant="contained" disabled>保存（未実装）</Button>
-            </Box>
-          </Box>
-        </Dialog>
+        <BankAccountDialog
+          customerId={Number(id)}
+          open={openBankInfo}
+          onClose={() => setOpenBankInfo(false)}
+          initialValues={{
+            bank_code: bankCode || '',
+            branch_code: branchCode || '',
+            account_type: accountType ?? null,
+            account_number: accountNumber || '',
+            account_holder_katakana: accountHolderKatakana || '',
+          }}
+          currentBillingMethod={billingMethod}
+          currentRoundingEnabled={billingRoundingEnabled}
+          onSaved={async () => {
+            await fetchSettings();
+            setOpenBankInfo(false);
+          }}
+        />
       </Grid>
 
       {/* セル編集ポップオーバー */}

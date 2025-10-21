@@ -24,6 +24,8 @@ const BillingOperations: React.FC = () => {
   const [loadingCourses, setLoadingCourses] = useState<boolean>(false);
   const [customers, setCustomers] = useState<Array<{ id: number; custom_id?: string; customer_name: string; address?: string; phone?: string }>>([]);
   const [loadingCustomers, setLoadingCustomers] = useState<boolean>(false);
+  const [generatingCsv, setGeneratingCsv] = useState<boolean>(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -83,6 +85,40 @@ const BillingOperations: React.FC = () => {
     }
   };
 
+  const handleGenerateCsv = async () => {
+    setGenerateError(null);
+    if (!outputMonth || !/^\d{4}-\d{2}$/.test(outputMonth)) {
+      setGenerateError('対象月(YYYY-MM)を入力してください');
+      return;
+    }
+    try {
+      setGeneratingCsv(true);
+      const params: any = { month: outputMonth };
+      if (selectedCourseId !== '' && !isNaN(Number(selectedCourseId))) {
+        params.courseId = Number(selectedCourseId);
+      }
+      const res = await axios.get('/api/debits/generate', {
+        params,
+        responseType: 'arraybuffer'
+      });
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ginkou.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('CSV生成失敗', err);
+      const msg = err?.response?.data?.error || err?.message || 'CSV生成に失敗しました';
+      setGenerateError(msg);
+    } finally {
+      setGeneratingCsv(false);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       setLoadingCourses(true);
@@ -98,7 +134,7 @@ const BillingOperations: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedCourseId && outputMonth) {
+    if (selectedCourseId !== '' && outputMonth) {
       (async () => {
         // month（YYYY-MM）は将来的に試算・確定額表示に使用予定。現時点では一覧取得のみ。
         setLoadingCustomers(true);
@@ -175,39 +211,112 @@ const BillingOperations: React.FC = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 引き落し用ファイル（全国銀行協会フォーマット）のプレビュー／解析を実行します。
               </Typography>
+
+              {/* 生成（CSVダウンロード） */}
+              <Stack spacing={2} sx={{ mb: 2 }}>
+                <Typography variant="subtitle1">CSV生成（{monthLabel}）</Typography>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                  <TextField
+                    label="対象月 (YYYY-MM)"
+                    type="month"
+                    value={outputMonth}
+                    onChange={(e) => setOutputMonth(e.target.value)}
+                    size="small"
+                  />
+                  <FormControl size="small" sx={{ minWidth: 180 }}>
+                    <InputLabel id="course-select-label" shrink>対象コース</InputLabel>
+                    <Select
+                      labelId="course-select-label"
+                      label="対象コース"
+                      value={selectedCourseId}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setSelectedCourseId(v === '' ? '' : Number(v));
+                      }}
+                      displayEmpty
+                      renderValue={() => {
+                        if (selectedCourseId === '') {
+                          return '全コース';
+                        }
+                        const selected = courses.find(c => c.id === Number(selectedCourseId));
+                        return selected ? `${selected.custom_id ? `${selected.custom_id} ` : ''}${selected.course_name}` : '';
+                      }}
+                    >
+                      <MenuItem value="">全コース</MenuItem>
+                      {courses.map(c => (
+                        <MenuItem key={c.id} value={c.id}>{c.custom_id ? `${c.custom_id} ` : ''}{c.course_name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  {/* 選択確認のための表示 */}
+                  <Typography variant="body2" color="text.secondary">
+                    選択中: {selectedCourseId === '' ? '全コース' : (courses.find(c => c.id === Number(selectedCourseId))?.course_name || selectedCourseId)}
+                  </Typography>
+                  <Button variant="contained" onClick={handleGenerateCsv} disabled={generatingCsv}>
+                    {generatingCsv ? '生成中...' : 'CSVを生成してダウンロード'}
+                  </Button>
+                </Stack>
+                {generateError && <Alert severity="error">{generateError}</Alert>}
+                <Typography variant="caption" color="text.secondary">
+                  ※ 現時点では「引き落し契約者（billing_method=debit）」のみを対象に、金額が0以下の顧客は除外して出力します。エンコード: CP932、改行: CRLF、ファイル名: ginkou.csv
+                </Typography>
+              </Stack>
+
               <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                 <Button variant="outlined" onClick={handleLoadPreview} disabled={loadingPreview}>
-                  プレビューを取得
+                  {loadingPreview ? '読み込み中...' : 'プレビューを読み込む'}
                 </Button>
                 <Button variant="outlined" onClick={handleLoadParse} disabled={loadingParse}>
-                  解析を取得
+                  {loadingParse ? '解析中...' : '解析を実行'}
                 </Button>
               </Stack>
-              {preview?.error && <Alert severity="error">{preview.error}</Alert>}
-              {preview && !preview.error && (
-                <Box sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 12 }}>
-                  <Typography variant="subtitle2">encoding: {preview.encoding}</Typography>
-                  <Typography variant="subtitle2">totalLines: {preview.totalLines}</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  {Array.isArray(preview.preview) && preview.preview.map((l: any) => (
-                    <Box key={l.index} sx={{ mb: 0.5 }}>
-                      [{l.index}] type={l.recordType} len={l.length} amt?={l.amountCandidate} text={l.sample}
-                    </Box>
-                  ))}
-                </Box>
+
+              {preview && (
+                <Card sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1">プレビュー結果</Typography>
+                    {preview.error ? (
+                      <Alert severity="error">{preview.error}</Alert>
+                    ) : (
+                      <>
+                        <Typography variant="body2">行数: {preview.totalLines}</Typography>
+                        <Typography variant="body2">レコード別件数: {preview.recordTypeCounts ? JSON.stringify(preview.recordTypeCounts) : '-'}</Typography>
+                        <Divider sx={{ my: 1 }} />
+                        <Box sx={{ maxHeight: 240, overflow: 'auto', border: '1px solid #eee', p: 1 }}>
+                          {preview.previewLines?.map((l: any) => (
+                            <Box key={l.idx} sx={{ fontFamily: 'monospace' }}>
+                              [{String(l.idx).padStart(3,'0')}] len={l.length} type={l.recordType} amount={l.amountCandidate || '-'} : {l.sample}
+                            </Box>
+                          ))}
+                        </Box>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               )}
-              {parse?.error && <Alert severity="error">{parse.error}</Alert>}
-              {parse && !parse.error && (
-                <Box sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 12 }}>
-                  <Typography variant="subtitle2">items: {Array.isArray(parse.items) ? parse.items.length : 0}</Typography>
-                  <Typography variant="subtitle2">linesAnalyzed: {parse.linesAnalyzed}</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  {Array.isArray(parse.items) && parse.items.map((it: any, idx: number) => (
-                    <Box key={idx} sx={{ mb: 0.5 }}>
-                      [#{it.idx}] len={it.length} name={it.name} amt?={it.amountCandidate}
-                    </Box>
-                  ))}
-                </Box>
+
+              {parse && (
+                <Card>
+                  <CardContent>
+                    <Typography variant="subtitle1">解析結果</Typography>
+                    {parse.error ? (
+                      <Alert severity="error">{parse.error}</Alert>
+                    ) : (
+                      <>
+                        <Typography variant="body2">解析行数: {parse.linesAnalyzed}</Typography>
+                        <Typography variant="body2">金額候補合計: {parse.totalAmountCandidate}</Typography>
+                        <Divider sx={{ my: 1 }} />
+                        <Box sx={{ maxHeight: 240, overflow: 'auto', border: '1px solid #eee', p: 1 }}>
+                          {parse.items?.map((it: any) => (
+                            <Box key={it.idx} sx={{ fontFamily: 'monospace' }}>
+                              [{String(it.idx).padStart(3,'0')}] len={it.length} name={it.name} amount={it.amountCandidate || '-'} : {it.raw}
+                            </Box>
+                          ))}
+                        </Box>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               )}
             </CardContent>
           </Card>

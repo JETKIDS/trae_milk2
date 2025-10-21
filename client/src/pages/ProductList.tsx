@@ -50,7 +50,7 @@ const ProductList: React.FC = () => {
       if (searchId) params.searchId = searchId;
       if (searchName) params.searchName = searchName;
       
-      const response = await axios.get('http://localhost:9000/api/products', { params });
+      const response = await axios.get('/api/products', { params });
       setProducts(response.data);
     } catch (error) {
       console.error('商品データの取得に失敗しました:', error);
@@ -97,7 +97,7 @@ const ProductList: React.FC = () => {
     const ok = window.confirm(`商品「${product.product_name}」を削除します。よろしいですか？`);
     if (!ok) return;
     try {
-      await axios.delete(`http://localhost:9000/api/products/${product.id}`);
+      await axios.delete(`/api/products/${product.id}`);
       await fetchProducts();
     } catch (error: any) {
       console.error('商品削除に失敗しました:', error);

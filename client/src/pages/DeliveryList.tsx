@@ -79,7 +79,7 @@ const ProductSummaryTab: React.FC = () => {
   // メーカー一覧を取得
   const fetchManufacturers = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/masters/manufacturers');
+      const response = await fetch('/api/masters/manufacturers');
       if (!response.ok) {
         throw new Error('メーカー一覧の取得に失敗しました');
       }
@@ -102,7 +102,7 @@ const ProductSummaryTab: React.FC = () => {
   // コース一覧を取得する関数
   const fetchCourses = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/masters/courses');
+      const response = await fetch('/api/masters/courses');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -118,7 +118,7 @@ const ProductSummaryTab: React.FC = () => {
     try {
       const allChanges: any[] = [];
       for (const cid of customerIds) {
-        const res = await fetch(`http://localhost:9000/api/temporary-changes/customer/${cid}/period/${start}/${end}`);
+        const res = await fetch(`/api/temporary-changes/customer/${cid}/period/${start}/${end}`);
         if (!res.ok) {
           throw new Error(`顧客ID ${cid} の臨時変更取得に失敗しました`);
         }
@@ -172,7 +172,7 @@ const ProductSummaryTab: React.FC = () => {
       // コース別表示モードかどうかで使用するAPIエンドポイントを切り替え
       if (!reflectSkips) {
         if (selectedCourse === 'all-by-course') {
-          const response = await fetch(`http://localhost:9000/api/delivery/products/summary-by-course?startDate=${startDate}&endDate=${endDate}${manufacturerParam}`);
+          const response = await fetch(`/api/delivery/products/summary-by-course?startDate=${startDate}&endDate=${endDate}${manufacturerParam}`);
           if (!response.ok) throw new Error('コース別商品合計データの取得に失敗しました');
           const data = await response.json();
           const formattedData = {
@@ -189,7 +189,7 @@ const ProductSummaryTab: React.FC = () => {
           setSummaryData(formattedData);
         } else {
           const courseParam = selectedCourse === 'all' ? '' : `&courseId=${selectedCourse}`;
-          const response = await fetch(`http://localhost:9000/api/delivery/products/summary?startDate=${startDate}&endDate=${endDate}${courseParam}${manufacturerParam}`);
+          const response = await fetch(`/api/delivery/products/summary?startDate=${startDate}&endDate=${endDate}${courseParam}${manufacturerParam}`);
           if (!response.ok) throw new Error('商品合計データの取得に失敗しました');
           const data = await response.json();
           const formattedData = {
@@ -207,7 +207,7 @@ const ProductSummaryTab: React.FC = () => {
         }
       } else {
         const courseParam = selectedCourse === 'all' || selectedCourse === 'all-by-course' ? '' : `&courseId=${selectedCourse}`;
-        const periodRes = await fetch(`http://localhost:9000/api/delivery/period?startDate=${startDate}&endDate=${endDate}${courseParam}`);
+        const periodRes = await fetch(`/api/delivery/period?startDate=${startDate}&endDate=${endDate}${courseParam}`);
         if (!periodRes.ok) throw new Error('配達データの取得に失敗しました');
         const periodData = await periodRes.json();
         const deliveriesByCourse = periodData.deliveries || {};
@@ -228,12 +228,12 @@ const ProductSummaryTab: React.FC = () => {
         const fetchCustomerIdsBySelection = async (): Promise<number[]> => {
           try {
             if (selectedCourse === 'all' || selectedCourse === 'all-by-course') {
-              const res = await fetch('http://localhost:9000/api/customers');
+              const res = await fetch('/api/customers');
               if (!res.ok) throw new Error('顧客一覧の取得に失敗しました');
               const rows = await res.json();
               return Array.isArray(rows) ? rows.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n)) : [];
             } else {
-              const res = await fetch(`http://localhost:9000/api/customers/by-course/${selectedCourse}`);
+              const res = await fetch(`/api/customers/by-course/${selectedCourse}`);
               if (!res.ok) throw new Error('コース別顧客一覧の取得に失敗しました');
               const rows = await res.json();
               return Array.isArray(rows) ? rows.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n)) : [];
@@ -279,7 +279,7 @@ const ProductSummaryTab: React.FC = () => {
 
         const getCourseNameForCustomerByApi = async (custId: number): Promise<string | null> => {
           try {
-            const res = await fetch(`http://localhost:9000/api/customers/${custId}`);
+            const res = await fetch(`/api/customers/${custId}`);
             if (!res.ok) return null;
             const json = await res.json();
             // /api/customers/:id は { customer: { course_name, ... }, patterns: [...] } の形で返却される
@@ -911,7 +911,7 @@ const ProductSummaryTab: React.FC = () => {
   // コース一覧を取得する関数
   const fetchCourses = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/masters/courses');
+      const response = await fetch('/api/masters/courses');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -927,7 +927,7 @@ const ProductSummaryTab: React.FC = () => {
     try {
       const changes: any[] = [];
       for (const cid of customerIds) {
-        const res = await fetch(`http://localhost:9000/api/temporary-changes/customer/${cid}/period/${start}/${end}`);
+        const res = await fetch(`/api/temporary-changes/customer/${cid}/period/${start}/${end}`);
         if (!res.ok) {
           throw new Error(`顧客ID ${cid} の臨時変更取得に失敗しました`);
         }
@@ -963,7 +963,7 @@ const ProductSummaryTab: React.FC = () => {
     try {
       const patterns: any[] = [];
       for (const cid of customerIds) {
-        const res = await fetch(`http://localhost:9000/api/delivery-patterns/customer/${cid}`);
+        const res = await fetch(`/api/delivery-patterns/customer/${cid}`);
         if (!res.ok) {
           throw new Error(`顧客ID ${cid} の配達パターン取得に失敗しました`);
         }
@@ -1055,7 +1055,7 @@ const ProductSummaryTab: React.FC = () => {
       const endDate = calculateEndDate(startDate, days);
       // 『全コース（コース別）』は期間APIでは『全コース』として扱う
       const courseParam = (selectedCourse === 'all' || selectedCourse === 'all-by-course') ? '' : `&courseId=${selectedCourse}`;
-      const response = await fetch(`http://localhost:9000/api/delivery/period?startDate=${startDate}&endDate=${endDate}${courseParam}`);
+      const response = await fetch(`/api/delivery/period?startDate=${startDate}&endDate=${endDate}${courseParam}`);
       
       if (!response.ok) {
         throw new Error('配達データの取得に失敗しました');
@@ -1082,7 +1082,7 @@ const ProductSummaryTab: React.FC = () => {
         try {
           // 『全コース（コース別）』も全顧客対象として扱う（期間中に配達がない顧客の臨時追加を拾うため）
           if (selectedCourse === 'all' || selectedCourse === 'all-by-course') {
-            const res = await fetch('http://localhost:9000/api/customers');
+            const res = await fetch('/api/customers');
             if (!res.ok) throw new Error('顧客一覧の取得に失敗しました');
             const rows = await res.json();
             if (!Array.isArray(rows)) return { ids: [], idToCustomId: new Map<number, string>() };
@@ -1096,7 +1096,7 @@ const ProductSummaryTab: React.FC = () => {
             const ids = rows.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n));
             return { ids, idToCustomId };
           } else {
-            const res = await fetch(`http://localhost:9000/api/customers/by-course/${selectedCourse}`);
+            const res = await fetch(`/api/customers/by-course/${selectedCourse}`);
             if (!res.ok) throw new Error('コース別顧客一覧の取得に失敗しました');
             const rows = await res.json();
             if (!Array.isArray(rows)) return { ids: [], idToCustomId: new Map<number, string>() };
@@ -1132,7 +1132,7 @@ const ProductSummaryTab: React.FC = () => {
         const results = await Promise.all(
           toFetch.map(async (cid) => {
             try {
-              const res = await fetch(`http://localhost:9000/api/customers/${cid}`);
+              const res = await fetch(`/api/customers/${cid}`);
               if (!res.ok) return { cid, custom_id: '' };
               const json = await res.json();
               const customId = String(json?.customer?.custom_id || json?.custom_id || '').trim();
@@ -1190,7 +1190,7 @@ const ProductSummaryTab: React.FC = () => {
 
       const getCourseNameForCustomerByApi = async (custId: number): Promise<string | null> => {
         try {
-          const res = await fetch(`http://localhost:9000/api/customers/${custId}`);
+          const res = await fetch(`/api/customers/${custId}`);
           if (!res.ok) return null;
           const json = await res.json();
           // /api/customers/:id は { customer: { course_name, ... }, patterns: [...] } の形で返却される

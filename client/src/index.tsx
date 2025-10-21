@@ -5,7 +5,7 @@ import App from './App';
 import axios from 'axios';
 
 // axiosのベースURL設定
-axios.defaults.baseURL = 'http://localhost:9000';
+axios.defaults.baseURL = (process.env.REACT_APP_API_BASE_URL || '').trim();
 // グローバルタイムアウト（30秒）を設定して、ネットワーク不調時に処理が永遠に待たないようにする
 axios.defaults.timeout = 30_000;
 // タイムアウト・ネットワークエラー時の共通ログ（必要に応じてUI通知へ拡張可能）

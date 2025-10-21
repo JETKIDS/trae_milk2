@@ -38,6 +38,12 @@ interface Props {
   onUnconfirmInvoice?: () => void;
   // 追記: 前月の請求確定有無（入金処理ガード用）
   prevMonthConfirmed?: boolean;
+  // 口座情報の表示用（任意）
+  bankCode?: string;
+  branchCode?: string;
+  accountType?: number | null;
+  accountNumber?: string;
+  accountHolderKatakana?: string;
   // onOpenBillingRounding?: () => void; // （UI移動により非使用）
 }
 
@@ -70,6 +76,12 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   onUnconfirmInvoice,
   // 追加: 前月確定フラグ
   prevMonthConfirmed,
+  // 表示用口座情報
+  bankCode,
+  branchCode,
+  accountType,
+  accountNumber,
+  accountHolderKatakana,
   // onOpenBillingRounding,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
@@ -141,6 +153,15 @@ const saveMethodChange = async () => {
   }
 };
 
+  // 口座情報が登録済みかの判定（厳しめの基準で判定）
+  const hasBankInfo = Boolean(
+    (bankCode && bankCode.trim().length === 4) ||
+    (branchCode && branchCode.trim().length === 3) ||
+    (accountNumber && accountNumber.trim().length === 7) ||
+    (typeof accountType === 'number' && (accountType === 1 || accountType === 2)) ||
+    (accountHolderKatakana && accountHolderKatakana.trim().length > 0)
+  );
+
   const renderBillingMethodSelector = () => (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <Typography variant="body2" color="text.secondary">請求方法</Typography>
@@ -159,12 +180,29 @@ const saveMethodChange = async () => {
         </Box>
       )}
       {effectiveMethod === 'debit' && (
-        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-          引き落しを利用する場合は口座情報の登録・確認が必要です。
-          {onOpenBankInfo && (
-            <Button size="small" sx={{ ml: 1 }} onClick={onOpenBankInfo}>口座情報を開く</Button>
-          )}
-        </Typography>
+        <Box sx={{ ml: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            引き落しを利用する場合は口座情報の登録・確認が必要です。
+            {onOpenBankInfo && (
+              <Button size="small" sx={{ ml: 1 }} onClick={onOpenBankInfo}>口座登録・修正</Button>
+            )}
+          </Typography>
+          {/* 登録済み口座情報の表示 */}
+          <Box sx={{ mt: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+            <Typography variant="caption" color="text.secondary">登録口座情報</Typography>
+            {hasBankInfo ? (
+              <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                <Typography variant="body2">金融機関コード: {bankCode || '-'}</Typography>
+                <Typography variant="body2">支店コード: {branchCode || '-'}</Typography>
+                <Typography variant="body2">預金種別: {accountType === 1 ? '普通' : accountType === 2 ? '当座' : '-'}</Typography>
+                <Typography variant="body2">口座番号: {accountNumber || '-'}</Typography>
+                <Typography variant="body2">口座名義: {accountHolderKatakana || '-'}</Typography>
+              </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary">未登録です。口座情報を登録してください。</Typography>
+            )}
+          </Box>
+        </Box>
       )}
     </Box>
   );
@@ -199,169 +237,102 @@ const saveMethodChange = async () => {
             <Typography variant="body2" color="text.secondary">顧客情報は読み込み中です</Typography>
           )}
           {/* 前月請求額＋入金処理 */}
-          {typeof prevInvoiceAmount === 'number' && typeof prevPaymentAmount === 'number' && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">前月請求額（{prevYear}/{prevMonth}）</Typography>
-              <Typography variant="h6">¥{(prevInvoiceAmount || 0).toLocaleString()}</Typography>
+          <Divider sx={{ my: 2 }} />
+          <Box>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>前月請求・入金</Typography>
+            {/* 入金モードの切替 */}
+            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+              <Chip label={entryMode === 'auto' ? '請求額に対する自動入金' : '手動入金'} size="small" variant="outlined" />
+              <Button size="small" variant="text" onClick={() => setEntryMode(entryMode === 'auto' ? 'manual' : 'auto')}>
+                {entryMode === 'auto' ? '手動に切替' : '自動に戻す'}
+              </Button>
+            </Stack>
+            {/* 自動入金時の金額 */}
+            {entryMode === 'auto' ? (
+              <Typography variant="body2" sx={{ mt: 1 }}>前月請求額: ¥{autoDisplayAmount.toLocaleString()} / 入金額入力不要</Typography>
+            ) : (
               <Box sx={{ mt: 1 }}>
-                <Typography variant="body2" color="text.secondary">入金額</Typography>
-                <Typography variant="body1">¥{(prevPaymentAmount || 0).toLocaleString()}</Typography>
-              </Box>
-              <Box sx={{ mt: 0.5 }}>
-                <Typography variant="body2" color="text.secondary">繰越額（差分）</Typography>
-                <Typography variant="body1">¥{diffCarryover.toLocaleString()}</Typography>
-              </Box>
-              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
-                <Button size="small" variant="outlined" onClick={handleOpen} sx={{ opacity: prevMonthConfirmed === false ? 0.5 : 1 }}>入金処理</Button>
-                {prevMonthConfirmed === false && (
-                  <Typography variant="caption" color="warning.main" sx={{ ml: 1 }}>
-                    前月が未確定のため入金処理はできません
-                  </Typography>
-                )}
-              </Box>
-              <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-                <Box sx={{ p: 2, maxWidth: 300 }}>
-                  <Typography variant="subtitle2" gutterBottom>前月分 入金登録</Typography>
-                  {/* 入金モード切替 */}
-                  <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                    <Button size="small" variant={entryMode === 'auto' ? 'contained' : 'outlined'} onClick={() => setEntryMode('auto')}>自動（前月請求額）</Button>
-                    <Button size="small" variant={entryMode === 'manual' ? 'contained' : 'outlined'} onClick={() => setEntryMode('manual')}>手動</Button>
-                  </Box>
-                  {/* 入金月の指定（デフォルトは前月） */}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2">入金額</Typography>
                   <TextField
-                    label="入金月"
-                    type="month"
-                    value={`${payYear}-${String(payMonth).padStart(2, '0')}`}
-                    onChange={(e) => {
-                      const val = e.target.value; // YYYY-MM
-                      const [yStr, mStr] = val.split('-');
-                      const y = Number(yStr);
-                      const m = Number(mStr);
-                      if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
-                        setPayYear(y);
-                        setPayMonth(m);
-                      }
-                    }}
-                    fullWidth
-                    sx={{ mb: 1 }}
-                    helperText="デフォルトは前月。必要に応じて変更してください。"
+                    size="small"
+                    type="number"
+                    inputProps={{ min: 0, step: 1 }}
+                    value={manualAmount}
+                    onChange={(e) => setManualAmount(e.target.value === '' ? '' : Number(e.target.value))}
                   />
-                  {entryMode === 'auto' ? (
-                    <TextField label="入金額" value={autoDisplayAmount.toLocaleString()} InputProps={{ readOnly: true }} fullWidth />
-                  ) : (
-                    <TextField label="入金額" type="number" value={manualAmount} onChange={(e) => setManualAmount(e.target.value === '' ? '' : Number(e.target.value))} fullWidth autoFocus />
-                  )}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
-                    <Button onClick={handleClose}>キャンセル</Button>
-                    <Button
-                      color="error"
-                      onClick={async () => {
-                        // 処理取り消し：選択中の入金月に対して、現在の前月入金額を打ち消す（負の入金）を登録
-                        if (!onSavePrevPayment) return;
-                        const cancelTarget = prevPaymentAmount || 0;
-                        if (cancelTarget <= 0) { handleClose(); return; }
-                        // 取り消しは手動扱い、金額は負値で登録
-                        await onSavePrevPayment(-cancelTarget, 'manual', payYear, payMonth);
-                        handleClose();
-                      }}
-                      disabled={(prevPaymentAmount || 0) <= 0}
-                    >処理を取り消す</Button>
-                    <Button variant="contained" disabled={!canSave} onClick={async () => {
-                      const amt = entryMode === 'auto' ? autoDisplayAmount : Number(manualAmount);
-                      if (!amt || amt <= 0) return;
-                      if (onSavePrevPayment) {
-                        await onSavePrevPayment(amt, entryMode, payYear, payMonth);
-                      }
-                      handleClose();
-                    }}>保存</Button>
-                  </Box>
-                </Box>
-              </Popover>
-            </Box>
-          )}
-          {typeof monthlyTotal === 'number' && (
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="body2" color="text.secondary">今月概算合計</Typography>
-              <Typography variant="h6" color="primary">
-                ¥{monthlyTotal.toLocaleString()}
-              </Typography>
-              {/* 月次確定ステータス */}
-              <Box sx={{ mt: 1 }}>
-                {invoiceConfirmed ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    <Chip label={`${currentYear}/${currentMonth} は確定済み`} size="small" color="success" variant="outlined" />
-                    {invoiceConfirmedAt && (
-                      <Typography variant="caption" color="text.secondary">確定日時: {new Date(invoiceConfirmedAt).toLocaleString('ja-JP')}</Typography>
-                    )}
-                    <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Button size="small" variant="outlined" color="error" onClick={onUnconfirmInvoice}>確定取消</Button>
-                      <Button size="small" variant="outlined" onClick={onOpenPaymentHistory}>入金履歴</Button>
-                    </Box>
-                  </Box>
-                ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    <Typography variant="caption" color="warning.main">未確定：パターン変更で金額が変動する可能性があります</Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Button size="small" variant="outlined" onClick={onConfirmInvoice}>月次確定</Button>
-                      <Button size="small" variant="outlined" onClick={onOpenPaymentHistory}>入金履歴</Button>
-                    </Box>
-                  </Box>
-                )}
+                  <Typography variant="body2">円</Typography>
+                  <Button variant="contained" size="small" disabled={!canSave} onClick={() => onSavePrevPayment && onSavePrevPayment(Number(manualAmount), 'manual', payYear, payMonth)}>
+                    登録
+                  </Button>
+                </Stack>
+                {/* 前月年月の選択 */}
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                  <TextField label="年" size="small" type="number" value={payYear} onChange={(e) => setPayYear(Number(e.target.value))} />
+                  <TextField label="月" size="small" type="number" value={payMonth} onChange={(e) => setPayMonth(Number(e.target.value))} />
+                </Stack>
               </Box>
-              {/* 端数処理のチェックボックス */}
-              <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">端数処理</Typography>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={!!billingRoundingEnabled}
-                      onChange={(e) => onToggleBillingRounding && onToggleBillingRounding(e.target.checked)}
-                      size="small"
-                    />
-                  }
-                  label="1の位切り捨て"
-                />
-              </Box>
-            </Box>
-          )}
+            )}
+          </Box>
         </CardContent>
       </Card>
 
+      {/* 入金登録カード */}
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            操作メニュー
-          </Typography>
+          <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 1 }}>入金登録</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button variant="contained" startIcon={<MonetizationOnIcon />} onClick={handleOpen}>
+              入金を登録
+            </Button>
+            <Button variant="text" onClick={onOpenPaymentHistory}>入金履歴</Button>
+            <Button variant="outlined" color="error" onClick={onUnconfirmInvoice}>月次請求確定取消</Button>
+          </Stack>
 
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            startIcon={<EditIcon />}
-            sx={{ mb: 1 }}
-            onClick={onOpenEditForm}
-          >
-            顧客情報を編集
-          </Button>
+          {/* 入金登録のポップオーバー */}
+          <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+            <Box sx={{ p: 2, minWidth: 320 }}>
+              <Typography variant="subtitle2">入金登録</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {prevMonth ? `${prevYear}年${prevMonth}月の入金を登録します。` : '入金対象の月を選択してください。'}
+              </Typography>
+              {/* 自動/手動 切替 */}
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <FormControlLabel control={<Checkbox checked={entryMode === 'manual'} onChange={(e) => setEntryMode(e.target.checked ? 'manual' : 'auto')} />} label="手動入力" />
+                <FormControlLabel control={<Checkbox checked={entryMode === 'auto'} onChange={(e) => setEntryMode(e.target.checked ? 'auto' : 'manual')} />} label="請求額に対する自動入金" />
+              </Stack>
 
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-            商品・配達に関する変更
-          </Typography>
+              {/* 自動時の表示 */}
+              {entryMode === 'auto' ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2">自動入金額</Typography>
+                  <Chip label={`¥${autoDisplayAmount.toLocaleString()}`} color="primary" size="small" />
+                </Box>
+              ) : (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <TextField size="small" type="number" inputProps={{ min: 0, step: 1 }} value={manualAmount} onChange={(e) => setManualAmount(e.target.value === '' ? '' : Number(e.target.value))} />
+                  <Typography variant="body2">円</Typography>
+                </Stack>
+              )}
 
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<MonetizationOnIcon />}
-            sx={{ mb: 1 }}
-            onClick={onOpenUnitPriceChange}
-          >
-            単価変更
-          </Button>
+              {/* 年月の入力 */}
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <TextField label="年" size="small" type="number" value={payYear} onChange={(e) => setPayYear(Number(e.target.value))} />
+                <TextField label="月" size="small" type="number" value={payMonth} onChange={(e) => setPayMonth(Number(e.target.value))} />
+              </Stack>
+
+              {/* 登録ボタン */}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+                <Button onClick={handleClose}>閉じる</Button>
+                <Button variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment && onSavePrevPayment(Number(entryMode === 'auto' ? autoDisplayAmount : manualAmount), entryMode, payYear, payMonth)}>登録</Button>
+              </Box>
+            </Box>
+          </Popover>
         </CardContent>
       </Card>
-      {/* 保存完了/失敗の通知 */}
-      <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+
+      {/* 完了通知 */}
+      <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)}>
         <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMsg}
         </Alert>
@@ -369,7 +340,5 @@ const saveMethodChange = async () => {
     </Box>
   );
 };
-
-
 
 export default CustomerActionsSidebar;

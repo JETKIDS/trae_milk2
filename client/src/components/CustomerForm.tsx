@@ -272,7 +272,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
                   </Box>
                   {(draftBillingMethod ?? billingMethod) === 'debit' && (
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      引き落し設定の際は口座情報の登録が必要です。{onOpenBankInfo ? (<Button size="small" onClick={onOpenBankInfo}>口座情報を開く</Button>) : null}
+                      引き落し設定の際は口座情報の登録が必要です。{onOpenBankInfo ? (<Button size="small" onClick={onOpenBankInfo}>口座登録・修正</Button>) : null}
                     </Typography>
                   )}
                 </Card>

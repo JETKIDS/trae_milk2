@@ -127,7 +127,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
 
   const fetchManufacturers = async () => {
     try {
-      const response = await axios.get('http://localhost:9000/api/masters/manufacturers');
+      const response = await axios.get('/api/masters/manufacturers');
       if (response.data && Array.isArray(response.data)) {
         // データの安全性チェック
         const validManufacturers = response.data.filter(manufacturer => 
@@ -148,7 +148,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
 
   const fetchNextAvailableId = async (): Promise<string> => {
     try {
-      const response = await axios.get('http://localhost:9000/api/products');
+      const response = await axios.get('/api/products');
       const products = response.data;
       
       // 4桁数値形式のcustom_idを取得
@@ -195,11 +195,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
 
     try {
       if (product?.id) {
-        await axios.put(`http://localhost:9000/api/products/${product.id}`, formData);
+        await axios.put(`/api/products/${product.id}`, formData);
       } else {
         // 新規作成時はidを除外してサーバーに送信
         const { id, ...dataWithoutId } = formData;
-        await axios.post('http://localhost:9000/api/products', dataWithoutId);
+        await axios.post('/api/products', dataWithoutId);
       }
       onSave();
       onClose();

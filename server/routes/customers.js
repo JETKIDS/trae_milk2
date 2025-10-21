@@ -89,7 +89,7 @@ router.get('/', (req, res) => {
 router.put('/:id/settings', (req, res) => {
   const db = getDB();
   const customerId = req.params.id;
-  const { billing_method, rounding_enabled } = req.body;
+  const { billing_method, rounding_enabled, bank_code, branch_code, account_type, account_number, account_holder_katakana } = req.body;
 
   // テーブルが存在しなければ作成
   const createTableSQL = `
@@ -97,6 +97,11 @@ router.put('/:id/settings', (req, res) => {
       customer_id INTEGER PRIMARY KEY,
       billing_method TEXT CHECK (billing_method IN ('collection','debit')),
       rounding_enabled INTEGER DEFAULT 1,
+      bank_code TEXT,
+      branch_code TEXT,
+      account_type INTEGER CHECK (account_type IN (1,2)),
+      account_number TEXT,
+      account_holder_katakana TEXT,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (customer_id) REFERENCES customers(id)
     )
@@ -107,8 +112,41 @@ router.put('/:id/settings', (req, res) => {
       return res.status(500).json({ error: createErr.message });
     }
 
-    // 顧客の存在チェック
-    db.get('SELECT id FROM customers WHERE id = ?', [customerId], (custErr, custRow) => {
+    // 追加: 古いスキーマの場合、customer_settings に口座関連カラムを追加（マイグレーション）
+    db.all("PRAGMA table_info(customer_settings)", (tiErr, rows) => {
+      if (tiErr) {
+        return res.status(500).json({ error: tiErr.message });
+      }
+      const names = (rows || []).map(r => r.name);
+      const alters = [];
+      if (!names.includes('bank_code')) alters.push("ALTER TABLE customer_settings ADD COLUMN bank_code TEXT");
+      if (!names.includes('branch_code')) alters.push("ALTER TABLE customer_settings ADD COLUMN branch_code TEXT");
+      if (!names.includes('account_type')) alters.push("ALTER TABLE customer_settings ADD COLUMN account_type INTEGER");
+      if (!names.includes('account_number')) alters.push("ALTER TABLE customer_settings ADD COLUMN account_number TEXT");
+      if (!names.includes('account_holder_katakana')) alters.push("ALTER TABLE customer_settings ADD COLUMN account_holder_katakana TEXT");
+      if (!names.includes('updated_at')) alters.push("ALTER TABLE customer_settings ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP");
+
+      const runAlters = (cb) => {
+        if (alters.length === 0) return cb();
+        db.serialize(() => {
+          let i = 0;
+          const next = () => {
+            if (i >= alters.length) return cb();
+            const sql = alters[i];
+            db.run(sql, (altErr) => {
+              if (altErr) {
+                console.error('スキーマ変更エラー:', altErr.message, 'SQL:', sql);
+              }
+              i++; next();
+            });
+          };
+          next();
+        });
+      };
+
+      runAlters(() => {
+        // 顧客の存在チェック
+        db.get('SELECT id FROM customers WHERE id = ?', [customerId], (custErr, custRow) => {
       if (custErr) {
         return res.status(500).json({ error: custErr.message });
       }
@@ -118,25 +156,65 @@ router.put('/:id/settings', (req, res) => {
 
       // UPSERT（INSERT or UPDATE）
       const upsertSQL = `
-        INSERT INTO customer_settings (customer_id, billing_method, rounding_enabled, updated_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO customer_settings (customer_id, billing_method, rounding_enabled, bank_code, branch_code, account_type, account_number, account_holder_katakana, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT(customer_id) DO UPDATE SET
-          billing_method = excluded.billing_method,
-          rounding_enabled = excluded.rounding_enabled,
+          billing_method = COALESCE(excluded.billing_method, customer_settings.billing_method),
+          rounding_enabled = COALESCE(excluded.rounding_enabled, customer_settings.rounding_enabled),
+          bank_code = COALESCE(excluded.bank_code, customer_settings.bank_code),
+          branch_code = COALESCE(excluded.branch_code, customer_settings.branch_code),
+          account_type = COALESCE(excluded.account_type, customer_settings.account_type),
+          account_number = COALESCE(excluded.account_number, customer_settings.account_number),
+          account_holder_katakana = COALESCE(excluded.account_holder_katakana, customer_settings.account_holder_katakana),
           updated_at = CURRENT_TIMESTAMP
       `;
 
-      const method = billing_method === 'debit' ? 'debit' : 'collection';
-      const rounding = typeof rounding_enabled === 'number' ? rounding_enabled : (rounding_enabled ? 1 : 0);
+      const method = (billing_method === 'debit' || billing_method === 'collection') ? billing_method : null;
+      const rounding = (typeof rounding_enabled === 'number') ? rounding_enabled : (typeof rounding_enabled === 'boolean') ? (rounding_enabled ? 1 : 0) : null;
 
-      db.run(upsertSQL, [customerId, method, rounding], function(upsertErr) {
+      // bank fields validation (optional; if provided)
+      const digit4 = (s) => typeof s === 'string' && /^\d{4}$/.test(s);
+      const digit3 = (s) => typeof s === 'string' && /^\d{3}$/.test(s);
+      const digit7 = (s) => typeof s === 'string' && /^\d{7}$/.test(s);
+      const typeValid = (t) => t === 1 || t === 2 || t === null || t === undefined;
+      const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/; // 半角カナとスペースのみ許容
+      if (bank_code !== undefined && bank_code !== null && !digit4(bank_code)) {
+        return res.status(400).json({ error: '金融機関コードは4桁の数字で入力してください' });
+      }
+      if (branch_code !== undefined && branch_code !== null && !digit3(branch_code)) {
+        return res.status(400).json({ error: '支店コードは3桁の数字で入力してください' });
+      }
+      if (account_number !== undefined && account_number !== null && !digit7(account_number)) {
+        return res.status(400).json({ error: '口座番号は7桁の数字で入力してください' });
+      }
+      if (!typeValid(account_type)) {
+        return res.status(400).json({ error: '預金種別は 1（普通）または 2（当座）で入力してください' });
+      }
+      if (account_holder_katakana !== undefined && account_holder_katakana !== null) {
+        const s = String(account_holder_katakana);
+        if (s.length === 0 || !halfKanaRegex.test(s)) {
+          return res.status(400).json({ error: '口座名義は半角カタカナで入力してください（スペース可）' });
+        }
+      }
+
+      db.run(upsertSQL, [customerId, method, rounding, bank_code || null, branch_code || null, account_type ?? null, account_number || null, account_holder_katakana || null], function(upsertErr) {
         if (upsertErr) {
           return res.status(500).json({ error: upsertErr.message });
         }
-        return res.json({ message: '設定を保存しました', customer_id: customerId, billing_method: method, rounding_enabled: rounding });
+        // 追加: 保存後の行内容をログ出力（診断用）
+        db.get('SELECT billing_method, rounding_enabled, bank_code, branch_code, account_type, account_number, account_holder_katakana FROM customer_settings WHERE customer_id = ?', [customerId], (selErr, row) => {
+          if (selErr) {
+            console.error('保存後の設定取得エラー:', selErr);
+          } else {
+            console.log('✅ 保存後の設定:', row);
+          }
+          return res.json({ message: '設定を保存しました', customer_id: customerId, billing_method: method, rounding_enabled: rounding });
+        });
+        });
       });
     });
   });
+});
 });
 
 // ページング版 顧客一覧取得（items + total 返却）
@@ -297,12 +375,17 @@ router.get('/:id', (req, res) => {
         db.close();
         return;
       }
-      // 顧客設定（請求方法・端数処理）も返却
+      // 顧客設定（請求方法・端数処理・口座情報）も返却
       const settingsQuery = `
         CREATE TABLE IF NOT EXISTS customer_settings (
           customer_id INTEGER PRIMARY KEY,
           billing_method TEXT CHECK (billing_method IN ('collection','debit')),
           rounding_enabled INTEGER DEFAULT 1,
+          bank_code TEXT,
+          branch_code TEXT,
+          account_type INTEGER CHECK (account_type IN (1,2)),
+          account_number TEXT,
+          account_holder_katakana TEXT,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (customer_id) REFERENCES customers(id)
         )
@@ -312,7 +395,7 @@ router.get('/:id', (req, res) => {
         if (createErr) {
           console.error('顧客設定テーブル作成エラー:', createErr);
         }
-        db.get('SELECT billing_method, rounding_enabled FROM customer_settings WHERE customer_id = ?', [customerId], (settingsErr, settingsRow) => {
+        db.get('SELECT billing_method, rounding_enabled, bank_code, branch_code, account_type, account_number, account_holder_katakana FROM customer_settings WHERE customer_id = ?', [customerId], (settingsErr, settingsRow) => {
           if (settingsErr) {
             res.status(500).json({ error: settingsErr.message });
             db.close();
@@ -413,7 +496,6 @@ router.post('/', (req, res) => {
   }
 });
 
- 
 
 // 顧客コース移動（具体的なルートを先に配置）
 router.put('/move-course', (req, res) => {
@@ -1626,7 +1708,7 @@ router.post('/:id/payments/:paymentId/cancel', async (req, res) => {
   }
 });
 
-module.exports = router;
+// module.exports = router; // moved to end
 
 // AR（売掛）サマリ: 前月請求額／前月入金額／繰越額（暫定版）
 // 既存の配達カレンダー生成を用いて「前月請求額」を試算し、入金・繰越は0で返す（将来、台帳導入で拡張）
@@ -1817,3 +1899,5 @@ router.get('/:id/ar-summary/consistency', async (req, res) => {
     return res.status(500).json({ error: 'ARサマリー整合性テストに失敗しました' });
   }
 });
+
+module.exports = router;
