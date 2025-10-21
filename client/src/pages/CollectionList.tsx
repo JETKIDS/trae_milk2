@@ -68,6 +68,13 @@ const CollectionList: React.FC = () => {
           @top-left { content: none; }
           @top-right { content: none; }
         }
+        /* 集金一覧表の上部余白とタイトルをコンパクトに */
+        .collection-list-root { margin-top: 0 !important; padding-top: 0 !important; }
+        .collection-list-title { font-size: 14px !important; font-weight: 700 !important; line-height: 1.1 !important; margin-top: 0 !important; margin-bottom: 6px !important; text-align: center !important; }
+        /* テーブルフッターが各ページに繰り返し出ないようにする（総合計は最後のページのみ）*/
+        .collection-list-table thead { display: table-header-group !important; }
+        .collection-list-table tfoot { display: table-row-group !important; }
+        .collection-list-table tr { page-break-inside: avoid !important; }
       }
     `;
     document.head.appendChild(style);
@@ -249,8 +256,8 @@ const CollectionList: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 3 }}>
-      <Typography variant="h5" gutterBottom>集金一覧表</Typography>
+    <Container maxWidth="lg" sx={{ mt: 3 }} className="collection-list-root">
+      <Typography variant="h5" gutterBottom className="print-title collection-list-title">集金一覧表</Typography>
 
       <Paper sx={{ p: 2, mb: 2, '@media print': { display: 'none' } }}>
         <Grid container spacing={2} alignItems="center">
@@ -296,7 +303,7 @@ const CollectionList: React.FC = () => {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{message}</Typography>
         )}
         {!loading && items.length > 0 && (
-          <Table size="small">
+          <Table size="small" className="collection-list-table">
             <TableHead>
               <TableRow>
                 <TableCell>顧客ID</TableCell>
