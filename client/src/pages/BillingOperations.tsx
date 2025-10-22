@@ -17,7 +17,8 @@ const BillingOperations: React.FC = () => {
   const [parse, setParse] = useState<any | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingParse, setLoadingParse] = useState(false);
-  const [roundingRule, setRoundingRule] = useState<'round' | 'floor' | 'ceil'>('round');
+  // Removed unused roundingRule state
+  // const [roundingRule, setRoundingRule] = useState<'round' | 'floor' | 'ceil'>('round');
   const [outputMonth, setOutputMonth] = useState<string>(new Date().toISOString().slice(0,7)); // YYYY-MM
   const [courses, setCourses] = useState<Array<{ id: number; custom_id?: string; course_name: string }>>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<number | ''>('');
@@ -239,19 +240,45 @@ const BillingOperations: React.FC = () => {
                           return '全コース';
                         }
                         const selected = courses.find(c => c.id === Number(selectedCourseId));
-                        return selected ? `${selected.custom_id ? `${selected.custom_id} ` : ''}${selected.course_name}` : '';
+                        return selected ? `${selected.custom_id ? `${pad7(selected.custom_id)} ` : ''}${selected.course_name}` : '';
                       }}
                     >
                       <MenuItem value="">全コース</MenuItem>
                       {courses.map(c => (
-                        <MenuItem key={c.id} value={c.id}>{c.custom_id ? `${c.custom_id} ` : ''}{c.course_name}</MenuItem>
+                        <MenuItem key={c.id} value={c.id}>{c.custom_id ? `${pad7(c.custom_id)} ` : ''}{c.course_name}</MenuItem>
                       ))}
                     </Select>
+                    {/* コース一覧取得中のインジケータ */}
+                    {loadingCourses && (
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', ml: 1 }}>
+                        <CircularProgress size={14} />
+                      </Box>
+                    )}
                   </FormControl>
+
                   {/* 選択確認のための表示 */}
-                  <Typography variant="body2" color="text.secondary">
-                    選択中: {selectedCourseId === '' ? '全コース' : (courses.find(c => c.id === Number(selectedCourseId))?.course_name || selectedCourseId)}
-                  </Typography>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      選択中: {selectedCourseId === '' ? '全コース' : (() => {
+                        const s = courses.find(c => c.id === Number(selectedCourseId));
+                        return s ? `${s.custom_id ? `${pad7(s.custom_id)} ` : ''}${s.course_name}` : selectedCourseId;
+                      })()}
+                    </Typography>
+                    {/* 顧客一覧取得状況と件数 */}
+                    {loadingCustomers ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CircularProgress size={14} />
+                        <Typography variant="caption" color="text.secondary">顧客一覧取得中…</Typography>
+                      </Box>
+                    ) : (
+                      selectedCourseId !== '' && (
+                        <Typography variant="caption" color="text.secondary">
+                          顧客数: {customers.length}件
+                        </Typography>
+                      )
+                    )}
+                  </Box>
+
                   <Button variant="contained" onClick={handleGenerateCsv} disabled={generatingCsv}>
                     {generatingCsv ? '生成中...' : 'CSVを生成してダウンロード'}
                   </Button>
