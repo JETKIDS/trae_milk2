@@ -521,33 +521,47 @@ router.delete('/manufacturers/:id', (req, res) => {
 // 会社情報取得
 router.get('/company', (req, res) => {
   const db = getDB();
-  db.get('SELECT * FROM company_info WHERE id = 1', [], (err, row) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+  // 不足カラムがあれば追加（マイグレーション）
+  db.all("PRAGMA table_info(company_info)", (tiErr, rows) => {
+    const names = (rows || []).map(r => r.name);
+    if (!names.includes('company_name_kana_half')) {
+      db.run("ALTER TABLE company_info ADD COLUMN company_name_kana_half TEXT", () => {
+        // 続行（失敗してもGETは返す）
+      });
     }
-    if (!row) {
-      // 会社情報が存在しない場合はデフォルト値を返す
-      const defaultCompanyInfo = {
-        id: 1,
-        company_name: '',
-        postal_code: '',
-        address: '',
-        phone: '',
-        fax: '',
-        email: '',
-        representative: '',
-        business_hours: '',
-        established_date: '',
-        capital: '',
-        business_description: ''
-      };
-      res.json(defaultCompanyInfo);
-      return;
-    }
-    res.json(row);
+    db.get('SELECT * FROM company_info WHERE id = 1', [], (err, row) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        db.close();
+        return;
+      }
+      if (!row) {
+        // 会社情報が存在しない場合はデフォルト値を返す
+        const defaultCompanyInfo = {
+          id: 1,
+          company_name: '',
+          company_name_kana_half: '',
+          postal_code: '',
+          address: '',
+          phone: '',
+          fax: '',
+          email: '',
+          representative: '',
+          business_hours: '',
+          established_date: '',
+          capital: '',
+          business_description: ''
+        };
+        res.json(defaultCompanyInfo);
+        db.close();
+        return;
+      }
+      // 欠損時は空文字で補完
+      if (row.company_name_kana_half === undefined) row.company_name_kana_half = '';
+      res.json(row);
+      db.close();
+    });
   });
-  db.close();
 });
 
 // 会社情報更新・作成
@@ -555,6 +569,7 @@ router.post('/company', (req, res) => {
   const db = getDB();
   const {
     company_name,
+    company_name_kana_half,
     postal_code,
     address,
     phone,
@@ -565,56 +580,89 @@ router.post('/company', (req, res) => {
     established_date
   } = req.body;
 
-  // まず既存のレコードがあるかチェック
-  db.get('SELECT id FROM company_info WHERE id = 1', [], (err, row) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
+  // バリデーション（任意入力、指定時は半角カナのみ）
+  const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/; // 半角カナとスペース
+  if (company_name_kana_half !== undefined && company_name_kana_half !== null) {
+    const s = String(company_name_kana_half);
+    if (s.length > 0 && !halfKanaRegex.test(s)) {
+      res.status(400).json({ error: '会社名（読み）は半角カタカナで入力してください（スペース可）' });
+      db.close();
       return;
     }
+  }
 
-    if (row) {
-      // 更新
-      const updateQuery = `
-        UPDATE company_info 
-        SET company_name = ?, postal_code = ?, address = ?, phone = ?, fax = ?, 
-            email = ?, representative = ?, business_hours = ?, established_date = ?, 
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = 1
-      `;
-      
-      db.run(updateQuery, [
-        company_name, postal_code, address, phone, fax, email, 
-        representative, business_hours, established_date
-      ], function(err) {
+  // 不足カラムがあれば追加（マイグレーション）
+  db.all("PRAGMA table_info(company_info)", (tiErr, rows) => {
+    const names = (rows || []).map(r => r.name);
+    const alters = [];
+    if (!names.includes('company_name_kana_half')) alters.push("ALTER TABLE company_info ADD COLUMN company_name_kana_half TEXT");
+    const runAlters = (cb) => {
+      if (alters.length === 0) return cb();
+      db.serialize(() => {
+        let i = 0;
+        const next = () => {
+          if (i >= alters.length) return cb();
+          const sql = alters[i];
+          db.run(sql, (altErr) => { i++; next(); });
+        };
+        next();
+      });
+    };
+
+    runAlters(() => {
+      // 既存レコードチェック
+      db.get('SELECT id FROM company_info WHERE id = 1', [], (err, row) => {
         if (err) {
           res.status(500).json({ error: err.message });
+          db.close();
           return;
         }
-        res.json({ message: '会社情報が正常に更新されました' });
-      });
-    } else {
-      // 新規作成
-      const insertQuery = `
-        INSERT INTO company_info (
-          id, company_name, postal_code, address, phone, fax, email, 
-          representative, business_hours, established_date
-        ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      
-      db.run(insertQuery, [
-        company_name, postal_code, address, phone, fax, email, 
-        representative, business_hours, established_date
-      ], function(err) {
-        if (err) {
-          res.status(500).json({ error: err.message });
-          return;
+
+        if (row) {
+          // 更新
+          const updateQuery = `
+            UPDATE company_info 
+            SET company_name = ?, company_name_kana_half = ?, postal_code = ?, address = ?, phone = ?, fax = ?, 
+                email = ?, representative = ?, business_hours = ?, established_date = ?, 
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = 1
+          `;
+          db.run(updateQuery, [
+            company_name, company_name_kana_half || null, postal_code, address, phone, fax, email, 
+            representative, business_hours, established_date
+          ], function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              db.close();
+              return;
+            }
+            res.json({ message: '会社情報が正常に更新されました' });
+            db.close();
+          });
+        } else {
+          // 新規作成
+          const insertQuery = `
+            INSERT INTO company_info (
+              id, company_name, company_name_kana_half, postal_code, address, phone, fax, email, 
+              representative, business_hours, established_date
+            ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          db.run(insertQuery, [
+            company_name, company_name_kana_half || null, postal_code, address, phone, fax, email, 
+            representative, business_hours, established_date
+          ], function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              db.close();
+              return;
+            }
+            res.json({ message: '会社情報が正常に作成されました' });
+            db.close();
+          });
         }
-        res.json({ message: '会社情報が正常に作成されました' });
       });
-    }
+    });
   });
-  
-  db.close();
 });
 
 module.exports = router;

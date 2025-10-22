@@ -4,6 +4,7 @@ import axios from 'axios';
 interface CompanyInfo {
   id: number;
   company_name: string;
+  company_name_kana_half?: string; // 会社名（読み・半角カナ）
   postal_code: string;
   address: string;
   phone: string;

@@ -1,258 +1,9 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const iconv = require('iconv-lite');
-
-const { getDB } = require('../connection');
 const moment = require('moment');
+const { getDB } = require('../connection');
 
 const router = express.Router();
-
-function readGinkouFile() {
-  // プロジェクト直下の ginkou.csv を参照
-  const csvPath = path.resolve(__dirname, '..', '..', 'ginkou.csv');
-  if (!fs.existsSync(csvPath)) {
-    throw new Error(`ファイルが見つかりません: ${csvPath}`);
-  }
-  const buf = fs.readFileSync(csvPath);
-  // Windows系の銀行データは CP932 (Shift_JIS互換) が安全
-  const text = iconv.decode(buf, 'CP932');
-  // 改行を正規化
-  return text.replace(/\r\n/g, '\n').split('\n').filter(l => l.length > 0);
-}
-
-function lastDigitRun(line) {
-  // 末尾から連続する数字（例: 金額候補）を抽出
-  const m = line.match(/(\d+)\s*$/);
-  return m ? m[1] : null;
-}
-
-// プレビュー: 先頭50行の概要
-router.get('/preview', (req, res) => {
-  try {
-    const rawLines = readGinkouFile();
-
-    const previewLines = rawLines.slice(0, 50).map((l, i) => {
-      const recordType = l.charAt(0) || '';
-      const amountCandidate = lastDigitRun(l);
-      return {
-        idx: i + 1,
-        recordType,
-        length: l.length,
-        amountCandidate,
-        sample: l
-      };
-    });
-
-    const recordTypeCounts = rawLines.reduce((acc, l) => {
-      const t = l.charAt(0) || '';
-      acc[t] = (acc[t] || 0) + 1;
-      return acc;
-    }, {});
-
-    res.json({
-      encoding: 'CP932',
-      totalLines: rawLines.length,
-      recordTypeCounts,
-      previewLines
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-module.exports = router;
-
-// 解析: 名前推定と金額合計
-router.get('/parse', (req, res) => {
-  try {
-    const lines = readGinkouFile();
-    const dataLines = lines.filter(l => (l.charAt(0) || '') === '2');
-
-    // 半角カナの連続ブロックを名前候補として抽出
-    const kanaRegex = /[｡-ﾟ\s]+/; // 半角カナと空白
-    const parsed = dataLines.slice(0, 200).map((l, i) => {
-      const amount = lastDigitRun(l);
-      // 名前候補: 最大の半角カナ連続部分を選ぶ
-      let nameCandidate = '';
-      const segments = l.split(/\s{2,}/).filter(s => s.length > 0);
-      let bestScore = -1;
-      for (const seg of segments) {
-        const kanaCount = (seg.match(/[｡-ﾟ]/g) || []).length;
-        if (kanaCount > bestScore) {
-          bestScore = kanaCount;
-          nameCandidate = seg.trim();
-        }
-      }
-      return {
-        idx: i + 1,
-        length: l.length,
-        name: nameCandidate,
-        amountCandidate: amount,
-        raw: l
-      };
-    });
-
-    const totalAmount = parsed.reduce((sum, r) => {
-      const n = r.amountCandidate ? parseInt(r.amountCandidate.replace(/\D/g, ''), 10) : 0;
-      return sum + (isNaN(n) ? 0 : n);
-    }, 0);
-
-    res.json({
-      linesAnalyzed: parsed.length,
-      totalAmountCandidate: totalAmount,
-      items: parsed
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 生成API: 指定月・（任意）コースで引き落し対象顧客のCSVを生成
-router.get('/generate', async (req, res) => {
-  const monthStr = String(req.query.month || '').trim(); // YYYY-MM
-  const courseIdStr = req.query.courseId ? String(req.query.courseId).trim() : '';
-  if (!monthStr || !/^[0-9]{4}-[0-9]{2}$/.test(monthStr)) {
-    return res.status(400).json({ error: 'month は YYYY-MM 形式で指定してください' });
-  }
-  const y = parseInt(monthStr.slice(0, 4), 10);
-  const m = parseInt(monthStr.slice(5, 7), 10);
-  const courseId = courseIdStr && /^[0-9]+$/.test(courseIdStr) ? parseInt(courseIdStr, 10) : null;
-
-  const db = getDB();
-  try {
-    await ensureLedgerTables(db);
-    // 対象顧客（billing_method = 'debit'）を抽出
-    const customers = await new Promise((resolve, reject) => {
-      const sql = `
-        SELECT c.id, c.custom_id, c.customer_name, c.course_id, cs.rounding_enabled
-        FROM customers c
-        LEFT JOIN customer_settings cs ON cs.customer_id = c.id
-        WHERE COALESCE(cs.billing_method, 'collection') = 'debit'
-          ${courseId ? 'AND c.course_id = ?' : ''}
-        ORDER BY c.delivery_order ASC, c.id ASC
-      `;
-      const params = courseId ? [courseId] : [];
-      db.all(sql, params, (err, rows) => { if (err) return reject(err); resolve(rows || []); });
-    });
-
-    const entries = [];
-    for (const c of customers) {
-      const roundingEnabled = (c.rounding_enabled === 1 || c.rounding_enabled === null || typeof c.rounding_enabled === 'undefined') ? true : c.rounding_enabled === 1;
-      const invRow = await new Promise((resolve, reject) => {
-        db.get('SELECT amount, status FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?', [c.id, y, m], (err, r) => {
-          if (err) return reject(err);
-          resolve(r || null);
-        });
-      });
-      let amount;
-      if (invRow && typeof invRow.amount === 'number') {
-        amount = invRow.amount;
-      } else {
-        const totalRaw = await computeMonthlyTotal(db, c.id, y, m);
-        amount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
-      }
-      if (amount > 0) {
-        entries.push({ customer_id: c.id, custom_id: c.custom_id || '', customer_name: c.customer_name || '', amount });
-      }
-    }
-
-    // CSV組み立て（ヘッダあり）。必要項目は今後拡張予定。
-    const header = ['customer_id', 'custom_id', 'customer_name', 'amount'].join(',');
-    const lines = entries.map(e => [e.customer_id, e.custom_id, e.customer_name.replace(/[,\r\n]/g, ' '), e.amount].join(','));
-    const csvText = [header, ...lines].join('\r\n') + '\r\n';
-
-    const buf = iconv.encode(csvText, 'CP932');
-    res.setHeader('Content-Type', 'text/csv; charset=Shift_JIS');
-    res.setHeader('Content-Disposition', 'attachment; filename="ginkou.csv"');
-    res.status(200).send(buf);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
-  }
-});
-
-// プレビュー: 先頭50行の概要
-router.get('/preview', (req, res) => {
-  try {
-    const rawLines = readGinkouFile();
-
-    const previewLines = rawLines.slice(0, 50).map((l, i) => {
-      const recordType = l.charAt(0) || '';
-      const amountCandidate = lastDigitRun(l);
-      return {
-        idx: i + 1,
-        recordType,
-        length: l.length,
-        amountCandidate,
-        sample: l
-      };
-    });
-
-    const recordTypeCounts = rawLines.reduce((acc, l) => {
-      const t = l.charAt(0) || '';
-      acc[t] = (acc[t] || 0) + 1;
-      return acc;
-    }, {});
-
-    res.json({
-      encoding: 'CP932',
-      totalLines: rawLines.length,
-      recordTypeCounts,
-      previewLines
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-module.exports = router;
-
-// 解析: 名前推定と金額合計
-router.get('/parse', (req, res) => {
-  try {
-    const lines = readGinkouFile();
-    const dataLines = lines.filter(l => (l.charAt(0) || '') === '2');
-
-    // 半角カナの連続ブロックを名前候補として抽出
-    const kanaRegex = /[｡-ﾟ\s]+/; // 半角カナと空白
-    const parsed = dataLines.slice(0, 200).map((l, i) => {
-      const amount = lastDigitRun(l);
-      // 名前候補: 最大の半角カナ連続部分を選ぶ
-      let nameCandidate = '';
-      const segments = l.split(/\s{2,}/).filter(s => s.length > 0);
-      let bestScore = -1;
-      for (const seg of segments) {
-        const kanaCount = (seg.match(/[｡-ﾟ]/g) || []).length;
-        if (kanaCount > bestScore) {
-          bestScore = kanaCount;
-          nameCandidate = seg.trim();
-        }
-      }
-      return {
-        idx: i + 1,
-        length: l.length,
-        name: nameCandidate,
-        amountCandidate: amount,
-        raw: l
-      };
-    });
-
-    const totalAmount = parsed.reduce((sum, r) => {
-      const n = r.amountCandidate ? parseInt(r.amountCandidate.replace(/\D/g, ''), 10) : 0;
-      return sum + (isNaN(n) ? 0 : n);
-    }, 0);
-
-    res.json({
-      linesAnalyzed: parsed.length,
-      totalAmountCandidate: totalAmount,
-      items: parsed
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // DBユーティリティ: 売掛テーブル作成（既存関数の簡易コピー）
 function ensureLedgerTables(db) {
@@ -416,3 +167,211 @@ async function computeMonthlyTotal(db, customerId, year, month) {
     });
   });
 }
+
+// 生成API: 指定月・（任意）コースで引き落し対象顧客のCSV/固定長を生成
+router.get('/generate', async (req, res) => {
+  const monthStr = String(req.query.month || '').trim(); // YYYY-MM
+  const courseIdStr = req.query.courseId ? String(req.query.courseId).trim() : '';
+  const format = String(req.query.format || '').trim().toLowerCase();
+  if (!monthStr || !/^[0-9]{4}-[0-9]{2}$/.test(monthStr)) {
+    return res.status(400).json({ error: 'month は YYYY-MM 形式で指定してください' });
+  }
+  const y = parseInt(monthStr.slice(0, 4), 10);
+  const m = parseInt(monthStr.slice(5, 7), 10);
+  const courseId = courseIdStr && /^[0-9]+$/.test(courseIdStr) ? parseInt(courseIdStr, 10) : null;
+
+  const db = getDB();
+  try {
+    await ensureLedgerTables(db);
+    const customers = await new Promise((resolve, reject) => {
+      const sql = `
+        SELECT c.id, c.custom_id, c.customer_name, c.course_id,
+               cs.rounding_enabled, cs.bank_code, cs.branch_code, cs.account_type, cs.account_number, cs.account_holder_katakana
+        FROM customers c
+        LEFT JOIN customer_settings cs ON cs.customer_id = c.id
+        WHERE COALESCE(cs.billing_method, 'collection') = 'debit'
+          ${courseId ? 'AND c.course_id = ?' : ''}
+        ORDER BY c.delivery_order ASC, c.id ASC
+      `;
+      const params = courseId ? [courseId] : [];
+      db.all(sql, params, (err, rows) => { if (err) return reject(err); resolve(rows || []); });
+    });
+
+    const entries = [];
+    for (const c of customers) {
+      const roundingEnabled = (c.rounding_enabled === 1 || c.rounding_enabled === null || typeof c.rounding_enabled === 'undefined') ? true : c.rounding_enabled === 1;
+      const invRow = await new Promise((resolve, reject) => {
+        db.get('SELECT amount, status FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?', [c.id, y, m], (err, r) => {
+          if (err) return reject(err);
+          resolve(r || null);
+        });
+      });
+      let amount;
+      if (invRow && typeof invRow.amount === 'number') {
+        amount = invRow.amount;
+      } else {
+        const totalRaw = await computeMonthlyTotal(db, c.id, y, m);
+        amount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
+      }
+      if (amount > 0) {
+        entries.push({
+          customer_id: c.id,
+          custom_id: c.custom_id || '',
+          customer_name: c.customer_name || '',
+          amount,
+          bank_code: c.bank_code || '',
+          branch_code: c.branch_code || '',
+          account_type: (c.account_type === 1 || c.account_type === 2) ? c.account_type : null,
+          account_number: c.account_number || '',
+          account_holder_katakana: c.account_holder_katakana || ''
+        });
+      }
+    }
+
+    let filtered = entries;
+    if (format === 'zengin' || format === 'zengin_fixed') {
+      const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/; // 半角カナとスペース
+      filtered = entries.filter(e =>
+        /^(\d){4}$/.test(e.bank_code) &&
+        /^(\d){3}$/.test(e.branch_code) &&
+        (e.account_type === 1 || e.account_type === 2) &&
+        /^(\d){7}$/.test(e.account_number) &&
+        halfKanaRegex.test(String(e.account_holder_katakana))
+      );
+    }
+
+    if (format === 'zengin_fixed') {
+      const padLeft = (s, len, ch = '0') => {
+        s = String(s || '');
+        if (s.length >= len) return s.slice(-len);
+        return ch.repeat(len - s.length) + s;
+      };
+      const padRight = (s, len, ch = ' ') => {
+        s = String(s || '');
+        if (s.length >= len) return s.slice(0, len);
+        return s + ch.repeat(len - s.length);
+      };
+      const toHalfKana = (input) => {
+        if (!input) return '';
+        let s = String(input);
+        // 会社名などに含まれる日本語の読みを近似（ドメイン固有の簡易辞書）
+        s = s.replace(/株式会社/g, 'カブシキガイシャ')
+             .replace(/（株）/g, 'カブシキガイシャ')
+             .replace(/㈱/g, 'カブシキガイシャ')
+             .replace(/有限会社/g, 'ユウゲンガイシャ')
+             .replace(/（有）/g, 'ユウゲンガイシャ')
+             .replace(/㈲/g, 'ユウゲンガイシャ')
+             .replace(/牛乳/g, 'ギュウニュウ');
+        // ひらがな→カタカナ（半角化の前段階）
+        s = s.replace(/[ぁ-ん]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+        const dakutenMap = {
+          'ガ':'ｶﾞ','ギ':'ｷﾞ','グ':'ｸﾞ','ゲ':'ｹﾞ','ゴ':'ｺﾞ',
+          'ザ':'ｻﾞ','ジ':'ｼﾞ','ズ':'ｽﾞ','ゼ':'ｾﾞ','ゾ':'ｿﾞ',
+          'ダ':'ﾀﾞ','ヂ':'ﾁﾞ','ヅ':'ﾂﾞ','デ':'ﾃﾞ','ド':'ﾄﾞ',
+          'バ':'ﾊﾞ','ビ':'ﾋﾞ','フ':'ﾌﾞ','ヘ':'ﾍﾞ','ホ':'ﾎﾞ',
+          'パ':'ﾊﾟ','ピ':'ﾋﾟ','プ':'ﾌﾟ','ペ':'ﾍﾟ','ポ':'ﾎﾟ',
+          'ヴ':'ｳﾞ'
+        };
+        Object.keys(dakutenMap).forEach(k => { s = s.replace(new RegExp(k, 'g'), dakutenMap[k]); });
+        // 長音記号は半角へ
+        s = s.replace(/ー/g, 'ｰ');
+        // 小書き仮名は半角へ
+        s = s.replace(/ャ/g, 'ｬ').replace(/ュ/g, 'ｭ').replace(/ョ/g, 'ｮ')
+             .replace(/ァ/g, 'ｧ').replace(/ィ/g, 'ｨ').replace(/ゥ/g, 'ｩ')
+             .replace(/ェ/g, 'ｪ').replace(/ォ/g, 'ｫ').replace(/ッ/g, 'ｯ')
+             .replace(/ヮ/g, 'ﾜ');
+        // 残りのカタカナを半角へ（正しいマップを使用）
+        const fullToHalf = {
+          'ア':'ｱ','イ':'ｲ','ウ':'ｳ','エ':'ｴ','オ':'ｵ',
+          'カ':'ｶ','キ':'ｷ','ク':'ｸ','ケ':'ｹ','コ':'ｺ',
+          'サ':'ｻ','シ':'ｼ','ス':'ｽ','セ':'ｾ','ソ':'ｿ',
+          'タ':'ﾀ','チ':'ﾁ','ツ':'ﾂ','テ':'ﾃ','ト':'ﾄ',
+          'ナ':'ﾅ','ニ':'ﾆ','ヌ':'ﾇ','ネ':'ﾈ','ノ':'ﾉ',
+          'ハ':'ﾊ','ヒ':'ﾋ','フ':'ﾌ','ヘ':'ﾍ','ホ':'ﾎ',
+          'マ':'ﾏ','ミ':'ﾐ','ム':'ﾑ','メ':'ﾒ','モ':'ﾓ',
+          'ヤ':'ﾔ','ユ':'ﾕ','ヨ':'ﾖ',
+          'ラ':'ﾗ','リ':'ﾘ','ル':'ﾙ','レ':'ﾚ','ロ':'ﾛ',
+          'ワ':'ﾜ','ヲ':'ｦ','ン':'ﾝ'
+        };
+        s = s.replace(/[ア-ン]/g, ch => fullToHalf[ch] || ch);
+        // 全角スペースは半角に
+        s = s.replace(/　/g, ' ');
+        return s;
+      };
+      const companyNameRow = await new Promise(resolve => {
+        db.get('SELECT company_name, company_name_kana_half FROM company_info WHERE id = 1', [], (err, row) => {
+          if (err || !row) return resolve({ company_name: '', company_name_kana_half: '' });
+          resolve(row);
+        });
+      });
+      // 優先: マスタの会社名（読み・半角カナ）。未設定時は会社名から変換
+      const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/;
+      const companyNameKana = (companyNameRow.company_name_kana_half && halfKanaRegex.test(companyNameRow.company_name_kana_half))
+        ? companyNameRow.company_name_kana_half
+        : toHalfKana(companyNameRow.company_name || '');
+      const agentName = 'ﾆｺｽ';
+      const agentField = padRight(agentName, 16, ' ');
+      const nextMonth = moment(`${y}-${String(m).padStart(2, '0')}-01`).add(1, 'month');
+      const drawDate = nextMonth.clone().date(12).format('MMDD');
+      const headerLine = '1' + '9117124275501' + padRight(companyNameKana, 30, ' ') + drawDate + '9900' + agentField + '000' + agentField + '10000000';
+      const fixedLines = filtered.map(e => {
+        const recordType = '2';
+        const bank = padLeft(e.bank_code, 4, '0');
+        const agentAfterBank = agentField;
+        const branch = padLeft(e.branch_code, 3, '0');
+        const agentAfterBranch = agentField;
+        const kind = String(e.account_type);
+        const acct = padLeft(e.account_number, 7, '0');
+        const name = padRight(String(e.account_holder_katakana), 30, ' ');
+        const amount = padLeft(String(e.amount), 10, '0');
+        const idWithZero = String(e.custom_id || '').replace(/[^0-9]/g, '') + '0';
+        const idPadded = padLeft(idWithZero, 8, '0');
+        const tail = '1' + '0'.repeat(17) + idPadded + ' '.repeat(8);
+        return recordType + bank + agentAfterBank + branch + agentAfterBranch + kind + acct + name + amount + tail;
+      });
+      const text = [headerLine, ...fixedLines].join('\r\n') + '\r\n';
+      const buf = iconv.encode(text, 'CP932');
+      res.setHeader('Content-Type', 'text/plain; charset=Shift_JIS');
+      res.setHeader('Content-Disposition', 'attachment; filename="zengin_fixed.txt"');
+      return res.status(200).send(buf);
+    }
+
+    let header;
+    let lines;
+    if (format === 'zengin') {
+      header = ['bank_code','branch_code','account_type','account_number','account_holder_katakana','amount','customer_id','custom_id','customer_name'].join(',');
+      lines = filtered.map(e => [
+        e.bank_code,
+        e.branch_code,
+        e.account_type,
+        e.account_number,
+        String(e.account_holder_katakana).replace(/[,\r\n]/g, ' '),
+        e.amount,
+        e.customer_id,
+        e.custom_id,
+        String(e.customer_name).replace(/[,\r\n]/g, ' ')
+      ].join(','));
+    } else {
+      header = ['customer_id','custom_id','customer_name','amount'].join(',');
+      lines = filtered.map(e => [
+        e.customer_id,
+        e.custom_id,
+        String(e.customer_name).replace(/[,\r\n]/g, ' '),
+        e.amount
+      ].join(','));
+    }
+    const csvText = [header, ...lines].join('\r\n') + '\r\n';
+
+    const buf = iconv.encode(csvText, 'CP932');
+    res.setHeader('Content-Type', 'text/csv; charset=Shift_JIS');
+    const filename = format === 'zengin' ? 'zengin.csv' : 'ginkou.csv';
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(200).send(buf);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally {
+    try { db && db.close(); } catch {}
+  }
+});
+
+module.exports = router;

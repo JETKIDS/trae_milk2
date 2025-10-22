@@ -39,6 +39,7 @@ interface Manufacturer {
 interface CompanyInfo {
   id: number;
   company_name: string;
+  company_name_kana_half?: string; // 会社名（読み・半角カナ）
   postal_code: string;
   address: string;
   phone: string;
@@ -90,6 +91,7 @@ const MasterManagement: React.FC = () => {
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     id: 1,
     company_name: '',
+    company_name_kana_half: '',
     postal_code: '',
     address: '',
     phone: '',
@@ -102,6 +104,8 @@ const MasterManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [kanaError, setKanaError] = useState<string>('');
+  const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/; // 半角カナとスペースのみ
 
   useEffect(() => {
     const fetchMasterData = async (): Promise<void> => {
@@ -136,6 +140,13 @@ const MasterManagement: React.FC = () => {
   };
 
   const handleCompanyInfoChange = (field: keyof CompanyInfo, value: string) => {
+    if (field === 'company_name_kana_half') {
+      if (value && !halfKanaRegex.test(value)) {
+        setKanaError('半角カタカナで入力してください（スペース可）');
+      } else {
+        setKanaError('');
+      }
+    }
     setCompanyInfo(prev => ({
       ...prev,
       [field]: value
@@ -314,7 +325,7 @@ const MasterManagement: React.FC = () => {
                 variant="contained" 
                 startIcon={<SaveIcon />}
                 onClick={handleSaveCompanyInfo}
-                disabled={saving}
+                disabled={saving || !!kanaError}
               >
                 {saving ? '保存中...' : '保存'}
               </Button>
@@ -337,6 +348,18 @@ const MasterManagement: React.FC = () => {
                   value={companyInfo.representative}
                   onChange={(e) => handleCompanyInfoChange('representative', e.target.value)}
                   margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="会社名（読み・半角カナ）"
+                  value={companyInfo.company_name_kana_half || ''}
+                  onChange={(e) => handleCompanyInfoChange('company_name_kana_half', e.target.value)}
+                  margin="normal"
+                  placeholder="ﾆｺﾆｺｷﾞｭｳﾆｭｳ"
+                  error={!!kanaError}
+                  helperText={kanaError || 'ヘッダーの企業名として参照されます。半角カタカナ・スペースのみ可'}
                 />
               </Grid>
               <Grid item xs={12} md={4}>

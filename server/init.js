@@ -96,6 +96,7 @@ db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS company_info (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     company_name TEXT NOT NULL,
+    company_name_kana_half TEXT, -- 会社名（読み・半角カナ）
     postal_code TEXT,
     address TEXT,
     phone TEXT,

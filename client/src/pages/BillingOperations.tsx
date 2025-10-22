@@ -27,6 +27,7 @@ const BillingOperations: React.FC = () => {
   const [loadingCustomers, setLoadingCustomers] = useState<boolean>(false);
   const [generatingCsv, setGeneratingCsv] = useState<boolean>(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [csvFormat, setCsvFormat] = useState<'standard' | 'zengin' | 'zengin_fixed'>('zengin');
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -98,15 +99,19 @@ const BillingOperations: React.FC = () => {
       if (selectedCourseId !== '' && !isNaN(Number(selectedCourseId))) {
         params.courseId = Number(selectedCourseId);
       }
+      if (csvFormat) {
+        params.format = csvFormat;
+      }
       const res = await axios.get('/api/debits/generate', {
         params,
         responseType: 'arraybuffer'
       });
-      const blob = new Blob([res.data], { type: 'text/csv' });
+      const mime = csvFormat === 'zengin_fixed' ? 'text/plain' : 'text/csv';
+      const blob = new Blob([res.data], { type: mime });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'ginkou.csv';
+      a.download = csvFormat === 'zengin_fixed' ? 'zengin_fixed.txt' : (csvFormat === 'zengin' ? 'zengin.csv' : 'ginkou.csv');
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -255,37 +260,25 @@ const BillingOperations: React.FC = () => {
                       </Box>
                     )}
                   </FormControl>
-
-                  {/* 選択確認のための表示 */}
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      選択中: {selectedCourseId === '' ? '全コース' : (() => {
-                        const s = courses.find(c => c.id === Number(selectedCourseId));
-                        return s ? `${s.custom_id ? `${pad7(s.custom_id)} ` : ''}${s.course_name}` : selectedCourseId;
-                      })()}
-                    </Typography>
-                    {/* 顧客一覧取得状況と件数 */}
-                    {loadingCustomers ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CircularProgress size={14} />
-                        <Typography variant="caption" color="text.secondary">顧客一覧取得中…</Typography>
-                      </Box>
-                    ) : (
-                      selectedCourseId !== '' && (
-                        <Typography variant="caption" color="text.secondary">
-                          顧客数: {customers.length}件
-                        </Typography>
-                      )
-                    )}
-                  </Box>
-
+                  <InputLabel id="format-select-label" shrink>フォーマット</InputLabel>
+                  <Select
+                    labelId="format-select-label"
+                    label="フォーマット"
+                    value={csvFormat}
+                    onChange={(e) => setCsvFormat(e.target.value as 'standard' | 'zengin' | 'zengin_fixed')}
+                  >
+                    <MenuItem value="standard">標準</MenuItem>
+                    <MenuItem value="zengin">全銀（CSV）</MenuItem>
+                    <MenuItem value="zengin_fixed">全銀（固定長）</MenuItem>
+                  </Select>
                   <Button variant="contained" onClick={handleGenerateCsv} disabled={generatingCsv}>
-                    {generatingCsv ? '生成中...' : 'CSVを生成してダウンロード'}
+                    {generatingCsv ? '生成中...' : (csvFormat === 'zengin_fixed' ? '固定長ファイルを生成してダウンロード' : 'CSVを生成してダウンロード')}
                   </Button>
                 </Stack>
-                {generateError && <Alert severity="error">{generateError}</Alert>}
+                {generateError && <Alert severity="error">{generateError}</Alert>
+                }
                 <Typography variant="caption" color="text.secondary">
-                  ※ 現時点では「引き落し契約者（billing_method=debit）」のみを対象に、金額が0以下の顧客は除外して出力します。エンコード: CP932、改行: CRLF、ファイル名: ginkou.csv
+                  ※ フォーマット切替可。全銀（CSV/固定長）を選択すると、銀行コード・支店コード・預金種別(1/2)・口座番号・口座名義(半角ｶﾅ)・金額・顧客ID・顧客コード・氏名をCP932エンコードで出力します。金額0円は除外、口座項目の不備がある顧客は出力対象外です。標準は従来の4列CSV（customer_id, custom_id, customer_name, amount）です。
                 </Typography>
               </Stack>
 
