@@ -371,7 +371,9 @@ router.get('/generate', async (req, res) => {
         const amount = padLeft(String(e.amount), 10, '0');
         const idWithZero = String(e.custom_id || '').replace(/[^0-9]/g, '') + '0';
         const idPadded = padLeft(idWithZero, 8, '0');
-        const tail = '1' + '0'.repeat(17) + idPadded + ' '.repeat(8);
+        // tail 構成: 1 + 17ゼロ + 請求先ID(8桁) + 予備スペース(6桁) = 合計32桁
+        // 予備スペースを 8 → 6 に調整し、明細1行の総文字数を120に統一する
+        const tail = '1' + '0'.repeat(17) + idPadded + ' '.repeat(6);
         return recordType + bank + bankNameOut + branch + branchNameOut + kind + acct + name + amount + tail;
       });
       console.log(`[debits] header length(chars)=${headerLine.length}`);
