@@ -21,6 +21,7 @@ import {
 import { Add as AddIcon, Save as SaveIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useCompany } from '../contexts/CompanyContext';
+import { halfKanaRegex } from '../utils/validation';
 
 interface Staff {
   id: number;
@@ -116,9 +117,7 @@ const MasterManagement: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [kanaError, setKanaError] = useState<string>('');
-  const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/; // 半角カナとスペースのみ
-
-  // 収納機関設定用の状態とバリデーション
+// 半角カナとスペースのバリデーションは共通ユーティリティを使用
   const [institutionInfo, setInstitutionInfo] = useState<InstitutionInfo>({
     id: 1,
     institution_name: '',

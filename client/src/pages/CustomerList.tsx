@@ -16,17 +16,9 @@ import axios from 'axios';
 import { FixedSizeList, ListOnItemsRenderedProps } from 'react-window';
 import CustomerForm from '../components/CustomerForm';
 import { pad7 } from '../utils/id';
+import { Customer } from '../types/customer';
 
-interface Customer {
-  id: number;
-  custom_id?: string;
-  customer_name: string;
-  yomi?: string;
-  address: string;
-  phone: string;
-  course_name: string;
-  contract_start_date: string;
-}
+// 顧客タイプは共通定義を使用します
 
 const CustomerList: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -317,7 +309,7 @@ const CustomerList: React.FC = () => {
                   cursor: 'pointer',
                   '&:hover': { backgroundColor: '#f9f9f9' },
                 }}
-                onClick={() => handleViewCustomer(customer.id)}
+                onClick={() => handleViewCustomer(customer.id!)}
               >
                 <Box>
                   <Chip label={pad7(customer.custom_id)} variant="outlined" size="small" />
@@ -344,7 +336,7 @@ const CustomerList: React.FC = () => {
                     startIcon={<VisibilityIcon />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleViewCustomer(customer.id);
+                      handleViewCustomer(customer.id!);
                     }}
                   >
                     詳細

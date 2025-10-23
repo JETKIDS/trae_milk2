@@ -17,8 +17,6 @@ import {
   Settings as SettingsIcon,
   LocalShipping as DeliveryIcon,
   RequestQuote as BillingIcon,
-  ReceiptLong as ReceiptLongIcon,
-  CalendarMonth as CalendarIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;

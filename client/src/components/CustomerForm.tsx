@@ -21,28 +21,17 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 import { pad7 } from '../utils/id';
+import { hiraganaRegex } from '../utils/validation';
+import { Customer } from '../types/customer';
 // 日本語入力の拡張（ローマ字変換）は撤去し、標準のTextFieldに戻します
 
-interface Customer {
-  id?: number;
-  custom_id?: string;
-  customer_name: string;
-  yomi?: string;
-  address: string;
-  phone: string;
-  email?: string;
-  course_id: number;
-  contract_start_date: string;
-  notes?: string;
-  billing_method?: 'collection' | 'debit';
-  rounding_enabled?: number;
-}
+// 顧客タイプは共通定義を使用します
 
-interface Course {
-  id: number;
-  course_name: string;
-  description?: string;
-}
+ interface Course {
+   id: number;
+   course_name: string;
+   description?: string;
+ }
 
 // スタッフ連携は廃止
 
@@ -188,7 +177,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
     }
 
     // よみがなは任意だが、入力されている場合はひらがなのみを推奨
-    if (formData.yomi && /[^\u3040-\u309F\s・ー]/.test(formData.yomi)) {
+    if (formData.yomi && !hiraganaRegex.test(formData.yomi)) {
       newErrors.yomi = 'よみがなはひらがなで入力してください';
     }
 

@@ -1,9 +1,6 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, Checkbox, FormControlLabel, Popover, TextField, Menu, MenuItem, Snackbar, Alert } from '@mui/material';
-import {
-  Edit as EditIcon,
-  MonetizationOn as MonetizationOnIcon,
-} from '@mui/icons-material';
+import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, Popover, TextField, Menu, MenuItem } from '@mui/material';
+
 import { pad7 } from '../utils/id';
 
 interface Props {
@@ -116,9 +113,7 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   const effectiveMethod: 'collection' | 'debit' = draftMethod || billingMethod || 'collection';
   const currentMethodLabel = (effectiveMethod === 'debit') ? '引き落し' : '集金';
   const [savingMethod, setSavingMethod] = React.useState<boolean>(false);
-  const [snackbarOpen, setSnackbarOpen] = React.useState<boolean>(false);
-  const [snackbarMsg, setSnackbarMsg] = React.useState<string>('');
-  const [snackbarSeverity, setSnackbarSeverity] = React.useState<'success' | 'error'>('success');
+  
 
 const handleSelectMethod = (next: 'collection' | 'debit') => {
   handleCloseMethodMenu();
@@ -139,15 +134,9 @@ const saveMethodChange = async () => {
   try {
     setSavingMethod(true);
     await Promise.resolve(onChangeBillingMethod?.(draftMethod));
-    setSnackbarMsg('請求方法を保存しました');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
     setDraftMethod(null);
   } catch (e) {
     console.error(e);
-    setSnackbarMsg('請求方法の保存に失敗しました');
-    setSnackbarSeverity('error');
-    setSnackbarOpen(true);
   } finally {
     setSavingMethod(false);
   }
@@ -207,7 +196,6 @@ const saveMethodChange = async () => {
     </Box>
   );
 
-  const diffCarryover = (prevInvoiceAmount || 0) - (prevPaymentAmount || 0);
   const autoDisplayAmount = prevInvoiceAmount || 0;
   const canSave = entryMode === 'auto' ? autoDisplayAmount > 0 : !!manualAmount && Number(manualAmount) > 0;
 
@@ -259,84 +247,47 @@ const saveMethodChange = async () => {
                     type="number"
                     inputProps={{ min: 0, step: 1 }}
                     value={manualAmount}
-                    onChange={(e) => setManualAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    onChange={e => setManualAmount(e.target.value === '' ? '' : Number(e.target.value))}
                   />
-                  <Typography variant="body2">円</Typography>
-                  <Button variant="contained" size="small" disabled={!canSave} onClick={() => onSavePrevPayment && onSavePrevPayment(Number(manualAmount), 'manual', payYear, payMonth)}>
-                    登録
-                  </Button>
+                  <Button size="small" variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment?.(Number(manualAmount), 'manual', payYear, payMonth)}>入金保存</Button>
                 </Stack>
-                {/* 前月年月の選択 */}
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-                  <TextField label="年" size="small" type="number" value={payYear} onChange={(e) => setPayYear(Number(e.target.value))} />
-                  <TextField label="月" size="small" type="number" value={payMonth} onChange={(e) => setPayMonth(Number(e.target.value))} />
+              </Box>
+            )}
+            {/* 自動入金時の保存 */}
+            {entryMode === 'auto' && (
+              <Box sx={{ mt: 1 }}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Button size="small" variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment?.(autoDisplayAmount, 'auto', payYear, payMonth)}>入金保存</Button>
+                  <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+                    <Box sx={{ p: 2 }}>
+                      <Typography variant="body2">入金月（既定：前月）</Typography>
+                      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                        <TextField size="small" type="number" label="年" value={payYear} onChange={e => setPayYear(Number(e.target.value))} />
+                        <TextField size="small" type="number" label="月" value={payMonth} onChange={e => setPayMonth(Number(e.target.value))} />
+                        <Button size="small" onClick={handleClose}>閉じる</Button>
+                      </Stack>
+                    </Box>
+                  </Popover>
+                  <Button size="small" variant="text" onClick={handleOpen}>入金月を変更</Button>
                 </Stack>
               </Box>
             )}
           </Box>
-        </CardContent>
-      </Card>
-
-      {/* 入金登録カード */}
-      <Card variant="outlined">
-        <CardContent>
-          <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 1 }}>入金登録</Typography>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button variant="contained" startIcon={<MonetizationOnIcon />} onClick={handleOpen}>
-              入金を登録
-            </Button>
-            <Button variant="text" onClick={onOpenPaymentHistory}>入金履歴</Button>
-            <Button variant="outlined" color="error" onClick={onUnconfirmInvoice}>月次請求確定取消</Button>
+          {/* 月次確定・取消 */}
+          <Divider sx={{ my: 2 }} />
+          <Stack direction="row" spacing={1}>
+            <Button variant="contained" color="primary" onClick={onConfirmInvoice}>月次請求確定</Button>
+            <Button variant="outlined" color="secondary" onClick={onUnconfirmInvoice}>取消</Button>
           </Stack>
-
-          {/* 入金登録のポップオーバー */}
-          <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
-            <Box sx={{ p: 2, minWidth: 320 }}>
-              <Typography variant="subtitle2">入金登録</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {prevMonth ? `${prevYear}年${prevMonth}月の入金を登録します。` : '入金対象の月を選択してください。'}
-              </Typography>
-              {/* 自動/手動 切替 */}
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                <FormControlLabel control={<Checkbox checked={entryMode === 'manual'} onChange={(e) => setEntryMode(e.target.checked ? 'manual' : 'auto')} />} label="手動入力" />
-                <FormControlLabel control={<Checkbox checked={entryMode === 'auto'} onChange={(e) => setEntryMode(e.target.checked ? 'auto' : 'manual')} />} label="請求額に対する自動入金" />
-              </Stack>
-
-              {/* 自動時の表示 */}
-              {entryMode === 'auto' ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2">自動入金額</Typography>
-                  <Chip label={`¥${autoDisplayAmount.toLocaleString()}`} color="primary" size="small" />
-                </Box>
-              ) : (
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <TextField size="small" type="number" inputProps={{ min: 0, step: 1 }} value={manualAmount} onChange={(e) => setManualAmount(e.target.value === '' ? '' : Number(e.target.value))} />
-                  <Typography variant="body2">円</Typography>
-                </Stack>
-              )}
-
-              {/* 年月の入力 */}
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                <TextField label="年" size="small" type="number" value={payYear} onChange={(e) => setPayYear(Number(e.target.value))} />
-                <TextField label="月" size="small" type="number" value={payMonth} onChange={(e) => setPayMonth(Number(e.target.value))} />
-              </Stack>
-
-              {/* 登録ボタン */}
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
-                <Button onClick={handleClose}>閉じる</Button>
-                <Button variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment && onSavePrevPayment(Number(entryMode === 'auto' ? autoDisplayAmount : manualAmount), entryMode, payYear, payMonth)}>登録</Button>
-              </Box>
-            </Box>
-          </Popover>
+          {/* 履歴・編集 */}
+          <Divider sx={{ my: 2 }} />
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" onClick={onOpenPaymentHistory}>入金履歴</Button>
+            <Button variant="outlined" onClick={onOpenUnitPriceChange}>単価変更</Button>
+            <Button variant="outlined" onClick={onOpenEditForm}>顧客編集</Button>
+          </Stack>
         </CardContent>
       </Card>
-
-      {/* 完了通知 */}
-      <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)}>
-        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
-          {snackbarMsg}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

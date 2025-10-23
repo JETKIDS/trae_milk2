@@ -14,12 +14,10 @@ import ProductList from './pages/ProductList';
 import CourseList from './pages/CourseList';
 import MasterManagement from './pages/MasterManagement';
 import BillingOperations from './pages/BillingOperations';
-import InvoiceIssuance from './pages/InvoiceIssuance';
 import DebitImport from './pages/DebitImport';
 import BulkCollection from './pages/BulkCollection';
 import InvoicePreview from './pages/InvoicePreview';
 import InvoiceBatchPreview from './pages/InvoiceBatchPreview';
-import MonthlyManagement from './pages/MonthlyManagement';
 import NotFound from './pages/NotFound';
 import { CompanyProvider } from './contexts/CompanyContext';
 

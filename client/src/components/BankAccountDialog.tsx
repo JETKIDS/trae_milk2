@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, Box, Typography, TextField, Button, FormControl, InputLabel, Select, MenuItem, Stack, Alert } from '@mui/material';
 import axios from 'axios';
+import { halfKanaRegex, isBankCode4, isBranchCode3, isAccountNumber7 } from '../utils/validation';
 
 interface BankValues {
   bank_code: string;
@@ -20,39 +21,6 @@ interface Props {
   currentBillingMethod?: 'collection' | 'debit';
   currentRoundingEnabled?: boolean;
 }
-
-// 全角→半角カタカナ（濁点・半濁点対応）
-function toHalfWidthKatakana(input: string): string {
-  if (!input) return '';
-  // NFDで合成文字を分解（ガ → カ + ゙ など）
-  const decomposed = input.normalize('NFD');
-  const map: Record<string, string> = {
-    'ァ':'ｧ','ア':'ｱ','ィ':'ｨ','イ':'ｲ','ゥ':'ｩ','ウ':'ｳ','ェ':'ｪ','エ':'ｴ','ォ':'ｩ','オ':'ｵ',
-    'カ':'ｶ','キ':'ｷ','ク':'ｸ','ケ':'ｹ','コ':'ｺ','サ':'ｻ','シ':'ｼ','ス':'ｽ','セ':'ｾ','ソ':'ｿ',
-    'タ':'ﾀ','チ':'ﾁ','ツ':'ﾂ','テ':'ﾃ','ト':'ﾄ','ナ':'ﾅ','ニ':'ﾆ','ヌ':'ﾇ','ネ':'ﾈ','ノ':'ﾉ',
-    'ハ':'ﾊ','ヒ':'ﾋ','フ':'ﾌ','ヘ':'ﾍ','ホ':'ﾎ','マ':'ﾏ','ミ':'ﾐ','ム':'ﾑ','メ':'ﾒ','モ':'ﾓ',
-    'ヤ':'ﾔ','ユ':'ﾕ','ヨ':'ﾖ','ラ':'ﾗ','リ':'ﾘ','ル':'ﾙ','レ':'ﾚ','ロ':'ﾛ','ワ':'ﾜ','ヲ':'ｦ','ン':'ﾝ',
-    'ッ':'ｯ','ャ':'ｬ','ュ':'ｭ','ョ':'ｮ','・':'･','ー':'ｰ','ヴ':'ｳ' // ヴはNFDでウ+゙になるためウ→ｳにして後で濁点付加
-  };
-  const voicedMark = '\u3099'; // ゙（結合文字）
-  const semiVoicedMark = '\u309A'; // ゚（結合文字）
-  let out = '';
-  for (const ch of decomposed) {
-    if (ch === voicedMark) { out += 'ﾞ'; continue; }
-    if (ch === semiVoicedMark) { out += 'ﾟ'; continue; }
-    // ASCII/半角はそのまま
-    const code = ch.charCodeAt(0);
-    if (code <= 0x007E) { out += ch; continue; }
-    // スペース系は半角スペースに
-    if (ch === '\u3000') { out += ' '; continue; }
-    // マッピング
-    out += map[ch] || ch;
-  }
-  return out;
-}
-
-// 半角カタカナのみ（スペース可）
-const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/;
 
 const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initialValues, onSaved, currentBillingMethod, currentRoundingEnabled }) => {
   const [vals, setVals] = useState<BankValues>(initialValues);
@@ -98,10 +66,8 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
       v = v.replace(/[^0-9]/g, '').slice(0, 3);
     } else if (key === 'account_number') {
       v = v.replace(/[^0-9]/g, '').slice(0, 7);
-    } else if (key === 'account_holder_katakana') {
-      // 入力値をそのまま保持（自動半角変換は廃止）
-      v = v;
     }
+    // account_holder_katakana は入力値をそのまま保持（自動半角変換なし）
     setVals(prev => ({ ...prev, [key]: v }));
   };
 
@@ -114,10 +80,10 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
   // 自動変換機能は廃止のため、convertHolderToHalfは削除
 
   const valid = useMemo(() => {
-    if (!/^\d{4}$/.test(vals.bank_code || '')) return false;
-    if (!/^\d{3}$/.test(vals.branch_code || '')) return false;
+    if (!isBankCode4(vals.bank_code || '')) return false;
+    if (!isBranchCode3(vals.branch_code || '')) return false;
     if (!(vals.account_type === 1 || vals.account_type === 2)) return false;
-    if (!/^\d{7}$/.test(vals.account_number || '')) return false;
+    if (!isAccountNumber7(vals.account_number || '')) return false;
     const name = vals.account_holder_katakana || '';
     return name.length > 0 && halfKanaRegex.test(name);
   }, [vals]);
@@ -199,17 +165,16 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
             label="口座名義（半角カタカナ）"
             value={vals.account_holder_katakana || ''}
             onChange={onChange('account_holder_katakana')}
-            helperText="半角カタカナ・半角スペースで入力してください（全角はエラーになります）。例：ﾔﾏﾀﾞ ﾀﾛｳ"
+            inputProps={{ maxLength: 30 }}
             fullWidth
           />
-          {/* 半角変換ボタンは廃止 */}
           {error && <Alert severity="error">{error}</Alert>}
           {info && <Alert severity="success">{info}</Alert>}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            <Button onClick={onClose}>閉じる</Button>
+            <Button variant="contained" onClick={save} disabled={!valid || saving}>保存</Button>
+          </Box>
         </Stack>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
-          <Button onClick={onClose} disabled={saving}>閉じる</Button>
-          <Button variant="contained" onClick={save} disabled={!valid || saving}>{saving ? '保存中…' : '保存'}</Button>
-        </Box>
       </Box>
     </Dialog>
   );

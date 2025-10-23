@@ -23,7 +23,9 @@ const BillingOperations: React.FC = () => {
   const [courses, setCourses] = useState<Array<{ id: number; custom_id?: string; course_name: string }>>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<number | ''>('');
   const [loadingCourses, setLoadingCourses] = useState<boolean>(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [customers, setCustomers] = useState<Array<{ id: number; custom_id?: string; customer_name: string; address?: string; phone?: string }>>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loadingCustomers, setLoadingCustomers] = useState<boolean>(false);
   const [generatingCsv, setGeneratingCsv] = useState<boolean>(false);
   const [generateError, setGenerateError] = useState<string | null>(null);

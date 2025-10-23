@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, Button, IconButton, Grid, Card, CardContent, Typography, Chip, Paper, Table, TableHead, TableRow, TableCell, TableBody, TextField, Dialog, Popover, FormControl, InputLabel, Select, MenuItem, TableContainer, Alert } from '@mui/material';
 import { Undo as UndoIcon, Edit as EditIcon, ArrowBack as ArrowBackIcon, ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -221,7 +221,7 @@ const CustomerDetail: React.FC = () => {
   const [openBankInfo, setOpenBankInfo] = useState<boolean>(false);
 
   // ===== データ取得関数 =====
-  const fetchCustomerData = async () => {
+  const fetchCustomerData = useCallback(async () => {
     try {
       const res = await axios.get(`/api/customers/${id}`);
       const data = res.data || {};
@@ -237,9 +237,9 @@ const CustomerDetail: React.FC = () => {
       console.error('顧客データ取得エラー', e);
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchCalendarData = async () => {
+  const fetchCalendarData = useCallback(async () => {
     try {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
@@ -250,9 +250,9 @@ const CustomerDetail: React.FC = () => {
     } catch (e) {
       console.error('カレンダー取得エラー', e);
     }
-  };
+  }, [id, currentDate]);
 
-  const fetchInvoiceStatus = async () => {
+  const fetchInvoiceStatus = useCallback(async () => {
     try {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
@@ -265,10 +265,10 @@ const CustomerDetail: React.FC = () => {
       setInvoiceConfirmed(false);
       setInvoiceConfirmedAt(null);
     }
-  };
+  }, [id, currentDate]);
 
   // 追記: 前月の請求確定状態取得
-  const fetchPrevInvoiceStatus = async () => {
+  const fetchPrevInvoiceStatus = useCallback(async () => {
     try {
       const y = arSummary?.prev_year;
       const m = arSummary?.prev_month;
@@ -280,9 +280,9 @@ const CustomerDetail: React.FC = () => {
       console.error('前月請求確定状態取得エラー', e);
       setPrevInvoiceConfirmed(null);
     }
-  };
+  }, [id, arSummary?.prev_year, arSummary?.prev_month]);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const res = await axios.get(`/api/customers/${id}`);
       const settings = res.data?.settings || null;
@@ -300,9 +300,9 @@ const CustomerDetail: React.FC = () => {
     } catch (e) {
       console.error('請求設定取得エラー', e);
     }
-  };
+  }, [id]);
 
-  const fetchArSummary = async () => {
+  const fetchArSummary = useCallback(async () => {
     try {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
@@ -312,7 +312,7 @@ const CustomerDetail: React.FC = () => {
       console.error('ARサマリ取得エラー', e);
       setArSummary(null);
     }
-  };
+  }, [id, currentDate]);
 
   const handlePatternsChange = async () => {
     await fetchCustomerData();
@@ -327,18 +327,18 @@ const CustomerDetail: React.FC = () => {
   useEffect(() => {
     fetchCustomerData();
     fetchSettings();
-  }, [id]);
+  }, [fetchCustomerData, fetchSettings]);
 
   // 月変更時にカレンダー/請求状態/ARサマリを再取得
   useEffect(() => {
     fetchCalendarData();
     fetchInvoiceStatus();
     fetchArSummary();
-  }, [id, currentDate]);
+  }, [fetchCalendarData, fetchInvoiceStatus, fetchArSummary]);
   // 追加: ARサマリの前月値が揃ったら前月確定状態も取得
   useEffect(() => {
     fetchPrevInvoiceStatus();
-  }, [arSummary?.prev_year, arSummary?.prev_month]);
+  }, [fetchPrevInvoiceStatus]);
   // ===== 追記ここまで =====
 
   // セルに紐づく商品IDから、指定日の有効な定期パターンを取得
