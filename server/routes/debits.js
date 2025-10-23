@@ -173,6 +173,8 @@ router.get('/generate', async (req, res) => {
   const monthStr = String(req.query.month || '').trim(); // YYYY-MM
   const courseIdStr = req.query.courseId ? String(req.query.courseId).trim() : '';
   const format = String(req.query.format || '').trim().toLowerCase();
+  const institutionIdStr = req.query.institutionId ? String(req.query.institutionId).trim() : '';
+  const institutionId = institutionIdStr && /^[0-9]+$/.test(institutionIdStr) ? parseInt(institutionIdStr, 10) : null;
   if (!monthStr || !/^[0-9]{4}-[0-9]{2}$/.test(monthStr)) {
     return res.status(400).json({ error: 'month は YYYY-MM 形式で指定してください' });
   }
@@ -268,7 +270,7 @@ router.get('/generate', async (req, res) => {
           'ガ':'ｶﾞ','ギ':'ｷﾞ','グ':'ｸﾞ','ゲ':'ｹﾞ','ゴ':'ｺﾞ',
           'ザ':'ｻﾞ','ジ':'ｼﾞ','ズ':'ｽﾞ','ゼ':'ｾﾞ','ゾ':'ｿﾞ',
           'ダ':'ﾀﾞ','ヂ':'ﾁﾞ','ヅ':'ﾂﾞ','デ':'ﾃﾞ','ド':'ﾄﾞ',
-          'バ':'ﾊﾞ','ビ':'ﾋﾞ','フ':'ﾌﾞ','ヘ':'ﾍﾞ','ホ':'ﾎﾞ',
+          'バ':'ﾊﾞ','ヒ':'ﾋﾞ','フ':'ﾌﾞ','ヘ':'ﾍﾞ','ホ':'ﾎﾞ',
           'パ':'ﾊﾟ','ピ':'ﾋﾟ','プ':'ﾌﾟ','ペ':'ﾍﾟ','ポ':'ﾎﾟ',
           'ヴ':'ｳﾞ'
         };
@@ -309,17 +311,60 @@ router.get('/generate', async (req, res) => {
       const companyNameKana = (companyNameRow.company_name_kana_half && halfKanaRegex.test(companyNameRow.company_name_kana_half))
         ? companyNameRow.company_name_kana_half
         : toHalfKana(companyNameRow.company_name || '');
-      const agentName = 'ﾆｺｽ';
+      // 収納機関マスタの取得（任意）
+      const institutionRow = await new Promise(resolve => {
+        if (!institutionId) return resolve(null);
+        db.get('SELECT institution_name, bank_code_7, agent_name_half, agent_code, header_leading_digit, bank_name, branch_name FROM institution_info WHERE id = ?', [institutionId], (err, row) => {
+           if (err) return resolve(null);
+           resolve(row || null);
+         });
+       });
+      const agentNameRaw = institutionRow && institutionRow.agent_name_half ? institutionRow.agent_name_half : 'ﾆｺｽ';
+      const agentName = (agentNameRaw && halfKanaRegex.test(agentNameRaw)) ? agentNameRaw : 'ﾆｺｽ';
       const agentField = padRight(agentName, 16, ' ');
       const nextMonth = moment(`${y}-${String(m).padStart(2, '0')}-01`).add(1, 'month');
       const drawDate = nextMonth.clone().date(12).format('MMDD');
-      const headerLine = '1' + '9117124275501' + padRight(companyNameKana, 30, ' ') + drawDate + '9900' + agentField + '000' + agentField + '10000000';
+      const companyNameKana30 = String(companyNameKana).slice(0, 30);
+      // 会社名ではなく「収納機関登録内の委託者名」を優先してヘッダーの委託者名に使用
+      const consignorNameBase = (institutionRow && institutionRow.agent_name_half && halfKanaRegex.test(institutionRow.agent_name_half))
+        ? institutionRow.agent_name_half
+        : companyNameKana;
+      const consignorName30 = String(consignorNameBase).slice(0, 30);
+      // ヘッダ先頭の数値列（仕様に合わせて既定は『1911』。マスタに値があればそれを採用）
+      const headerLeading = institutionRow && institutionRow.header_leading_digit
+        ? String(institutionRow.header_leading_digit)
+        : '1911';
+      // 銀行コード7桁（銀行/支店表示用）
+      const bankCode7 = institutionRow && institutionRow.bank_code_7 ? String(institutionRow.bank_code_7).replace(/\D/g, '').slice(0,7) : '';
+      // 委託者コード（10桁）は収納機関登録の agent_code をそのまま使用（数値のみ抽出、10桁に左ゼロ埋め／超過は先頭10桁）
+      const clientCode10Raw = institutionRow && institutionRow.agent_code ? String(institutionRow.agent_code).replace(/\D/g, '') : '';
+      const clientCode10 = padLeft(clientCode10Raw.slice(0, 10), 10, '0');
+      // 金融機関コードの分割（前半4桁/下3桁）と名称（半角カナ）
+      const bankCodeFirst4 = bankCode7.length === 7 ? bankCode7.slice(0, 4) : '9900';
+      const bankCodeLast3 = bankCode7.length === 7 ? bankCode7.slice(4) : '000';
+      const bankNameHalf = toHalfKana(institutionRow && institutionRow.bank_name ? institutionRow.bank_name : agentName);
+      const branchNameHalf = toHalfKana(institutionRow && institutionRow.branch_name ? institutionRow.branch_name : agentName);
+      // レコード行（顧客情報）では銀行名/支店名は各16桁幅（右スペース埋め）で出力
+      const bankNameField16 = padRight(bankNameHalf, 16, ' ');
+      const branchNameField16 = padRight(branchNameHalf, 16, ' ');
+      // ヘッダーは全銀固定長仕様に合わせて各フィールドを固定幅で出力し、残りは右スペース埋めで120桁に調整
+      const consignorField30 = padRight(consignorName30, 30, ' ');
+      const headerCore = headerLeading
+        + clientCode10
+        + consignorField30
+        + drawDate
+        + bankCodeFirst4
+        + bankNameField16
+        + bankCodeLast3
+        + branchNameField16
+        + '10000000';
+      const headerLine = padRight(headerCore, 120, ' ');
       const fixedLines = filtered.map(e => {
         const recordType = '2';
         const bank = padLeft(e.bank_code, 4, '0');
-        const agentAfterBank = agentField;
+        const bankNameOut = bankNameField16;
         const branch = padLeft(e.branch_code, 3, '0');
-        const agentAfterBranch = agentField;
+        const branchNameOut = branchNameField16;
         const kind = String(e.account_type);
         const acct = padLeft(e.account_number, 7, '0');
         const name = padRight(String(e.account_holder_katakana), 30, ' ');
@@ -327,8 +372,14 @@ router.get('/generate', async (req, res) => {
         const idWithZero = String(e.custom_id || '').replace(/[^0-9]/g, '') + '0';
         const idPadded = padLeft(idWithZero, 8, '0');
         const tail = '1' + '0'.repeat(17) + idPadded + ' '.repeat(8);
-        return recordType + bank + agentAfterBank + branch + agentAfterBranch + kind + acct + name + amount + tail;
+        return recordType + bank + bankNameOut + branch + branchNameOut + kind + acct + name + amount + tail;
       });
+      console.log(`[debits] header length(chars)=${headerLine.length}`);
+      console.log(`[debits] header sample='${headerLine}'`);
+      if (fixedLines.length > 0) {
+        console.log(`[debits] first detail length(chars)=${fixedLines[0].length}`);
+        console.log(`[debits] first detail sample='${fixedLines[0]}'`);
+      }
       const text = [headerLine, ...fixedLines].join('\r\n') + '\r\n';
       const buf = iconv.encode(text, 'CP932');
       res.setHeader('Content-Type', 'text/plain; charset=Shift_JIS');

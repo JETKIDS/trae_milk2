@@ -28,6 +28,9 @@ const BillingOperations: React.FC = () => {
   const [generatingCsv, setGeneratingCsv] = useState<boolean>(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [csvFormat, setCsvFormat] = useState<'standard' | 'zengin' | 'zengin_fixed'>('zengin');
+  const [institutions, setInstitutions] = useState<Array<{ id: number; institution_name: string }>>([]);
+  const [selectedInstitutionId, setSelectedInstitutionId] = useState<number | ''>('');
+  const [loadingInstitutions, setLoadingInstitutions] = useState<boolean>(false);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -99,6 +102,9 @@ const BillingOperations: React.FC = () => {
       if (selectedCourseId !== '' && !isNaN(Number(selectedCourseId))) {
         params.courseId = Number(selectedCourseId);
       }
+      if (selectedInstitutionId !== '' && !isNaN(Number(selectedInstitutionId))) {
+        params.institutionId = Number(selectedInstitutionId);
+      }
       if (csvFormat) {
         params.format = csvFormat;
       }
@@ -135,6 +141,20 @@ const BillingOperations: React.FC = () => {
         console.error('コース一覧取得失敗', e);
       } finally {
         setLoadingCourses(false);
+      }
+    })();
+  }, []);
+  // 収納機関一覧の取得
+  useEffect(() => {
+    (async () => {
+      setLoadingInstitutions(true);
+      try {
+        const res = await axios.get('/api/masters/institutions');
+        setInstitutions(res.data || []);
+      } catch (e) {
+        console.error('収納機関一覧取得失敗', e);
+      } finally {
+        setLoadingInstitutions(false);
       }
     })();
   }, []);
@@ -217,7 +237,6 @@ const BillingOperations: React.FC = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 引き落し用ファイル（全国銀行協会フォーマット）のプレビュー／解析を実行します。
               </Typography>
-
               {/* 生成（CSVダウンロード） */}
               <Stack spacing={2} sx={{ mb: 2 }}>
                 <Typography variant="subtitle1">CSV生成（{monthLabel}）</Typography>
@@ -255,6 +274,37 @@ const BillingOperations: React.FC = () => {
                     </Select>
                     {/* コース一覧取得中のインジケータ */}
                     {loadingCourses && (
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', ml: 1 }}>
+                        <CircularProgress size={14} />
+                      </Box>
+                    )}
+                  </FormControl>
+                  {/* 収納機関選択 */}
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <InputLabel id="institution-select-label" shrink>収納機関</InputLabel>
+                    <Select
+                      labelId="institution-select-label"
+                      label="収納機関"
+                      value={selectedInstitutionId}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setSelectedInstitutionId(v === '' ? '' : Number(v));
+                      }}
+                      displayEmpty
+                      renderValue={() => {
+                        if (selectedInstitutionId === '') {
+                          return '未選択（既定値）';
+                        }
+                        const selected = institutions.find(i => i.id === Number(selectedInstitutionId));
+                        return selected ? selected.institution_name : '';
+                      }}
+                    >
+                      <MenuItem value="">未選択（既定値）</MenuItem>
+                      {institutions.map(i => (
+                        <MenuItem key={i.id} value={i.id}>{i.institution_name}</MenuItem>
+                      ))}
+                    </Select>
+                    {loadingInstitutions && (
                       <Box sx={{ display: 'inline-flex', alignItems: 'center', ml: 1 }}>
                         <CircularProgress size={14} />
                       </Box>

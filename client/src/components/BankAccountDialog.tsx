@@ -99,8 +99,8 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
     } else if (key === 'account_number') {
       v = v.replace(/[^0-9]/g, '').slice(0, 7);
     } else if (key === 'account_holder_katakana') {
-      // 暫定: 入力中は無変換。保存時または変換ボタンで半角化
-      v = v.replace(/\s/g, ' '); // 全角スペース→半角スペース
+      // 入力値をそのまま保持（自動半角変換は廃止）
+      v = v;
     }
     setVals(prev => ({ ...prev, [key]: v }));
   };
@@ -111,17 +111,7 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
     setVals(prev => ({ ...prev, account_type: (num === 1 || num === 2) ? num : null }));
   };
 
-  const convertHolderToHalf = () => {
-    const converted = toHalfWidthKatakana(vals.account_holder_katakana || '');
-    setVals(prev => ({ ...prev, account_holder_katakana: converted }));
-    if (converted && !halfKanaRegex.test(converted)) {
-      setError('口座名義は半角カタカナで入力してください（スペース可）');
-    } else {
-      setError('');
-      setInfo('名義を半角カタカナに変換しました');
-      setTimeout(() => setInfo(''), 2000);
-    }
-  };
+  // 自動変換機能は廃止のため、convertHolderToHalfは削除
 
   const valid = useMemo(() => {
     if (!/^\d{4}$/.test(vals.bank_code || '')) return false;
@@ -135,10 +125,10 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
   const save = async () => {
     setError('');
     setInfo('');
-    // 名義の自動半角化（最終チェック）
-    const normalizedName = toHalfWidthKatakana(vals.account_holder_katakana || '').trim();
-    if (!normalizedName || !halfKanaRegex.test(normalizedName)) {
-      setError('口座名義は半角カタカナで入力してください（スペース可）');
+    // 自動半角化は行わず、入力された半角データのみ許容
+    const inputName = vals.account_holder_katakana || '';
+    if (!inputName || !halfKanaRegex.test(inputName)) {
+      setError('口座名義は半角カタカナで入力してください（スペース可・全角不可）');
       return;
     }
     try {
@@ -148,7 +138,7 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
         branch_code: vals.branch_code || null,
         account_type: vals.account_type ?? null,
         account_number: vals.account_number || null,
-        account_holder_katakana: normalizedName,
+        account_holder_katakana: inputName,
         // 既存の請求設定も送信してレコードの初回作成時に値を保持する
         billing_method: currentBillingMethod,
         rounding_enabled: typeof currentRoundingEnabled === 'boolean' ? (currentRoundingEnabled ? 1 : 0) : undefined,
@@ -209,13 +199,10 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
             label="口座名義（半角カタカナ）"
             value={vals.account_holder_katakana || ''}
             onChange={onChange('account_holder_katakana')}
-            onBlur={convertHolderToHalf}
-            helperText="入力例：ﾔﾏﾀﾞ ﾀﾛｳ。必要に応じ「半角に変換」を押してください。"
+            helperText="半角カタカナ・半角スペースで入力してください（全角はエラーになります）。例：ﾔﾏﾀﾞ ﾀﾛｳ"
             fullWidth
           />
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button size="small" onClick={convertHolderToHalf}>半角に変換</Button>
-          </Box>
+          {/* 半角変換ボタンは廃止 */}
           {error && <Alert severity="error">{error}</Alert>}
           {info && <Alert severity="success">{info}</Alert>}
         </Stack>

@@ -591,6 +591,11 @@ router.post('/company', (req, res) => {
     }
   }
 
+  // 30文字にサーバー側で安全に切り詰め（固定長フォーマット対策）
+  const companyNameKanaHalfTrimmed = (company_name_kana_half !== undefined && company_name_kana_half !== null)
+    ? String(company_name_kana_half).slice(0, 30)
+    : null;
+
   // 不足カラムがあれば追加（マイグレーション）
   db.all("PRAGMA table_info(company_info)", (tiErr, rows) => {
     const names = (rows || []).map(r => r.name);
@@ -628,7 +633,7 @@ router.post('/company', (req, res) => {
             WHERE id = 1
           `;
           db.run(updateQuery, [
-            company_name, company_name_kana_half || null, postal_code, address, phone, fax, email, 
+            company_name, companyNameKanaHalfTrimmed, postal_code, address, phone, fax, email, 
             representative, business_hours, established_date
           ], function(err) {
             if (err) {
@@ -648,7 +653,513 @@ router.post('/company', (req, res) => {
             ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
           db.run(insertQuery, [
-            company_name, company_name_kana_half || null, postal_code, address, phone, fax, email, 
+            company_name, companyNameKanaHalfTrimmed, postal_code, address, phone, fax, email, 
+            representative, business_hours, established_date
+          ], function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              db.close();
+              return;
+            }
+            res.json({ message: '会社情報が正常に作成されました' });
+            db.close();
+          });
+        }
+      });
+    });
+  });
+});
+
+// 収納機関設定 取得
+router.get('/institution', (req, res) => {
+  const db = getDB();
+  db.run(`CREATE TABLE IF NOT EXISTS institution_info (
+    id INTEGER PRIMARY KEY,
+    institution_name TEXT,
+    bank_code_7 TEXT,
+    bank_name TEXT,
+    branch_name TEXT,
+    agent_name_half TEXT,
+    agent_code TEXT,
+    header_leading_digit TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  db.get('SELECT * FROM institution_info WHERE id = 1', [], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    if (!row) {
+      const defaults = {
+        id: 1,
+        institution_name: '',
+        bank_code_7: '',
+        bank_name: '',
+        branch_name: '',
+        agent_name_half: '',
+        agent_code: '',
+        header_leading_digit: '1'
+      };
+      res.json(defaults);
+      db.close();
+      return;
+    }
+    res.json(row);
+    db.close();
+  });
+});
+
+// 収納機関設定 更新/作成（単一レコード互換）
+router.post('/institution', (req, res) => {
+  const db = getDB();
+  const {
+    institution_name,
+    bank_code_7,
+    bank_name,
+    branch_name,
+    agent_name_half,
+    agent_code,
+    header_leading_digit
+  } = req.body;
+
+  // テーブル作成
+  db.run(`CREATE TABLE IF NOT EXISTS institution_info (
+    id INTEGER PRIMARY KEY,
+    institution_name TEXT,
+    bank_code_7 TEXT,
+    bank_name TEXT,
+    branch_name TEXT,
+    agent_name_half TEXT,
+    agent_code TEXT,
+    header_leading_digit TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // バリデーション
+  const bankCodeOk = typeof bank_code_7 === 'string' && /^\d{7}$/.test(bank_code_7);
+  const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/; // 半角カナとスペース
+  const agentNameOk = (agent_name_half === undefined || agent_name_half === null || agent_name_half === '') || (typeof agent_name_half === 'string' && halfKanaRegex.test(agent_name_half));
+  const headerDigitOk = typeof header_leading_digit === 'string' && /^\d+$/.test(header_leading_digit); // 桁数制約を撤廃（数字のみ）
+  const agentCodeOk = (agent_code === undefined || agent_code === null || agent_code === '') || (typeof agent_code === 'string' && /^\d+$/.test(agent_code));
+
+  if (!bankCodeOk) {
+    res.status(400).json({ error: '金融機関コード（7桁）は半角数字7桁で入力してください' });
+    db.close();
+    return;
+  }
+  if (!agentNameOk) {
+    res.status(400).json({ error: '委託者名は半角カタカナで入力してください（スペース可）' });
+    db.close();
+    return;
+  }
+  if (!headerDigitOk) {
+    res.status(400).json({ error: 'ヘッダー先頭の数字は半角数字のみで入力してください（桁数不問）' });
+    db.close();
+    return;
+  }
+  if (!agentCodeOk) {
+    res.status(400).json({ error: '委託者コードは半角数字のみで入力してください' });
+    db.close();
+    return;
+  }
+
+  // サーバー側制約（半角カナの委託者名はヘッダーに16桁枠があるため一旦16文字へ切り詰め）
+  const agentNameTrimmed = (agent_name_half && typeof agent_name_half === 'string') ? agent_name_half.slice(0, 16) : null;
+
+  db.get('SELECT id FROM institution_info WHERE id = 1', [], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    if (row) {
+      const sql = `
+        UPDATE institution_info
+        SET institution_name = ?, bank_code_7 = ?, bank_name = ?, branch_name = ?, agent_name_half = ?, agent_code = ?, header_leading_digit = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1
+      `;
+      db.run(sql, [institution_name, bank_code_7, bank_name, branch_name, agentNameTrimmed, agent_code, header_leading_digit], function(updErr) {
+        if (updErr) {
+          res.status(500).json({ error: updErr.message });
+          db.close();
+          return;
+        }
+        res.json({ message: '収納機関設定を更新しました' });
+        db.close();
+      });
+    } else {
+      const sql = `
+        INSERT INTO institution_info (id, institution_name, bank_code_7, bank_name, branch_name, agent_name_half, agent_code, header_leading_digit)
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      db.run(sql, [institution_name, bank_code_7, bank_name, branch_name, agentNameTrimmed, agent_code, header_leading_digit], function(insErr) {
+        if (insErr) {
+          res.status(500).json({ error: insErr.message });
+          db.close();
+          return;
+        }
+        res.json({ message: '収納機関設定を作成しました' });
+        db.close();
+      });
+    }
+  });
+});
+
+// 収納機関（複数）CRUD
+// 一覧
+router.get('/institutions', (req, res) => {
+  const db = getDB();
+  db.run(`CREATE TABLE IF NOT EXISTS institution_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    institution_name TEXT,
+    bank_code_7 TEXT,
+    bank_name TEXT,
+    branch_name TEXT,
+    agent_name_half TEXT,
+    agent_code TEXT,
+    header_leading_digit TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  db.all('SELECT * FROM institution_info ORDER BY id ASC', [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    res.json(rows || []);
+    db.close();
+  });
+});
+
+// 取得（単体）
+router.get('/institutions/:id', (req, res) => {
+  const db = getDB();
+  const id = parseInt(req.params.id, 10);
+  db.get('SELECT * FROM institution_info WHERE id = ?', [id], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    if (!row) {
+      res.status(404).json({ error: '収納機関が見つかりません' });
+      db.close();
+      return;
+    }
+    res.json(row);
+    db.close();
+  });
+});
+
+// 作成
+router.post('/institutions', (req, res) => {
+  const db = getDB();
+  const {
+    institution_name,
+    bank_code_7,
+    bank_name,
+    branch_name,
+    agent_name_half,
+    agent_code,
+    header_leading_digit
+  } = req.body;
+
+  db.run(`CREATE TABLE IF NOT EXISTS institution_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    institution_name TEXT,
+    bank_code_7 TEXT,
+    bank_name TEXT,
+    branch_name TEXT,
+    agent_name_half TEXT,
+    agent_code TEXT,
+    header_leading_digit TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  const bankCodeOk = typeof bank_code_7 === 'string' && /^\d{7}$/.test(bank_code_7);
+  const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/;
+  const agentNameOk = (agent_name_half === undefined || agent_name_half === null || agent_name_half === '') || (typeof agent_name_half === 'string' && halfKanaRegex.test(agent_name_half));
+  const headerDigitOk = typeof header_leading_digit === 'string' && /^\d+$/.test(header_leading_digit);
+  const agentCodeOk = (agent_code === undefined || agent_code === null || agent_code === '') || (typeof agent_code === 'string' && /^\d+$/.test(agent_code));
+
+  if (!bankCodeOk) return res.status(400).json({ error: '金融機関コード（7桁）は半角数字7桁で入力してください' });
+  if (!agentNameOk) return res.status(400).json({ error: '委託者名は半角カタカナで入力してください（スペース可）' });
+  if (!headerDigitOk) return res.status(400).json({ error: 'ヘッダー先頭の数字は半角数字のみで入力してください（桁数不問）' });
+  if (!agentCodeOk) return res.status(400).json({ error: '委託者コードは半角数字のみで入力してください' });
+
+  const agentNameTrimmed = (agent_name_half && typeof agent_name_half === 'string') ? agent_name_half.slice(0, 16) : null;
+  const sql = `
+    INSERT INTO institution_info (institution_name, bank_code_7, bank_name, branch_name, agent_name_half, agent_code, header_leading_digit)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
+  db.run(sql, [institution_name, bank_code_7, bank_name, branch_name, agentNameTrimmed, agent_code, header_leading_digit], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    res.json({ message: '収納機関を作成しました', id: this.lastID });
+    db.close();
+  });
+});
+
+// 更新
+router.put('/institutions/:id', (req, res) => {
+  const db = getDB();
+  const id = parseInt(req.params.id, 10);
+  const {
+    institution_name,
+    bank_code_7,
+    bank_name,
+    branch_name,
+    agent_name_half,
+    agent_code,
+    header_leading_digit
+  } = req.body;
+
+  const bankCodeOk = typeof bank_code_7 === 'string' && /^\d{7}$/.test(bank_code_7);
+  const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/;
+  const agentNameOk = (agent_name_half === undefined || agent_name_half === null || agent_name_half === '') || (typeof agent_name_half === 'string' && halfKanaRegex.test(agent_name_half));
+  const headerDigitOk = typeof header_leading_digit === 'string' && /^\d+$/.test(header_leading_digit);
+  const agentCodeOk = (agent_code === undefined || agent_code === null || agent_code === '') || (typeof agent_code === 'string' && /^\d+$/.test(agent_code));
+
+  if (!bankCodeOk) return res.status(400).json({ error: '金融機関コード（7桁）は半角数字7桁で入力してください' });
+  if (!agentNameOk) return res.status(400).json({ error: '委託者名は半角カタカナで入力してください（スペース可）' });
+  if (!headerDigitOk) return res.status(400).json({ error: 'ヘッダー先頭の数字は半角数字のみで入力してください（桁数不問）' });
+  if (!agentCodeOk) return res.status(400).json({ error: '委託者コードは半角数字のみで入力してください' });
+
+  const agentNameTrimmed = (agent_name_half && typeof agent_name_half === 'string') ? agent_name_half.slice(0, 16) : null;
+  const sql = `
+    UPDATE institution_info
+    SET institution_name = ?, bank_code_7 = ?, bank_name = ?, branch_name = ?, agent_name_half = ?, agent_code = ?, header_leading_digit = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `;
+  db.run(sql, [institution_name, bank_code_7, bank_name, branch_name, agentNameTrimmed, agent_code, header_leading_digit, id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    if (this.changes === 0) {
+      res.status(404).json({ error: '収納機関が見つかりません' });
+      db.close();
+      return;
+    }
+    res.json({ message: '収納機関を更新しました' });
+    db.close();
+  });
+});
+
+// 削除
+router.delete('/institutions/:id', (req, res) => {
+  const db = getDB();
+  const id = parseInt(req.params.id, 10);
+  db.run('DELETE FROM institution_info WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    if (this.changes === 0) {
+      res.status(404).json({ error: '収納機関が見つかりません' });
+      db.close();
+      return;
+    }
+    res.json({ message: '収納機関を削除しました' });
+    db.close();
+  });
+});
+
+// メーカー一覧取得
+router.get('/manufacturers', (req, res) => {
+  const db = getDB();
+  db.all('SELECT * FROM manufacturers ORDER BY manufacturer_name', [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+  db.close();
+});
+
+// メーカー削除
+router.delete('/manufacturers/:id', (req, res) => {
+  const db = getDB();
+  const manufacturerId = req.params.id;
+  // 依存関係チェック（商品がこのメーカーに紐づく場合は削除不可）
+  db.get('SELECT COUNT(*) AS cnt FROM products WHERE manufacturer_id = ?', [manufacturerId], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      db.close();
+      return;
+    }
+    if ((row?.cnt || 0) > 0) {
+      res.status(409).json({ error: 'このメーカーに紐づく商品が存在するため削除できません' });
+      db.close();
+      return;
+    }
+    const query = `DELETE FROM manufacturers WHERE id = ?`;
+    db.run(query, [manufacturerId], function(delErr) {
+      if (delErr) {
+        res.status(500).json({ error: delErr.message });
+        db.close();
+        return;
+      }
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'メーカーが見つかりません' });
+        db.close();
+        return;
+      }
+      res.json({ message: 'メーカーが正常に削除されました' });
+      db.close();
+    });
+  });
+});
+
+// 会社情報取得
+router.get('/company', (req, res) => {
+  const db = getDB();
+  // 不足カラムがあれば追加（マイグレーション）
+  db.all("PRAGMA table_info(company_info)", (tiErr, rows) => {
+    const names = (rows || []).map(r => r.name);
+    if (!names.includes('company_name_kana_half')) {
+      db.run("ALTER TABLE company_info ADD COLUMN company_name_kana_half TEXT", () => {
+        // 続行（失敗してもGETは返す）
+      });
+    }
+    db.get('SELECT * FROM company_info WHERE id = 1', [], (err, row) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        db.close();
+        return;
+      }
+      if (!row) {
+        // 会社情報が存在しない場合はデフォルト値を返す
+        const defaultCompanyInfo = {
+          id: 1,
+          company_name: '',
+          company_name_kana_half: '',
+          postal_code: '',
+          address: '',
+          phone: '',
+          fax: '',
+          email: '',
+          representative: '',
+          business_hours: '',
+          established_date: '',
+          capital: '',
+          business_description: ''
+        };
+        res.json(defaultCompanyInfo);
+        db.close();
+        return;
+      }
+      // 欠損時は空文字で補完
+      if (row.company_name_kana_half === undefined) row.company_name_kana_half = '';
+      res.json(row);
+      db.close();
+    });
+  });
+});
+
+// 会社情報更新・作成
+router.post('/company', (req, res) => {
+  const db = getDB();
+  const {
+    company_name,
+    company_name_kana_half,
+    postal_code,
+    address,
+    phone,
+    fax,
+    email,
+    representative,
+    business_hours,
+    established_date
+  } = req.body;
+
+  // バリデーション（任意入力、指定時は半角カナのみ）
+  const halfKanaRegex = /^[\uFF65-\uFF9F\u0020]+$/; // 半角カナとスペース
+  if (company_name_kana_half !== undefined && company_name_kana_half !== null) {
+    const s = String(company_name_kana_half);
+    if (s.length > 0 && !halfKanaRegex.test(s)) {
+      res.status(400).json({ error: '会社名（読み）は半角カタカナで入力してください（スペース可）' });
+      db.close();
+      return;
+    }
+  }
+
+  // 30文字にサーバー側で安全に切り詰め（固定長フォーマット対策）
+  const companyNameKanaHalfTrimmed = (company_name_kana_half !== undefined && company_name_kana_half !== null)
+    ? String(company_name_kana_half).slice(0, 30)
+    : null;
+
+  // 不足カラムがあれば追加（マイグレーション）
+  db.all("PRAGMA table_info(company_info)", (tiErr, rows) => {
+    const names = (rows || []).map(r => r.name);
+    const alters = [];
+    if (!names.includes('company_name_kana_half')) alters.push("ALTER TABLE company_info ADD COLUMN company_name_kana_half TEXT");
+    const runAlters = (cb) => {
+      if (alters.length === 0) return cb();
+      db.serialize(() => {
+        let i = 0;
+        const next = () => {
+          if (i >= alters.length) return cb();
+          const sql = alters[i];
+          db.run(sql, (altErr) => { i++; next(); });
+        };
+        next();
+      });
+    };
+
+    runAlters(() => {
+      // 既存レコードチェック
+      db.get('SELECT id FROM company_info WHERE id = 1', [], (err, row) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          db.close();
+          return;
+        }
+
+        if (row) {
+          // 更新
+          const updateQuery = `
+            UPDATE company_info 
+            SET company_name = ?, company_name_kana_half = ?, postal_code = ?, address = ?, phone = ?, fax = ?, 
+                email = ?, representative = ?, business_hours = ?, established_date = ?, 
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = 1
+          `;
+          db.run(updateQuery, [
+            company_name, companyNameKanaHalfTrimmed, postal_code, address, phone, fax, email, 
+            representative, business_hours, established_date
+          ], function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              db.close();
+              return;
+            }
+            res.json({ message: '会社情報が正常に更新されました' });
+            db.close();
+          });
+        } else {
+          // 新規作成
+          const insertQuery = `
+            INSERT INTO company_info (
+              id, company_name, company_name_kana_half, postal_code, address, phone, fax, email, 
+              representative, business_hours, established_date
+            ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          db.run(insertQuery, [
+            company_name, companyNameKanaHalfTrimmed, postal_code, address, phone, fax, email, 
             representative, business_hours, established_date
           ], function(err) {
             if (err) {
