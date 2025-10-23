@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import {
   Box,
   Typography,
@@ -113,23 +114,31 @@ const ProductSummaryTab: React.FC = () => {
     }
   }, []);
 
-  // 指定期間・対象顧客の臨時変更（休配等）を取得
+  // 指定期間・対象顧客の臨時変更（休配等）を取得（タイムアウト・並列制御あり）
   const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
     try {
       const allChanges: any[] = [];
-      for (const cid of customerIds) {
-        const res = await fetch(`/api/temporary-changes/customer/${cid}/period/${start}/${end}`);
-        if (!res.ok) {
-          throw new Error(`顧客ID ${cid} の臨時変更取得に失敗しました`);
-        }
-        const rows = await res.json();
-        if (Array.isArray(rows)) {
-          allChanges.push(...rows);
-        }
+      const batchSize = 10; // 過負荷を避けるため最大10件ずつ取得
+      for (let i = 0; i < customerIds.length; i += batchSize) {
+        const batch = customerIds.slice(i, i + batchSize);
+        const requests = batch.map((cid) => (
+          axios.get(`/api/temporary-changes/customer/${cid}/period/${start}/${end}`)
+            .then((res) => Array.isArray(res.data) ? res.data : [])
+            .catch((err) => {
+              console.warn(`顧客ID ${cid} の臨時変更取得に失敗しました`, err);
+              return [];
+            })
+        ));
+        const results = await Promise.allSettled(requests);
+        results.forEach((r) => {
+          if (r.status === 'fulfilled') {
+            allChanges.push(...r.value);
+          }
+        });
       }
       return allChanges;
     } catch (e) {
-      console.warn('臨時変更データの取得に失敗しました。休配反映はスキップされます:', e);
+      console.warn('臨時変更データの取得で予期せぬエラー。休配反映はスキップされます:', e);
       return [];
     }
   };
@@ -922,23 +931,31 @@ const ProductSummaryTab: React.FC = () => {
     }
   }, []);
 
-  // 臨時変更を取得（期間・顧客ごと）
+  // 臨時変更を取得（期間・顧客ごと、タイムアウト・並列制御あり）
   const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
     try {
       const changes: any[] = [];
-      for (const cid of customerIds) {
-        const res = await fetch(`/api/temporary-changes/customer/${cid}/period/${start}/${end}`);
-        if (!res.ok) {
-          throw new Error(`顧客ID ${cid} の臨時変更取得に失敗しました`);
-        }
-        const rows = await res.json();
-        if (Array.isArray(rows)) {
-          changes.push(...rows);
-        }
+      const batchSize = 10;
+      for (let i = 0; i < customerIds.length; i += batchSize) {
+        const batch = customerIds.slice(i, i + batchSize);
+        const requests = batch.map((cid) => (
+          axios.get(`/api/temporary-changes/customer/${cid}/period/${start}/${end}`)
+            .then((res) => Array.isArray(res.data) ? res.data : [])
+            .catch((err) => {
+              console.warn(`顧客ID ${cid} の臨時変更取得に失敗しました`, err);
+              return [];
+            })
+        ));
+        const results = await Promise.allSettled(requests);
+        results.forEach((r) => {
+          if (r.status === 'fulfilled') {
+            changes.push(...r.value);
+          }
+        });
       }
       return changes;
     } catch (e) {
-      console.warn('臨時変更データの取得に失敗しました。休配反映はスキップされます:', e);
+      console.warn('臨時変更データの取得で予期せぬエラー。休配反映はスキップされます:', e);
       return [];
     }
   };
@@ -958,25 +975,27 @@ const ProductSummaryTab: React.FC = () => {
     return map;
   };
 
-  // 顧客ごとの配達パターンを取得
+  // 顧客ごとの配達パターンを取得（タイムアウト・並列制御あり）
   const fetchDeliveryPatternsByCustomers = async (customerIds: number[]) => {
     try {
       const patterns: any[] = [];
-      for (const cid of customerIds) {
-        const res = await fetch(`/api/delivery-patterns/customer/${cid}`);
-        if (!res.ok) {
-          throw new Error(`顧客ID ${cid} の配達パターン取得に失敗しました`);
-        }
-        const rows = await res.json();
-        if (Array.isArray(rows)) {
-          // 顧客IDを補完（APIに含まれているはずだが念のため）
-          rows.forEach((r: any) => {
-            if (typeof r.customer_id !== 'number') {
-              r.customer_id = cid;
-            }
-          });
-          patterns.push(...rows);
-        }
+      const batchSize = 10;
+      for (let i = 0; i < customerIds.length; i += batchSize) {
+        const batch = customerIds.slice(i, i + batchSize);
+        const requests = batch.map((cid) => (
+          axios.get(`/api/delivery-patterns/customer/${cid}`)
+            .then((res) => Array.isArray(res.data) ? res.data.map((r: any) => ({ ...r, customer_id: typeof r.customer_id === 'number' ? r.customer_id : cid })) : [])
+            .catch((err) => {
+              console.warn(`顧客ID ${cid} の配達パターン取得に失敗しました`, err);
+              return [];
+            })
+        ));
+        const results = await Promise.allSettled(requests);
+        results.forEach((r) => {
+          if (r.status === 'fulfilled') {
+            patterns.push(...r.value);
+          }
+        });
       }
       // パターンマップを作成（customerId-productId をキー）
       // 最新の情報で上書きする（商品名などを新パターンに合わせるため）
@@ -988,7 +1007,7 @@ const ProductSummaryTab: React.FC = () => {
       setPatternsMap(map);
       return { patterns, map };
     } catch (e) {
-      console.warn('配達パターンの取得に失敗しました。解約マーカーは表示されない可能性があります:', e);
+      console.warn('配達パターンデータの取得で予期せぬエラー:', e);
       return { patterns: [], map: new Map<string, any>() };
     }
   };
@@ -1333,7 +1352,7 @@ const ProductSummaryTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, days, selectedCourse, calculateEndDate, patternsMap]);
+  }, [startDate, days, selectedCourse, calculateEndDate]);
 
   // 手動集計ボタンのハンドラー（未使用のため削除）
 
