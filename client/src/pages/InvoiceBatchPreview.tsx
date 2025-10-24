@@ -566,9 +566,14 @@ const InvoiceBatchPreview: React.FC = () => {
     const fetchStatus = async () => {
       try {
         if (!courseId) { setHasUnconfirmed(false); return; }
-        const res = await axios.get(`/api/customers/by-course/${courseId}/invoices-amounts`, { params: { year, month } });
-        const items: Array<{ confirmed?: boolean }> = res.data?.items || [];
-        setHasUnconfirmed(items.some(i => !i.confirmed));
+        const [resC, resD] = await Promise.all([
+          axios.get(`/api/customers/by-course/${courseId}/invoices-amounts`, { params: { year, month, method: 'collection' } }),
+          axios.get(`/api/customers/by-course/${courseId}/invoices-amounts`, { params: { year, month, method: 'debit' } }),
+        ]);
+        const itemsC: Array<{ confirmed?: boolean }> = resC.data?.items || [];
+        const itemsD: Array<{ confirmed?: boolean }> = resD.data?.items || [];
+        const itemsAll = [...itemsC, ...itemsD];
+        setHasUnconfirmed(itemsAll.some(i => !i.confirmed));
       } catch (e) {
         console.error('請求ステータス取得エラー（バッチ）', e);
         // ステータス取得失敗時は安全側でブロック

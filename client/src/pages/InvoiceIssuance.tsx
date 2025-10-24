@@ -90,9 +90,10 @@ const InvoiceIssuance: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      const [customersRes, amountsRes] = await Promise.all([
+      const [customersRes, amountsResC, amountsResD] = await Promise.all([
         axios.get(`/api/customers/by-course/${selectedCourseId}`),
-        axios.get(`/api/customers/by-course/${selectedCourseId}/invoices-amounts`, { params: { year, month } }),
+        axios.get(`/api/customers/by-course/${selectedCourseId}/invoices-amounts`, { params: { year, month, method: 'collection' } }),
+        axios.get(`/api/customers/by-course/${selectedCourseId}/invoices-amounts`, { params: { year, month, method: 'debit' } }),
       ]);
       const custs: CustomerRow[] = (customersRes.data || []).map((r: any) => ({
         id: r.id,
@@ -101,7 +102,22 @@ const InvoiceIssuance: React.FC = () => {
         delivery_order: r.delivery_order,
       }));
       setCustomers(custs);
-      setAmounts((amountsRes.data?.items || []) as AmountItem[]);
+
+      const itemsC: AmountItem[] = (amountsResC.data?.items || []) as AmountItem[];
+      const itemsD: AmountItem[] = (amountsResD.data?.items || []) as AmountItem[];
+      const mergedMap = new Map<number, AmountItem>();
+      // まず集金のお客様
+      for (const it of itemsC) mergedMap.set(it.customer_id, it);
+      // 次に口座のお客様（重複があっても確定済みを優先）
+      for (const it of itemsD) {
+        const existing = mergedMap.get(it.customer_id);
+        if (!existing || (existing && !existing.confirmed && it.confirmed)) {
+          mergedMap.set(it.customer_id, it);
+        } else if (!existing) {
+          mergedMap.set(it.customer_id, it);
+        }
+      }
+      setAmounts(Array.from(mergedMap.values()));
     } catch (e: any) {
       console.error('請求書発行対象の取得に失敗', e);
       setError(e?.response?.data?.error || '請求書発行対象の取得に失敗しました');
