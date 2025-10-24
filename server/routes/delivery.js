@@ -136,7 +136,7 @@ router.get('/period', (req, res) => {
   
   console.log('期間別配達データ取得:', { startDate, endDate, courseId });
   
-  // ベースクエリ
+  // ベースクエリ（メーカー情報も含める）
   let query = `
     SELECT 
       dp.id,
@@ -144,6 +144,7 @@ router.get('/period', (req, res) => {
       dp.product_id,
       dp.delivery_days,
       dp.daily_quantities,
+      dp.quantity,
       c.custom_id,
       c.customer_name,
       c.address,
@@ -153,10 +154,13 @@ router.get('/period', (req, res) => {
       dc.course_name,
       p.product_name,
       p.unit,
-      dp.unit_price
+      dp.unit_price,
+      m.id as manufacturer_id,
+      m.manufacturer_name
     FROM delivery_patterns dp
     JOIN customers c ON dp.customer_id = c.id
     JOIN products p ON dp.product_id = p.id
+    JOIN manufacturers m ON p.manufacturer_id = m.id
     JOIN delivery_courses dc ON c.course_id = dc.id
     WHERE dp.is_active = 1
       AND dp.start_date <= ?
@@ -244,7 +248,9 @@ router.get('/period', (req, res) => {
               unit: row.unit,
               quantity: quantity,
               unit_price: row.unit_price,
-              amount: quantity * row.unit_price
+              amount: quantity * row.unit_price,
+              manufacturer_id: row.manufacturer_id,
+              manufacturer_name: row.manufacturer_name
             });
           }
         } catch (parseError) {

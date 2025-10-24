@@ -12,6 +12,7 @@ router.get('/customer/:customerId', (req, res) => {
       tc.*,
       p.product_name,
       m.manufacturer_name,
+      m.id AS manufacturer_id,
       p.unit
     FROM temporary_changes tc
     LEFT JOIN products p ON tc.product_id = p.id
@@ -41,6 +42,7 @@ router.get('/customer/:customerId/date/:date', (req, res) => {
       tc.*,
       p.product_name,
       m.manufacturer_name,
+      m.id AS manufacturer_id,
       p.unit
     FROM temporary_changes tc
     LEFT JOIN products p ON tc.product_id = p.id
@@ -280,6 +282,7 @@ router.get('/customer/:customerId/period/:startDate/:endDate', (req, res) => {
       tc.*,
       p.product_name,
       m.manufacturer_name,
+      m.id AS manufacturer_id,
       p.unit
     FROM temporary_changes tc
     LEFT JOIN products p ON tc.product_id = p.id

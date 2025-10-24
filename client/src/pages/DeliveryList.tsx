@@ -343,10 +343,20 @@ const ProductSummaryTab: React.FC = () => {
               unit: change.unit || '',
               quantity: 0,
               unit_price: change.unit_price || 0,
-              amount: 0
+              amount: 0,
+              manufacturer_id: (change.manufacturer_id !== undefined && change.manufacturer_id !== null) ? Number(change.manufacturer_id) : undefined,
+              manufacturer_name: change.manufacturer_name || ''
             };
             customer.products = customer.products || [];
             customer.products.push(product);
+          } else {
+            // 既存製品にメーカー情報が欠けている場合は補完
+            if ((product as any).manufacturer_id === undefined && change.manufacturer_id !== undefined && change.manufacturer_id !== null) {
+              (product as any).manufacturer_id = Number(change.manufacturer_id);
+            }
+            if (!product.manufacturer_name && change.manufacturer_name) {
+              product.manufacturer_name = change.manufacturer_name;
+            }
           }
           return product;
         };
@@ -408,6 +418,12 @@ const ProductSummaryTab: React.FC = () => {
                 (customer.products || []).forEach((product: any) => {
                   // メーカー絞り込みはサーバーのperiodレスポンスにメーカーIDが含まれていないため保留
                   // （必要であれば別APIで製品→メーカー紐付けを取得してフィルタリングする）
+                  // 期間APIにメーカー情報を付与したため、メーカー絞り込みを適用
+                  const manufacturerFilterActive = selectedManufacturer !== 'all';
+                  const matchesManufacturer = !manufacturerFilterActive || String(product.manufacturer_id) === String(selectedManufacturer);
+                  if (!matchesManufacturer) {
+                    return; // フィルタ対象外のメーカー
+                  }
                   const skipped = isSkipped(skipMap, date, customer.customer_id, product.product_id);
                   const qty = skipped ? 0 : (product.quantity || 0);
                   const amount = skipped ? 0 : (product.amount || 0);
@@ -444,6 +460,12 @@ const ProductSummaryTab: React.FC = () => {
               customers.forEach((customer: any) => {
                 (customer.products || []).forEach((product: any) => {
                   // メーカー絞り込みはサーバーのperiodレスポンスにメーカーIDが含まれていないため保留
+                  // 期間APIにメーカー情報を付与したため、メーカー絞り込みを適用
+                  const manufacturerFilterActive = selectedManufacturer !== 'all';
+                  const matchesManufacturer = !manufacturerFilterActive || String(product.manufacturer_id) === String(selectedManufacturer);
+                  if (!matchesManufacturer) {
+                    return;
+                  }
                   const skipped = isSkipped(skipMap, date, customer.customer_id, product.product_id);
                   const qty = skipped ? 0 : (product.quantity || 0);
                   const amount = skipped ? 0 : (product.amount || 0);
@@ -1264,6 +1286,7 @@ const ProductSummaryTab: React.FC = () => {
           product = {
             product_id: pid,
             product_name: pat?.product_name || change.product_name || `商品${pid}`,
+            manufacturer_id: (pat?.manufacturer_id !== undefined && pat?.manufacturer_id !== null) ? Number(pat.manufacturer_id) : ((change.manufacturer_id !== undefined && change.manufacturer_id !== null) ? Number(change.manufacturer_id) : undefined),
             manufacturer_name: pat?.manufacturer_name || change.manufacturer_name || '',
             unit: pat?.unit || change.unit || '',
             quantity: 0,
@@ -1272,6 +1295,24 @@ const ProductSummaryTab: React.FC = () => {
           };
           customer.products = customer.products || [];
           customer.products.push(product);
+        } else {
+          // 既存製品にメーカー情報が欠けている場合は補完
+          if ((product as any).manufacturer_id === undefined) {
+            const patKey = `${customer.customer_id}-${pid}`;
+            const patSource = patternMapOverride || patternsMap;
+            const pat = patSource.get(patKey);
+            if (pat?.manufacturer_id !== undefined && pat?.manufacturer_id !== null) {
+              (product as any).manufacturer_id = Number(pat.manufacturer_id);
+            } else if (change.manufacturer_id !== undefined && change.manufacturer_id !== null) {
+              (product as any).manufacturer_id = Number(change.manufacturer_id);
+            }
+          }
+          if (!product.manufacturer_name) {
+            const patKey = `${customer.customer_id}-${pid}`;
+            const patSource = patternMapOverride || patternsMap;
+            const pat = patSource.get(patKey);
+            product.manufacturer_name = pat?.manufacturer_name || change.manufacturer_name || product.manufacturer_name || '';
+          }
         }
         return product;
       };

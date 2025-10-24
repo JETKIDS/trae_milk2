@@ -349,7 +349,7 @@ router.get('/:id', (req, res) => {
   
   // 配達パターン
   const patternsQuery = `
-    SELECT dp.*, p.product_name, p.unit, m.manufacturer_name
+    SELECT dp.*, p.product_name, p.unit, m.manufacturer_name, m.id AS manufacturer_id
     FROM delivery_patterns dp
     JOIN products p ON dp.product_id = p.id
     JOIN manufacturers m ON p.manufacturer_id = m.id
