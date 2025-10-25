@@ -303,4 +303,54 @@ router.get('/customer/:customerId/period/:startDate/:endDate', (req, res) => {
   });
 });
 
+// バッチ処理: 複数顧客の期間内臨時変更を一括取得（N+1問題解決）
+router.get('/batch/period/:startDate/:endDate', (req, res) => {
+  const { startDate, endDate } = req.params;
+  const { customerIds } = req.query;
+  const db = getDB();
+  
+  if (!customerIds) {
+    return res.status(400).json({ error: 'customerIds parameter is required' });
+  }
+  
+  try {
+    const ids = Array.isArray(customerIds) ? customerIds : customerIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+    
+    if (ids.length === 0) {
+      return res.json([]);
+    }
+    
+    const placeholders = ids.map(() => '?').join(',');
+    const query = `
+      SELECT 
+        tc.*,
+        p.product_name,
+        m.manufacturer_name,
+        m.id AS manufacturer_id,
+        p.unit
+      FROM temporary_changes tc
+      LEFT JOIN products p ON tc.product_id = p.id
+      LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
+      WHERE tc.customer_id IN (${placeholders})
+        AND tc.change_date BETWEEN ? AND ?
+      ORDER BY tc.customer_id, tc.change_date ASC, tc.created_at DESC
+    `;
+    
+    const params = [...ids, startDate, endDate];
+    
+    db.all(query, params, (err, rows) => {
+      if (err) {
+        console.error('バッチ臨時変更取得エラー:', err);
+        res.status(500).json({ error: '臨時変更の一括取得に失敗しました' });
+      } else {
+        res.json(rows);
+      }
+      db.close();
+    });
+  } catch (error) {
+    console.error('バッチ臨時変更取得パラメータエラー:', error);
+    res.status(400).json({ error: 'Invalid customerIds parameter' });
+  }
+});
+
 module.exports = router;

@@ -116,31 +116,19 @@ const ProductSummaryTab: React.FC = () => {
     }
   }, []);
 
-  // 指定期間・対象顧客の臨時変更（休配等）を取得（タイムアウト・並列制御あり）
+  // 指定期間・対象顧客の臨時変更（休配等）を取得（バッチ処理でN+1問題を解決）
   const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
     try {
-      const allChanges: any[] = [];
-      const batchSize = 10; // 過負荷を避けるため最大10件ずつ取得
-      for (let i = 0; i < customerIds.length; i += batchSize) {
-        const batch = customerIds.slice(i, i + batchSize);
-        const requests = batch.map((cid) => (
-          axios.get(`/api/temporary-changes/customer/${cid}/period/${start}/${end}`)
-            .then((res) => Array.isArray(res.data) ? res.data : [])
-            .catch((err) => {
-              console.warn(`顧客ID ${cid} の臨時変更取得に失敗しました`, err);
-              return [];
-            })
-        ));
-        const results = await Promise.allSettled(requests);
-        results.forEach((r) => {
-          if (r.status === 'fulfilled') {
-            allChanges.push(...r.value);
-          }
-        });
-      }
-      return allChanges;
+      if (customerIds.length === 0) return [];
+      
+      // バッチAPIを使用して一括取得
+      const response = await axios.get(`/api/temporary-changes/batch/period/${start}/${end}`, {
+        params: { customerIds: customerIds.join(',') }
+      });
+      
+      return Array.isArray(response.data) ? response.data : [];
     } catch (e) {
-      console.warn('臨時変更データの取得で予期せぬエラー。休配反映はスキップされます:', e);
+      console.warn('臨時変更データの一括取得でエラー。休配反映はスキップされます:', e);
       return [];
     }
   };
@@ -1101,31 +1089,19 @@ const PeriodDeliveryListTab: React.FC = () => {
     }
   }, [deliveryData, startDate, days]);
 
-  // 臨時変更を取得（期間・顧客ごと、タイムアウト・並列制御あり）
+  // 臨時変更を取得（バッチ処理でN+1問題を解決）
   const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
     try {
-      const changes: any[] = [];
-      const batchSize = 10;
-      for (let i = 0; i < customerIds.length; i += batchSize) {
-        const batch = customerIds.slice(i, i + batchSize);
-        const requests = batch.map((cid) => (
-          axios.get(`/api/temporary-changes/customer/${cid}/period/${start}/${end}`)
-            .then((res) => Array.isArray(res.data) ? res.data : [])
-            .catch((err) => {
-              console.warn(`顧客ID ${cid} の臨時変更取得に失敗しました`, err);
-              return [];
-            })
-        ));
-        const results = await Promise.allSettled(requests);
-        results.forEach((r) => {
-          if (r.status === 'fulfilled') {
-            changes.push(...r.value);
-          }
-        });
-      }
-      return changes;
+      if (customerIds.length === 0) return [];
+      
+      // バッチAPIを使用して一括取得
+      const response = await axios.get(`/api/temporary-changes/batch/period/${start}/${end}`, {
+        params: { customerIds: customerIds.join(',') }
+      });
+      
+      return Array.isArray(response.data) ? response.data : [];
     } catch (e) {
-      console.warn('臨時変更データの取得で予期せぬエラー。休配反映はスキップされます:', e);
+      console.warn('臨時変更データの一括取得でエラー。休配反映はスキップされます:', e);
       return [];
     }
   };
