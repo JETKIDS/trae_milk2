@@ -43,25 +43,35 @@ const ProductList: React.FC = () => {
   const [searchName, setSearchName] = useState('');
   const [openProductForm, setOpenProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  // ページング
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
+  const [total, setTotal] = useState(0);
 
   const fetchProducts = useCallback(async (): Promise<void> => {
     try {
-      const params: any = {};
+      const params: any = { page, pageSize: PAGE_SIZE };
       if (searchId) params.searchId = searchId;
       if (searchName) params.searchName = searchName;
-      
-      const response = await axios.get('/api/products', { params });
-      setProducts(response.data);
+      const response = await axios.get('/api/products/paged', { params });
+      const { items, total } = response.data || {};
+      setProducts(items || []);
+      setTotal(total || 0);
     } catch (error) {
       console.error('商品データの取得に失敗しました:', error);
     } finally {
       setLoading(false);
     }
-  }, [searchId, searchName]);
+  }, [searchId, searchName, page]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // 検索条件変更時は1ページ目へ
+  useEffect(() => {
+    setPage(1);
+  }, [searchId, searchName]);
 
   const handleSearchIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchId(event.target.value);
@@ -222,6 +232,28 @@ const ProductList: React.FC = () => {
           </Typography>
         </Box>
       )}
+
+      {/* ページネーション */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+        <Typography variant="body2" sx={{ mr: 2 }}>
+          全{total}件
+        </Typography>
+        <Button
+          size="small"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          sx={{ mr: 1 }}
+        >
+          前へ
+        </Button>
+        <Button
+          size="small"
+          disabled={(page * PAGE_SIZE) >= total}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          次へ
+        </Button>
+      </Box>
 
       <ProductForm
         open={openProductForm}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import {
   Box,
@@ -31,8 +31,10 @@ import {
   FormControlLabel,
   Link
 } from '@mui/material';
-import { LocalShipping, Print, GetApp, ExpandMore } from '@mui/icons-material';
+import { LocalShipping, Print, GetApp, ExpandMore, PictureAsPdf } from '@mui/icons-material';
 import { pad7 } from '../utils/id';
+// PDF出力は重いため動的import
+const lazyExportToPdf = async () => (await import('../utils/pdfExport')).exportToPdf;
 
 // Course型の定義
 interface Course {
@@ -142,6 +144,59 @@ const ProductSummaryTab: React.FC = () => {
       return [];
     }
   };
+
+  // CSV出力機能
+  const handleProductSummaryCsvExport = useCallback(() => {
+    if (!summaryData) return;
+    
+    const csvData = summaryData.map((item: any) => ({
+      '商品名': item.product_name,
+      'メーカー': item.manufacturer_name,
+      '数量': item.total_quantity,
+      '単位': item.unit,
+      '単価': item.unit_price,
+      '金額': item.total_amount
+    }));
+    
+    const csvContent = [
+      ['商品名', 'メーカー', '数量', '単位', '単価', '金額'],
+      ...csvData.map(item => [
+        item['商品名'],
+        item['メーカー'],
+        item['数量'],
+        item['単位'],
+        item['単価'],
+        item['金額']
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `商品合計表_${startDate}_${days}日間.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [summaryData, startDate, days]);
+
+  // PDF出力機能
+  const handleProductSummaryPdfExport = useCallback(async () => {
+    if (!summaryData) return;
+    
+    try {
+      const exportToPdf = await lazyExportToPdf();
+      await exportToPdf('product-summary-content', {
+        filename: `商品合計表_${startDate}_${days}日間.pdf`,
+        title: `商品合計表 (${startDate} - ${days}日間)`,
+        orientation: 'landscape'
+      });
+    } catch (error) {
+      console.error('PDF出力エラー:', error);
+      alert('PDF出力に失敗しました');
+    }
+  }, [summaryData, startDate, days]);
 
   // 休配判定用のヘルパー
   const buildSkipMap = (changes: any[]) => {
@@ -737,8 +792,18 @@ const ProductSummaryTab: React.FC = () => {
               startIcon={<GetApp />}
               disabled={!summaryData}
               fullWidth
+              onClick={handleProductSummaryCsvExport}
             >
               CSV出力
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PictureAsPdf />}
+              disabled={!summaryData}
+              fullWidth
+              onClick={handleProductSummaryPdfExport}
+            >
+              PDF出力
             </Button>
           </Box>
         </Grid>
@@ -767,6 +832,7 @@ const ProductSummaryTab: React.FC = () => {
 
       {/* 商品合計データ表示 */}
       {!loading && !error && summaryData && (
+        <div id="product-summary-content">
         <>
           {/* サマリーカード */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -889,13 +955,14 @@ const ProductSummaryTab: React.FC = () => {
             </TableContainer>
           )}
         </>
+        </div>
       )}
     </Box>
   );
 };
 
 // 期間別・コース別配達リストタブのコンポーネント
-  const PeriodDeliveryListTab: React.FC = () => {
+const PeriodDeliveryListTab: React.FC = () => {
   // 今日の日付を取得してフォーマット（日本標準時）
   const getTodayString = (): string => {
     const today = new Date();
@@ -930,6 +997,31 @@ const ProductSummaryTab: React.FC = () => {
     return saved ? JSON.parse(saved) : false;
   });
 
+  // 休配判定関数
+  const isSkipped = useCallback((date: string, customerId: number, productId: number): boolean => {
+    const key = `${date}-${customerId}`;
+    const productSet = skipMap.get(key);
+    return productSet ? productSet.has(String(productId)) : false;
+  }, [skipMap]);
+
+  // 解約判定関数
+  const isCancelled = useCallback((date: string, customerId: number, productId: number): boolean => {
+    const key = `${date}-${customerId}`;
+    const productSet = cancelMap.get(key);
+    return productSet ? productSet.has(String(productId)) : false;
+  }, [cancelMap]);
+
+  // 期間内の日付リストを生成
+  const allDates = useMemo(() => {
+    const dates: string[] = [];
+    const start = new Date(startDate);
+    for (let i = 0; i < days; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      dates.push(date.toISOString().split('T')[0]);
+    }
+    return dates;
+  }, [startDate, days]);
 
   // 終了日を計算する関数
   const calculateEndDate = useCallback((start: string, dayCount: number): string => {
@@ -952,6 +1044,62 @@ const ProductSummaryTab: React.FC = () => {
       console.error('コース一覧の取得エラー:', error);
     }
   }, []);
+
+  // CSV出力機能
+  const handleCsvExport = useCallback(() => {
+    if (!deliveryData || Object.keys(deliveryData).length === 0) return;
+    
+    const csvRows: string[] = [];
+    
+    // ヘッダー行
+    csvRows.push('顧客ID,顧客名,住所,電話番号,配達日,商品名,数量,単位,単価,金額');
+    
+    // データ行
+    Object.entries(deliveryData).forEach(([customerId, customerData]: [string, any]) => {
+      customerData.products.forEach((product) => {
+        csvRows.push([
+          customerData.customer_id,
+          `"${customerData.customer_name}"`,
+          `"${customerData.address}"`,
+          `"${customerData.phone || ''}"`,
+          product.delivery_date,
+          `"${product.product_name}"`,
+          product.quantity,
+          product.unit,
+          product.unit_price,
+          product.amount
+        ].join(','));
+      });
+    });
+    
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `配達リスト_${startDate}_${days}日間.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [deliveryData, startDate, days]);
+
+  // PDF出力機能（配達リスト）
+  const handleDeliveryListPdfExport = useCallback(async () => {
+    if (!deliveryData || Object.keys(deliveryData).length === 0) return;
+    
+    try {
+      const exportToPdf = await lazyExportToPdf();
+      await exportToPdf('delivery-list-content', {
+        filename: `配達リスト_${startDate}_${days}日間.pdf`,
+        title: `配達リスト (${startDate} - ${days}日間)`,
+        orientation: 'landscape'
+      });
+    } catch (error) {
+      console.error('PDF出力エラー:', error);
+      alert('PDF出力に失敗しました');
+    }
+  }, [deliveryData, startDate, days]);
 
   // 臨時変更を取得（期間・顧客ごと、タイムアウト・並列制御あり）
   const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
@@ -1068,22 +1216,6 @@ const ProductSummaryTab: React.FC = () => {
     return map;
   };
 
-  const isCancelled = (date: string, customerId: number, productId?: number) => {
-    const key = `${date}-${customerId}`;
-    const set = cancelMap.get(key);
-    if (!set) return false;
-    if (productId !== undefined && set.has(String(productId))) return true;
-    return false;
-  };
-
-  const isSkipped = (date: string, customerId: number, productId?: number) => {
-    const key = `${date}-${customerId}`;
-    const set = skipMap.get(key);
-    if (!set) return false;
-    if (set.has('ALL')) return true;
-    if (productId !== undefined && set.has(String(productId))) return true;
-    return false;
-  };
 
   // 配達データを取得する関数
   const fetchDeliveryData = useCallback(async () => {
@@ -1547,13 +1679,22 @@ const ProductSummaryTab: React.FC = () => {
               >
                 印刷
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={<GetApp />}
-                disabled={!deliveryData || Object.keys(deliveryData).length === 0}
-              >
-                CSV出力
-              </Button>
+            <Button
+              variant="outlined"
+              startIcon={<GetApp />}
+              disabled={!deliveryData || Object.keys(deliveryData).length === 0}
+              onClick={handleCsvExport}
+            >
+              CSV出力
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PictureAsPdf />}
+              disabled={!deliveryData || Object.keys(deliveryData).length === 0}
+              onClick={handleDeliveryListPdfExport}
+            >
+              PDF出力
+            </Button>
             </Box>
           </Box>
         </CardContent>
@@ -1575,6 +1716,7 @@ const ProductSummaryTab: React.FC = () => {
 
       {/* 配達データ表示 */}
       {!loading && !error && deliveryData && Object.keys(deliveryData).length > 0 && (
+        <div id="delivery-list-content">
         <>
           {/* 期間表示 */}
           <Typography variant="h6" sx={{ mb: 2 }}>
@@ -1808,6 +1950,7 @@ const ProductSummaryTab: React.FC = () => {
             </Paper>
           )}
         </>
+        </div>
       )}
 
       {/* データが未取得の場合の表示 */}
@@ -1824,8 +1967,6 @@ const ProductSummaryTab: React.FC = () => {
     </Box>
   );
 };
-
-// ... existing code ...
 
 // メインコンポーネント
 const DeliveryList: React.FC = () => {

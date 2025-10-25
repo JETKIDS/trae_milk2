@@ -4,6 +4,7 @@ import { Undo as UndoIcon, Edit as EditIcon, ArrowBack as ArrowBackIcon, ArrowFo
 import axios from 'axios';
 import moment from 'moment';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useProductMasters } from '../hooks/useProductMasters';
 import CustomerForm from '../components/CustomerForm';
 import CustomerActionsSidebar from '../components/CustomerActionsSidebar';
 import DeliveryPatternManager from '../components/DeliveryPatternManager';
@@ -84,28 +85,8 @@ interface TemporaryChange {
 const CustomerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  // 商品マスタの名前→マスタ情報のMap
-  const [productMapByName, setProductMapByName] = useState<Record<string, ProductMaster>>({});
-  // 商品マスタの取得（初回）
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await axios.get('/api/products');
-        const masters: ProductMaster[] = (res.data || []).map((p: any) => ({
-          product_name: p.product_name,
-          sales_tax_type: p.sales_tax_type,
-          purchase_tax_type: p.purchase_tax_type,
-          sales_tax_rate: typeof p.sales_tax_rate === 'number' ? p.sales_tax_rate : null,
-        }));
-        const byName: Record<string, ProductMaster> = {};
-        masters.forEach((m) => { byName[m.product_name] = m; });
-        setProductMapByName(byName);
-      } catch (e) {
-        console.error('商品マスタの取得に失敗しました:', e);
-      }
-    };
-    fetchProducts();
-  }, []);
+  // 商品マスタの名前→マスタ情報のMap（フックに統一）
+  const { productMapByName } = useProductMasters();
 
   // 税率取得（商品マスタの数値を優先。なければ種別から推定）
   const getTaxRateForProductName = useCallback((name: string): number => {

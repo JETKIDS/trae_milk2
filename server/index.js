@@ -24,6 +24,7 @@ app.use((req, res, next) => {
 app.use('/api/masters', require('./routes/masters'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/courses', require('./routes/courses'));
 app.use('/api/delivery', require('./routes/delivery'));
 app.use('/api/delivery-patterns', require('./routes/deliveryPatterns'));
 app.use('/api/temporary-changes', require('./routes/temporaryChanges'));
@@ -33,6 +34,23 @@ app.use('/api/debits', require('./routes/debits'));
 // ヘルスチェック
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
+});
+
+// 404ハンドラ（APIのみ）
+app.use('/api', (req, res, next) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+// 共通エラーハンドリング
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  const status = err.status || 500;
+  const message = err.message || 'Internal Server Error';
+  res.status(status).json({ error: message });
 });
 
 // サーバー起動

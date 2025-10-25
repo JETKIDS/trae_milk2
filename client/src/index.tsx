@@ -3,9 +3,13 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import axios from 'axios';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // axiosのベースURL設定
-axios.defaults.baseURL = (process.env.REACT_APP_API_BASE_URL || '').trim();
+// 開発: baseURLは空にしてViteのdev server proxy('/api'→バックエンド)を利用
+// 本番: VITE_API_BASE_URL を指定した場合にそのオリジンへ向けて '/api/...' を発行
+const apiBase = (import.meta.env && (import.meta.env as any).VITE_API_BASE_URL ? String((import.meta.env as any).VITE_API_BASE_URL) : '').trim();
+axios.defaults.baseURL = apiBase;
 // グローバルタイムアウト（30秒）を設定して、ネットワーク不調時に処理が永遠に待たないようにする
 axios.defaults.timeout = 30_000;
 // タイムアウト・ネットワークエラー時の共通ログ（必要に応じてUI通知へ拡張可能）
@@ -87,9 +91,10 @@ console.info = (...args) => {
   }
 };
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
-root.render(
-  <App />
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+  <React.StrictMode>
+    <QueryClientProvider client={new QueryClient()}>
+      <App />
+    </QueryClientProvider>
+  </React.StrictMode>
 );

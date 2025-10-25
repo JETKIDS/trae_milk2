@@ -173,10 +173,60 @@ code {
 /* グローバル印刷設定：請求書以外はA4縦で印刷 */
 @page {
   size: A4 portrait;
+  margin: 10mm;
   @bottom-center { content: none; }
   @bottom-left { content: none; }
   @bottom-right { content: none; }
   @top-center { content: none; }
   @top-left { content: none; }
   @top-right { content: none; }
+}
+
+/* 帳票出力用の印刷スタイル */
+@media print {
+  /* ページ分割の制御 */
+  .print-break-before {
+    page-break-before: always;
+  }
+  
+  .print-break-after {
+    page-break-after: always;
+  }
+  
+  .print-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+  
+  /* テーブルの印刷最適化 */
+  .collection-list-table {
+    font-size: 12px !important;
+  }
+  
+  .collection-list-table th,
+  .collection-list-table td {
+    padding: 4px 8px !important;
+    border: 1px solid #000 !important;
+  }
+  
+  /* 配達リストの印刷最適化 */
+  .delivery-list-table {
+    font-size: 11px !important;
+  }
+  
+  .delivery-list-table th,
+  .delivery-list-table td {
+    padding: 3px 6px !important;
+    border: 1px solid #000 !important;
+  }
+  
+  /* 商品合計表の印刷最適化 */
+  .product-summary-table {
+    font-size: 12px !important;
+  }
+  
+  .product-summary-table th,
+  .product-summary-table td {
+    padding: 4px 8px !important;
+    border: 1px solid #000 !important;
+  }
 }

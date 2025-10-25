@@ -1,29 +1,40 @@
 {
   "name": "milk-delivery-client",
-  "version": "1.0.0",
-  "description": "牛乳配達管理システム - クライアント",
+  "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@emotion/react": "^11.10.5",
-    "@emotion/styled": "^11.10.5",
-    "@mui/icons-material": "^5.11.9",
-    "@mui/material": "^5.11.10",
-    "@types/react-beautiful-dnd": "^13.1.8",
-    "ajv": "^8.17.1",
-    "axios": "^1.3.4",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.19",
+    "@mui/material": "^5.14.20",
+    "@mui/x-date-pickers": "^6.18.1",
+    "@tanstack/react-query": "^5.90.5",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.5.1",
+    "@types/jest": "^27.5.2",
+    "@types/react": "^18.2.42",
+    "@types/react-dom": "^18.2.17",
+    "axios": "^1.6.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.3",
     "moment": "^2.29.4",
     "react": "^18.2.0",
-    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.1",
-    "react-window": "^1.8.9"
+    "react-router-dom": "^6.20.1",
+    "react-window": "^1.8.8",
+    "typescript": "^4.9.5",
+    "web-vitals": "^2.1.4"
   },
-  "overrides": {},
   "scripts": {
-    "start": "set PORT=3022 && react-scripts start",
-    "build": "react-scripts build",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "test:coverage": "react-scripts test --coverage --watchAll=false"
   },
   "eslintConfig": {
     "extends": [
@@ -44,12 +55,10 @@
     ]
   },
   "devDependencies": {
-    "@types/node": "^24.5.2",
-    "@types/react": "^19.1.14",
-    "@types/react-dom": "^19.1.9",
-    "@types/react-window": "^1.8.8",
-    "react-scripts": "5.0.1",
-    "typescript": "^5.9.2"
+    "@types/moment": "^2.13.0",
+    "@types/node": "^18.19.130",
+    "@vitejs/plugin-react-swc": "^3.11.0",
+    "vite": "^5.4.21"
   },
-  "proxy": "http://localhost:3020"
+  "proxy": "http://localhost:9000"
 }

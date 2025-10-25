@@ -1900,4 +1900,52 @@ router.get('/:id/ar-summary/consistency', async (req, res) => {
   }
 });
 
+// 配達順序更新
+router.put('/update-delivery-order', (req, res) => {
+  const db = getDB();
+  const { courseId, customers } = req.body;
+
+  if (!courseId || !customers || !Array.isArray(customers)) {
+    res.status(400).json({ error: '無効なリクエストです' });
+    return;
+  }
+
+  // トランザクション開始
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+
+    // 各顧客の配達順序を更新
+    const updatePromises = customers.map(customer => {
+      return new Promise((resolve, reject) => {
+        const query = 'UPDATE customers SET delivery_order = ? WHERE id = ? AND course_id = ?';
+        db.run(query, [customer.delivery_order, customer.id, courseId], function(err) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(this.changes);
+          }
+        });
+      });
+    });
+
+    Promise.all(updatePromises)
+      .then(() => {
+        db.run('COMMIT', (err) => {
+          if (err) {
+            db.run('ROLLBACK');
+            res.status(500).json({ error: '配達順序の更新に失敗しました' });
+            return;
+          }
+          res.json({ message: '配達順序を更新しました', updatedCount: customers.length });
+        });
+      })
+      .catch((err) => {
+        db.run('ROLLBACK');
+        res.status(500).json({ error: err.message });
+      });
+  });
+
+  db.close();
+});
+
 module.exports = router;

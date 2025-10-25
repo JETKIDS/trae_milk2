@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Paper, Grid, Select, MenuItem, TextField, Button, Box, CircularProgress, ToggleButtonGroup, ToggleButton, Table, TableHead, TableRow, TableCell, TableBody, TableFooter } from '@mui/material';
+import { PictureAsPdf } from '@mui/icons-material';
 import { pad7 } from '../utils/id';
+// PDF出力は重いため動的import
+const lazyExportToPdf = async () => (await import('../utils/pdfExport')).exportToPdf;
 
 interface Course { id: number; custom_id?: string; course_name: string }
 interface Customer { id: number; custom_id: string; customer_name: string; course_name?: string }
@@ -127,6 +130,57 @@ const CollectionList: React.FC = () => {
       }
     })();
   }, []);
+
+  // CSV出力機能
+  const handleCsvExport = () => {
+    if (items.length === 0) return;
+    
+    const csvRows: string[] = [];
+    
+    // ヘッダー行
+    csvRows.push('顧客ID,顧客名,コース名,前月請求額,当月支払額,繰越額,当月集金額');
+    
+    // データ行
+    items.forEach(item => {
+      csvRows.push([
+        item.customId,
+        `"${item.customerName}"`,
+        `"${item.courseName || ''}"`,
+        item.prevInvoiceAmount,
+        item.currentPaymentAmount,
+        item.carryoverAmount,
+        item.currentCollectionAmount
+      ].join(','));
+    });
+    
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `集金一覧_${year}年${month}月.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // PDF出力機能
+  const handlePdfExport = async () => {
+    if (items.length === 0) return;
+    
+    try {
+      const exportToPdf = await lazyExportToPdf();
+      await exportToPdf('collection-list-content', {
+        filename: `集金一覧_${year}年${month}月.pdf`,
+        title: `集金一覧 (${year}年${month}月)`,
+        orientation: 'portrait'
+      });
+    } catch (error) {
+      console.error('PDF出力エラー:', error);
+      alert('PDF出力に失敗しました');
+    }
+  };
 
   const handleOutput = async () => {
     setMessage('');
@@ -285,6 +339,8 @@ const CollectionList: React.FC = () => {
               </ToggleButtonGroup>
               <Box display="flex" alignItems="center" gap={1}>
                 <Button variant="contained" onClick={handleOutput} disabled={loading || courseId === ''}>出力</Button>
+                <Button variant="outlined" onClick={handleCsvExport} disabled={items.length === 0}>CSV出力</Button>
+                <Button variant="outlined" startIcon={<PictureAsPdf />} onClick={handlePdfExport} disabled={items.length === 0}>PDF出力</Button>
                 <Button variant="outlined" onClick={handlePrint} disabled={items.length === 0}>印刷</Button>
               </Box>
             </Box>
@@ -303,6 +359,7 @@ const CollectionList: React.FC = () => {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{message}</Typography>
         )}
         {!loading && items.length > 0 && (
+          <div id="collection-list-content">
           <Table size="small" className="collection-list-table">
             <TableHead>
               <TableRow>
@@ -347,6 +404,7 @@ const CollectionList: React.FC = () => {
               </TableRow>
             </TableFooter>
           </Table>
+          </div>
         )}
       </Paper>
     </Container>

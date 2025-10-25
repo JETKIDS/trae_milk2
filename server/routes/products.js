@@ -2,6 +2,84 @@ const express = require('express');
 const router = express.Router();
 const { getDB } = require('../connection');
 
+// 商品一覧（ページング対応）
+router.get('/paged', (req, res) => {
+  const db = getDB();
+  const { searchId, searchName, sort = 'name', page = '1', pageSize = '50' } = req.query;
+
+  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+  const sizeNum = Math.min(Math.max(parseInt(pageSize, 10) || 50, 1), 200);
+  const offset = (pageNum - 1) * sizeNum;
+
+  let whereConditions = [];
+  let params = [];
+
+  // IDで検索
+  if (searchId && String(searchId).trim() !== '') {
+    const idTerm = String(searchId).trim();
+    const isNumeric = /^\d+$/.test(idTerm);
+    if (isNumeric) {
+      const paddedId = idTerm.padStart(4, '0');
+      whereConditions.push('p.custom_id = ?');
+      params.push(paddedId);
+    } else {
+      whereConditions.push('p.custom_id LIKE ?');
+      params.push(`%${idTerm}%`);
+    }
+  }
+
+  // 商品名で検索
+  if (searchName && String(searchName).trim() !== '') {
+    whereConditions.push('p.product_name LIKE ?');
+    params.push(`%${String(searchName).trim()}%`);
+  }
+
+  // 件数カウント
+  let countQuery = `SELECT COUNT(*) AS total FROM products p`;
+  if (whereConditions.length > 0) {
+    countQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+  }
+
+  // データ取得
+  let dataQuery = `
+    SELECT p.*, m.manufacturer_name 
+    FROM products p
+    LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
+  `;
+  if (whereConditions.length > 0) {
+    dataQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+  }
+
+  const sortKey = String(sort).toLowerCase();
+  if (sortKey === 'id') {
+    dataQuery += ` ORDER BY p.custom_id ASC`;
+  } else if (sortKey === 'manufacturer') {
+    dataQuery += ` ORDER BY m.manufacturer_name ASC, p.product_name ASC`;
+  } else {
+    dataQuery += ` ORDER BY p.product_name ASC`;
+  }
+  dataQuery += ` LIMIT ? OFFSET ?`;
+
+  db.get(countQuery, params, (countErr, countRow) => {
+    if (countErr) {
+      res.status(500).json({ error: countErr.message });
+      db.close();
+      return;
+    }
+    const total = countRow?.total || 0;
+    const dataParams = [...params, sizeNum, offset];
+    db.all(dataQuery, dataParams, (dataErr, rows) => {
+      if (dataErr) {
+        res.status(500).json({ error: dataErr.message });
+        db.close();
+        return;
+      }
+      res.json({ items: rows || [], total });
+      db.close();
+    });
+  });
+});
+
 // 商品一覧取得（複数検索条件対応）
 router.get('/', (req, res) => {
   const db = getDB();
