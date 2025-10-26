@@ -121,6 +121,8 @@ const CustomerDetail: React.FC = () => {
   const [prevInvoiceConfirmed, setPrevInvoiceConfirmed] = useState<boolean | null>(null);
   // カレンダーの曜日表示用（0=日〜6=土）
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+  // スタンドアロン表示判定（URLクエリ ?view=standalone）
+  const isStandalone = new URLSearchParams(window.location.search).get('view') === 'standalone';
 
   // 請求設定
   const [billingMethod, setBillingMethod] = useState<'collection' | 'debit'>('collection');
@@ -1082,15 +1084,14 @@ const CustomerDetail: React.FC = () => {
   };
 
   return (
-    <Grid container spacing={2} sx={{ bgcolor: invoiceConfirmed ? '#ffcdd2' : 'transparent', transition: 'background-color 0.2s ease' }}>
+    <Grid container spacing={new URLSearchParams(window.location.search).get('view')==='standalone'?1:2} sx={{ bgcolor: invoiceConfirmed ? '#ffcdd2' : 'transparent', transition: 'background-color 0.2s ease' }}>
       {/* 左：メインコンテンツ（少し狭く） */}
       <Grid item xs={12} md={9}>
         <Box>
-      {/* 顧客基本情報 */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h5" component="h1">
+      <Card sx={{ mb: new URLSearchParams(window.location.search).get('view')==='standalone'?1:3 }}>
+        <CardContent sx={{ p: new URLSearchParams(window.location.search).get('view')==='standalone'?1:undefined }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: new URLSearchParams(window.location.search).get('view')==='standalone'?1:2 }}>
+            <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'h6':'h5'} component="h1">
               {customer.customer_name} 様
               {customer.yomi ? (
                 <Typography variant="body2" component="span" sx={{ ml: 2, color: 'text.secondary' }}>
@@ -1098,16 +1099,16 @@ const CustomerDetail: React.FC = () => {
                 </Typography>
               ) : null}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button startIcon={<UndoIcon />} variant="outlined" onClick={handleUndo} disabled={undoStack.length === 0}>
+            <Box sx={{ display: 'flex', gap: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1 }}>
+              <Button startIcon={<UndoIcon />} variant="outlined" onClick={handleUndo} disabled={undoStack.length === 0} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
                 元に戻す
               </Button>
-              <Button startIcon={<EditIcon />} variant="outlined" onClick={handleOpenEditForm}>
+              <Button startIcon={<EditIcon />} variant="outlined" onClick={handleOpenEditForm} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
                 編集
               </Button>
             </Box>
           </Box>
-          <Grid container spacing={2}>
+          <Grid container spacing={new URLSearchParams(window.location.search).get('view')==='standalone'?1:2}>
             <Grid item xs={12} md={6}>
               <Typography variant="body2" color="textSecondary">住所</Typography>
               <Typography variant="body1">{customer.address}</Typography>
@@ -1126,26 +1127,26 @@ const CustomerDetail: React.FC = () => {
 
       {/* 月次カレンダー */}
       <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
+        <CardContent sx={{ p: new URLSearchParams(window.location.search).get('view')==='standalone'?1:undefined }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: new URLSearchParams(window.location.search).get('view')==='standalone'?1:2 }}>
+            <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle1':'h6'}>
               配達カレンダー
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconButton onClick={handlePrevMonth}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1 }}>
+              <IconButton onClick={handlePrevMonth} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
                 <ArrowBackIcon />
               </IconButton>
-              <Typography variant="h6" sx={{ minWidth: 120, textAlign: 'center' }}>
+              <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle1':'h6'} sx={{ minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?110:120, textAlign: 'center' }}>
                 {currentDate.format('YYYY年M月')}
               </Typography>
-              <IconButton onClick={handleNextMonth}>
+              <IconButton onClick={handleNextMonth} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
                 <ArrowForwardIcon />
               </IconButton>
             </Box>
           </Box>
 
           {invoiceConfirmed && (
-            <Alert severity="info" sx={{ mb: 2 }}>
+            <Alert severity="info" sx={{ mb: new URLSearchParams(window.location.search).get('view')==='standalone'?1:2 }}>
               この月は確定済みのため編集できません
               {invoiceConfirmedAt ? `（${moment(invoiceConfirmedAt).format('YYYY/MM/DD HH:mm')} に確定）` : ''}
             </Alert>
@@ -1156,8 +1157,8 @@ const CustomerDetail: React.FC = () => {
             const { firstHalf, secondHalf } = generateMonthDays();
             
             const renderCalendarTable = (days: MonthDay[], title: string) => (
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 1, color: '#666' }}>{title}</Typography>
+              <Box sx={{ mb: new URLSearchParams(window.location.search).get('view')==='standalone'?1:3 }}>
+                <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle2':'h6'} sx={{ mb: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1, color: '#666' }}>{title}</Typography>
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
                     <TableHead>
@@ -1166,8 +1167,8 @@ const CustomerDetail: React.FC = () => {
                            sx={{ 
                              backgroundColor: '#f5f5f5',
                              fontWeight: 'bold',
-                             width: 250,
-                             minWidth: 250
+                             width: new URLSearchParams(window.location.search).get('view')==='standalone'?220:250,
+                             minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?220:250
                            }}
                          >
                            商品名
@@ -1180,10 +1181,10 @@ const CustomerDetail: React.FC = () => {
                               backgroundColor: day.dayOfWeek === 0 ? '#ffe6e6' : 
                                               day.dayOfWeek === 6 ? '#e6f3ff' : '#ffffff',
                               fontWeight: 'bold',
-                              minWidth: 30,
-                              maxWidth: 30,
-                              fontSize: '12px',
-                              padding: '4px'
+                              minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?28:30,
+                              maxWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?28:30,
+                              fontSize: new URLSearchParams(window.location.search).get('view')==='standalone'?'11px':'12px',
+                              padding: new URLSearchParams(window.location.search).get('view')==='standalone'?'2px':'4px'
                             }}
                           >
                             <Box>
@@ -1211,17 +1212,17 @@ const CustomerDetail: React.FC = () => {
                                  sx={{ 
                                    backgroundColor: nameCellBg,
                                    fontWeight: 'bold',
-                                   width: 250,
-                                   minWidth: 250,
-                                   height: 40,
+                                   width: new URLSearchParams(window.location.search).get('view')==='standalone'?220:250,
+                                   minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?220:250,
+                                   height: new URLSearchParams(window.location.search).get('view')==='standalone'?34:40,
                                    verticalAlign: 'middle',
-                                   padding: '6px 12px'
+                                   padding: new URLSearchParams(window.location.search).get('view')==='standalone'?'4px 8px':'6px 12px'
                                  }}
                                >
                                  <Typography 
                                    variant="body2" 
                                    sx={{ 
-                                     fontSize: '14px', 
+                                     fontSize: new URLSearchParams(window.location.search).get('view')==='standalone'?'13px':'14px', 
                                      fontWeight: 'bold',
                                      whiteSpace: 'nowrap',
                                      overflow: 'hidden',
@@ -1273,10 +1274,10 @@ const CustomerDetail: React.FC = () => {
                                   sx={{ 
                                     backgroundColor: cellBgColor,
                                     border: day.isToday ? '2px solid #ff9800' : '1px solid #e0e0e0',
-                                    minWidth: 30,
-                                    maxWidth: 30,
-                                    height: 40,
-                                    padding: '2px',
+                                    minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?28:30,
+                                    maxWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?28:30,
+                                    height: new URLSearchParams(window.location.search).get('view')==='standalone'?36:40,
+                                    padding: new URLSearchParams(window.location.search).get('view')==='standalone'?'2px':'2px',
                                     cursor: 'pointer',
                                     verticalAlign: 'middle'
                                   }}
@@ -1326,10 +1327,10 @@ const CustomerDetail: React.FC = () => {
           })()}
 
           {/* 月次集計 */}
-          <Box sx={{ mt: 3 }}>
-            <Grid container spacing={3}>
+          <Box sx={{ mt: new URLSearchParams(window.location.search).get('view')==='standalone'?2:3 }}>
+            <Grid container spacing={new URLSearchParams(window.location.search).get('view')==='standalone'?2:3}>
               <Grid item xs={12} md={8}>
-                <Typography variant="h6" gutterBottom>月次集計</Typography>
+                <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle1':'h6'} gutterBottom>月次集計</Typography>
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
                     <TableHead>
@@ -1385,20 +1386,21 @@ const CustomerDetail: React.FC = () => {
               </Grid>
               <Grid item xs={12} md={4}>
                 <Card sx={{ backgroundColor: '#e3f2fd' }}>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
+                  <CardContent sx={{ p: new URLSearchParams(window.location.search).get('view')==='standalone'?1:undefined }}>
+                    <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle1':'h6'} gutterBottom>
                       月次合計
                     </Typography>
-                    <Typography variant="h4" color="primary" fontWeight="bold">
+                    <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'h5':'h4'} color="primary" fontWeight="bold">
                       ¥{monthlyTotal.toLocaleString()}
                     </Typography>
-                    <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="textSecondary" sx={{ mt: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1 }}>
                       {currentDate.format('YYYY年M月')}分
                     </Typography>
-                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                    <Box sx={{ mt: new URLSearchParams(window.location.search).get('view')==='standalone'?1:2, display: 'flex', gap: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1 }}>
                     <Button
                       variant="contained"
                       color="primary"
+                      size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}
                       onClick={() => {
                         const y = currentDate.format('YYYY');
                         const m = currentDate.format('M');
@@ -1407,14 +1409,14 @@ const CustomerDetail: React.FC = () => {
                     >
                       請求書プレビュー
                     </Button>
-                    <Button sx={{ ml: 1 }} variant="outlined" color="primary" onClick={handleConfirmInvoice}>
+                    <Button sx={{ ml: 1 }} variant="outlined" color="primary" onClick={handleConfirmInvoice} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
                       月次請求確定
                     </Button>
-                    <Button sx={{ ml: 1 }} variant="outlined" color="secondary" onClick={openCollectionDialog} disabled={!invoiceConfirmed}>
+                    <Button sx={{ ml: 1 }} variant="outlined" color="secondary" onClick={openCollectionDialog} disabled={!invoiceConfirmed} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
                        集金を登録
                      </Button>
                     {/* 追記: 入金履歴へのショートカット（サイドバー以外にも配置） */}
-                    <Button sx={{ ml: 1 }} variant="outlined" onClick={() => setOpenPaymentHistory(true)}>
+                    <Button sx={{ ml: 1 }} variant="outlined" onClick={() => setOpenPaymentHistory(true)} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
                       入金履歴
                     </Button>
                   </Box>

@@ -103,7 +103,14 @@ const CustomerList: React.FC = () => {
   };
 
   const handleViewCustomer = (customerId: number) => {
-    navigate(`/customers/${customerId}`);
+    const url = `${window.location.origin}/customers/${customerId}?view=standalone`;
+    // 大きめの別ウィンドウで顧客詳細を開く（ブラウザによっては新しいタブになる場合があります）。
+    // ブラウザUIは可能な限り最小化（location/menubar/toolbar/status を非表示）。
+    window.open(
+      url,
+      'customer-detail',
+      'noopener,noreferrer,width=1080,height=720,scrollbars=yes,resizable=yes,location=no,menubar=no,toolbar=no,status=no,titlebar=no'
+    );
   };
 
   const handleOpenCustomerForm = () => {

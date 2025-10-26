@@ -37,6 +37,7 @@ const theme = createTheme({
 });
 
 function App() {
+  const isStandalone = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('view') === 'standalone';
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -44,18 +45,18 @@ function App() {
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <ErrorBoundary>
             <Box sx={{ display: 'flex' }}>
-              <Header />
-              <Sidebar />
+              { !isStandalone && <Header /> }
+              { !isStandalone && <Sidebar /> }
               <Box
                 component="main"
                 sx={{
                   flexGrow: 1,
                   p: 0,
                   pl: 0,
-                  ml: '240px',
+                  ml: isStandalone ? 0 : '240px',
                 }}
               >
-                <Toolbar />
+                { !isStandalone && <Toolbar /> }
                 <Suspense fallback={<div style={{ padding: 16 }}>読み込み中...</div>}>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
