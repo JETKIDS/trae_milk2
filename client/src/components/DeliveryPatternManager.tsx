@@ -46,6 +46,7 @@ interface Product {
   manufacturer_name: string;
   unit: string;
   unit_price: number;
+  include_in_invoice?: boolean | number; // 請求書に掲載する現行商品フラグ
 }
 
 interface DeliveryPattern {
@@ -103,6 +104,8 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
     is_active: true,
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  // 単価入力は文字列で保持し、保存時に数値へ変換（NaN防止）
+  const [unitPriceInput, setUnitPriceInput] = useState<string>('');
 
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -113,9 +116,11 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
   const fetchProducts = async () => {
     try {
       const response = await axios.get('/api/products');
-      setProducts(response.data);
+      // 商品管理に登録されている全商品を候補にする（フィルタしない）
+      setProducts(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('商品データの取得に失敗しました:', error);
+      setProducts([]);
     }
   };
 
@@ -151,6 +156,8 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
         // 開始日はセルクリック日を優先（指定があれば）
         start_date: defaultStartDate || pattern.start_date,
       });
+      // 単価入力の初期値
+      setUnitPriceInput(String(pattern.unit_price ?? ''));
     } else {
       setEditingPattern(null);
       setFormData({
@@ -163,6 +170,8 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
         start_date: defaultStartDate || new Date().toISOString().split('T')[0],
         is_active: true,
       });
+      // 新規追加時は空文字
+      setUnitPriceInput('');
     }
     // 臨時配達の場合の初期日付もセルクリック日を優先
     if (defaultStartDate) {
@@ -194,6 +203,8 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
         product_id: productId,
         unit_price: selectedProduct.unit_price,
       });
+      // 商品選択時の単価を文字列で反映
+      setUnitPriceInput(String(selectedProduct.unit_price ?? ''));
     }
   };
 
@@ -219,6 +230,20 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
         setSnackbar({ open: true, message: '確定済みの月のため編集できません。', severity: 'error' });
         return;
       }
+      // 単価文字列を保存時にパース
+      const trimmedUnit = unitPriceInput.trim();
+      let parsedUnitPrice: number | null = null;
+      if (trimmedUnit === '') {
+        parsedUnitPrice = null;
+      } else {
+        const num = Number(trimmedUnit);
+        if (Number.isNaN(num)) {
+          setSnackbar({ open: true, message: '単価は数値で入力してください', severity: 'error' });
+          return;
+        }
+        parsedUnitPrice = num;
+      }
+
       if (isTemporaryMode) {
         // 臨時配達の保存
         if (!formData.product_id || !temporaryQuantity || temporaryQuantity <= 0) {
@@ -236,7 +261,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
           change_type: 'add',
           product_id: formData.product_id,
           quantity: temporaryQuantity,
-          unit_price: formData.unit_price,
+          unit_price: parsedUnitPrice ?? formData.unit_price ?? null,
           reason: '臨時配達'
         };
 
@@ -276,6 +301,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
 
         const dataToSend = {
           ...formData,
+          unit_price: parsedUnitPrice ?? formData.unit_price ?? null,
           delivery_days: JSON.stringify(formData.delivery_days),
           daily_quantities: JSON.stringify(formData.daily_quantities),
         };
@@ -302,7 +328,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
               .toISOString()
               .split('T')[0];
 
-            // 1) 既存パターンを分割開始前日で終了し、履歴として非アクティブ化
+            // 1) 既存パターンを分割開始前日で終了し、履歴として非アクティブル化
             await axios.put(`/api/delivery-patterns/${editingPattern.id}`, {
               product_id: editingPattern.product_id,
               quantity: editingPattern.quantity,
@@ -415,11 +441,13 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
 
       handleCloseDialog();
       onPatternsChange();
-    } catch (error) {
+    } catch (error: any) {
       console.error('保存に失敗しました:', error);
+      // サーバーからの詳細メッセージがあれば表示（例: 重複臨時追加の409メッセージ）
+      const serverMessage = (error?.response?.data?.message) as string | undefined;
       setSnackbar({
         open: true,
-        message: '保存に失敗しました。',
+        message: serverMessage || '保存に失敗しました。',
         severity: 'error',
       });
     }
@@ -649,10 +677,10 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                 <TextField
                   fullWidth
                   label="単価"
-                  type="number"
-                  value={formData.unit_price || ''}
-                  onChange={(e) => setFormData({ ...formData, unit_price: Number(e.target.value) })}
-                  inputProps={{ min: 0 }}
+                  type="text"
+                  value={unitPriceInput}
+                  onChange={(e) => setUnitPriceInput(e.target.value)}
+                  inputProps={{ inputMode: 'numeric' }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -733,9 +761,9 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                             />
                           </Box>
                         </Grid>
-                    ))}
-                  </Grid>
-                )}
+                      ))}
+                    </Grid>
+                  )}
                 </Box>
               </Grid>
               {/* 開始日・終了日は通常モード時のみ表示 */}

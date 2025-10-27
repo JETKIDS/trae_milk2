@@ -99,26 +99,83 @@ router.post('/', (req, res) => {
         db.close();
         return;
       }
-      db.run(query, [
-        customer_id,
-        change_date,
-        change_type,
-        product_id || null,
-        quantity || null,
-        unit_price || null,
-        reason || null
-      ], function(err) {
-        if (err) {
-          console.error('臨時変更作成エラー:', err);
-          res.status(500).json({ error: '臨時変更の作成に失敗しました' });
-        } else {
-          res.status(201).json({ 
-            id: this.lastID,
-            message: '臨時変更が作成されました'
+      // 同一商品の臨時追加が通常配達日に重なる場合は拒否
+      const conflictSql = `
+        SELECT delivery_days, daily_quantities, quantity, start_date, end_date
+        FROM delivery_patterns
+        WHERE customer_id = ? AND product_id = ? AND is_active = 1
+          AND date(start_date) <= date(?) AND date(COALESCE(end_date, '2099-12-31')) >= date(?)
+      `;
+      if (change_type === 'add' && product_id) {
+        db.all(conflictSql, [customer_id, product_id, change_date, change_date], (confErr, pats) => {
+          if (confErr) {
+            console.error('臨時追加重複チェックエラー:', confErr);
+            res.status(500).json({ error: '臨時変更の確認に失敗しました' });
+            db.close();
+            return;
+          }
+          const dow = new Date(change_date).getDay();
+          const isScheduled = (pats || []).some(p => {
+            let days = [];
+            try {
+              days = typeof p.delivery_days === 'string' ? JSON.parse(p.delivery_days) : (p.delivery_days || []);
+            } catch { days = []; }
+            if (!Array.isArray(days) || !days.includes(dow)) return false;
+            let dq = {};
+            try {
+              dq = typeof p.daily_quantities === 'string' ? JSON.parse(p.daily_quantities) : (p.daily_quantities || {});
+            } catch { dq = {}; }
+            const baseQty = (dq && typeof dq[dow] === 'number') ? dq[dow] : (p.quantity || 0);
+            return Number(baseQty) > 0;
           });
-        }
-        db.close();
-      });
+          if (isScheduled) {
+            res.status(400).json({ error: 'すでに契約されている商品の臨時追加はできません' });
+            db.close();
+            return;
+          }
+          db.run(query, [
+            customer_id,
+            change_date,
+            change_type,
+            product_id || null,
+            quantity || null,
+            unit_price ?? null,
+            reason || null
+          ], function(err) {
+            if (err) {
+              console.error('臨時変更作成エラー:', err);
+              res.status(500).json({ error: '臨時変更の作成に失敗しました' });
+            } else {
+              res.status(201).json({ 
+                id: this.lastID,
+                message: '臨時変更が作成されました'
+              });
+            }
+            db.close();
+          });
+        });
+      } else {
+        db.run(query, [
+          customer_id,
+          change_date,
+          change_type,
+          product_id || null,
+          quantity || null,
+          unit_price ?? null,
+          reason || null
+        ], function(err) {
+          if (err) {
+            console.error('臨時変更作成エラー:', err);
+            res.status(500).json({ error: '臨時変更の作成に失敗しました' });
+          } else {
+            res.status(201).json({ 
+              id: this.lastID,
+              message: '臨時変更が作成されました'
+            });
+          }
+          db.close();
+        });
+      }
     });
   } catch (e) {
     console.error('確定状況チェック処理エラー:', e);
@@ -196,24 +253,67 @@ router.put('/:id', (req, res) => {
           return;
         }
         // 確定済みでない場合のみ更新を実行
-        db.run(query, [
-          change_date,
-          change_type,
-          product_id || null,
-          quantity || null,
-          unit_price || null,
-          reason || null,
-          id
-        ], function(err) {
-          if (err) {
-            console.error('臨時変更更新エラー:', err);
-            res.status(500).json({ error: '臨時変更の更新に失敗しました' });
-          } else if (this.changes === 0) {
-            res.status(404).json({ error: '臨時変更が見つかりません' });
+        const conflictSql = `
+          SELECT delivery_days, daily_quantities, quantity, start_date, end_date
+          FROM delivery_patterns
+          WHERE customer_id = ? AND product_id = ? AND is_active = 1
+            AND date(start_date) <= date(?) AND date(COALESCE(end_date, '2099-12-31')) >= date(?)
+        `;
+        const maybeCheckConflict = (next) => {
+          if (change_type === 'add' && product_id) {
+            db.all(conflictSql, [cid, product_id, change_date, change_date], (confErr, pats) => {
+              if (confErr) {
+                console.error('臨時追加重複チェックエラー(更新):', confErr);
+                res.status(500).json({ error: '臨時変更の確認に失敗しました' });
+                db.close();
+                return;
+              }
+              const dow = new Date(change_date).getDay();
+              const isScheduled = (pats || []).some(p => {
+                let days = [];
+                try {
+                  days = typeof p.delivery_days === 'string' ? JSON.parse(p.delivery_days) : (p.delivery_days || []);
+                } catch { days = []; }
+                if (!Array.isArray(days) || !days.includes(dow)) return false;
+                let dq = {};
+                try {
+                  dq = typeof p.daily_quantities === 'string' ? JSON.parse(p.daily_quantities) : (p.daily_quantities || {});
+                } catch { dq = {}; }
+                const baseQty = (dq && typeof dq[dow] === 'number') ? dq[dow] : (p.quantity || 0);
+                return Number(baseQty) > 0;
+              });
+              if (isScheduled) {
+                res.status(400).json({ error: 'すでに契約されている商品の臨時追加はできません' });
+                db.close();
+                return;
+              }
+              next();
+            });
           } else {
-            res.json({ message: '臨時変更が更新されました' });
+            next();
           }
-          db.close();
+        };
+
+        maybeCheckConflict(() => {
+          db.run(query, [
+            change_date,
+            change_type,
+            product_id || null,
+            quantity || null,
+            unit_price ?? null,
+            reason || null,
+            id
+          ], function(err) {
+            if (err) {
+              console.error('臨時変更更新エラー:', err);
+              res.status(500).json({ error: '臨時変更の更新に失敗しました' });
+            } else if (this.changes === 0) {
+              res.status(404).json({ error: '臨時変更が見つかりません' });
+            } else {
+              res.json({ message: '臨時変更が更新されました' });
+            }
+            db.close();
+          });
         });
       });
     });

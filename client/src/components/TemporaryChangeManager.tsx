@@ -91,6 +91,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
     unit_price: 0,
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [unitPriceInput, setUnitPriceInput] = useState<string>('');
 
   useEffect(() => {
     fetchProducts();
@@ -105,6 +106,40 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
     }
   };
 
+  // 指定日の定期配達があるかどうか（同一商品の臨時追加防止用）
+  const isScheduledDeliveryDay = async (productId: number, dateStr: string): Promise<boolean> => {
+    try {
+      const res = await axios.get(`/api/delivery-patterns/customer/${customerId}`);
+      const patterns: any[] = Array.isArray(res.data) ? res.data : [];
+      const date = new Date(dateStr);
+      const dow = date.getDay();
+      const target = patterns.filter((p: any) => Number(p.product_id) === Number(productId) && Number(p.is_active) === 1)
+        .filter((p: any) => {
+          // 期間内か
+          const start = new Date(p.start_date);
+          const end = p.end_date ? new Date(p.end_date) : new Date('2099-12-31');
+          const d = new Date(dateStr);
+          return start <= d && d <= end;
+        });
+      return target.some((p: any) => {
+        let days: number[] = [];
+        try {
+          days = typeof p.delivery_days === 'string' ? JSON.parse(p.delivery_days) : (p.delivery_days || []);
+        } catch { days = []; }
+        if (!Array.isArray(days) || !days.includes(dow)) return false;
+        let dq: Record<number, number> = {} as any;
+        try {
+          dq = typeof p.daily_quantities === 'string' ? JSON.parse(p.daily_quantities) : (p.daily_quantities || {});
+        } catch { dq = {} as any; }
+        const baseQty = (dq && typeof dq[dow] === 'number') ? dq[dow] : (p.quantity || 0);
+        return Number(baseQty) > 0;
+      });
+    } catch (e) {
+      console.warn('定期配達判定の取得に失敗:', e);
+      return false;
+    }
+  };
+
   const handleOpenDialog = (change?: TemporaryChange) => {
     if (readOnly) {
       setSnackbar({ open: true, message: '確定済みの月のため編集できません。', severity: 'error' });
@@ -113,6 +148,11 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
     if (change) {
       setEditingChange(change);
       setFormData(change);
+      setUnitPriceInput(
+        change.unit_price === undefined || change.unit_price === null
+          ? ''
+          : String(change.unit_price)
+      );
     } else {
       setEditingChange(null);
       setFormData({
@@ -122,6 +162,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
         quantity: 1,
         unit_price: 0,
       });
+      setUnitPriceInput('');
     }
     setOpenDialog(true);
   };
@@ -158,6 +199,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
         product_id: productId,
         unit_price: selectedProduct.unit_price,
       });
+      setUnitPriceInput(String(selectedProduct.unit_price ?? ''));
     }
   };
 
@@ -169,6 +211,9 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
       quantity: changeType === 'skip' ? undefined : formData.quantity || 1,
       unit_price: changeType === 'skip' ? undefined : formData.unit_price || 0,
     });
+    setUnitPriceInput(changeType === 'skip'
+      ? ''
+      : (formData.unit_price === undefined || formData.unit_price === null ? '' : String(formData.unit_price)));
   };
 
   const handleSave = async () => {
@@ -195,15 +240,38 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
         return;
       }
 
+      // 同一商品の臨時追加はブロック（通常配達と重なる場合）
+      if (formData.change_type === 'add' && formData.product_id && formData.change_date) {
+        const scheduled = await isScheduledDeliveryDay(formData.product_id, formData.change_date);
+        if (scheduled) {
+          setSnackbar({
+            open: true,
+            message: 'すでに契約されている商品の臨時追加はできません',
+            severity: 'error',
+          });
+          return;
+        }
+      }
+
+      // 単価の文字入力を数値に変換（空欄は null）
+      const trimmed = unitPriceInput.trim();
+      const parsedUnitPrice = trimmed === '' ? null : Number(trimmed);
+      if (trimmed !== '' && Number.isNaN(parsedUnitPrice)) {
+        setSnackbar({ open: true, message: '単価は数値で入力してください', severity: 'error' });
+        return;
+      }
+
+      const payload = { ...formData, unit_price: parsedUnitPrice ?? formData.unit_price ?? null };
+
       if (editingChange) {
-        await axios.put(`/api/temporary-changes/${editingChange.id}`, formData);
+        await axios.put(`/api/temporary-changes/${editingChange.id}`, payload);
         setSnackbar({
           open: true,
           message: '臨時変更を更新しました。',
           severity: 'success',
         });
       } else {
-        await axios.post('/api/temporary-changes', formData);
+        await axios.post('/api/temporary-changes', payload);
         setSnackbar({
           open: true,
           message: '臨時変更を追加しました。',
@@ -213,11 +281,12 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
 
       handleCloseDialog();
       onChangesUpdate();
-    } catch (error) {
+    } catch (error: any) {
       console.error('臨時変更の保存に失敗しました:', error);
+      const serverMessage = error?.response?.data?.message || error?.response?.data?.error;
       setSnackbar({
         open: true,
-        message: '臨時変更の保存に失敗しました。',
+        message: serverMessage || '臨時変更の保存に失敗しました。',
         severity: 'error',
       });
     }
@@ -323,7 +392,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
                     {change.quantity ? `${change.quantity}${change.unit}` : '-'}
                   </TableCell>
                   <TableCell align="right">
-                    {change.unit_price ? `¥${change.unit_price.toLocaleString()}` : '-'}
+                    {change.unit_price !== undefined && change.unit_price !== null ? `¥${change.unit_price.toLocaleString()}` : '-'}
                   </TableCell>
                   <TableCell>{change.reason || '-'}</TableCell>
                   <TableCell align="center">
@@ -411,21 +480,11 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
                   <Grid item xs={12} md={3}>
                     <TextField
                       fullWidth
-                      label="数量"
-                      type="number"
-                      value={formData.quantity || ''}
-                      onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
-                      inputProps={{ min: 1 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
                       label="単価"
-                      type="number"
-                      value={formData.unit_price || ''}
-                      onChange={(e) => setFormData({ ...formData, unit_price: Number(e.target.value) })}
-                      inputProps={{ min: 0 }}
+                      type="text"
+                      value={unitPriceInput}
+                      onChange={(e) => setUnitPriceInput(e.target.value)}
+                      inputProps={{ inputMode: 'numeric' }}
                     />
                   </Grid>
                 </>

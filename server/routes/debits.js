@@ -148,7 +148,12 @@ async function computeMonthlyTotal(db, customerId, year, month) {
       WHERE dp.customer_id = ?
     `;
     const temporaryQuery = `
-      SELECT tc.*, p.product_name, p.unit_price, p.unit, m.manufacturer_name
+      SELECT 
+        tc.*, 
+        p.product_name, 
+        p.unit_price AS product_unit_price, 
+        p.unit, 
+        m.manufacturer_name
       FROM temporary_changes tc
       JOIN products p ON tc.product_id = p.id
       JOIN manufacturers m ON p.manufacturer_id = m.id

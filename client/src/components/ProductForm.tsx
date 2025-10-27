@@ -180,8 +180,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
       newErrors.manufacturer_id = 'メーカーを選択してください';
     }
 
-    if (!formData.unit_price || formData.unit_price <= 0) {
-      newErrors.unit_price = '単価は0より大きい値を入力してください';
+    // 単価は0やマイナスも許可。未入力や非数値のみエラー
+    if (formData.unit_price === undefined || formData.unit_price === null || Number.isNaN(formData.unit_price as any)) {
+      newErrors.unit_price = '単価は数値で入力してください';
     }
 
     setErrors(newErrors);
@@ -386,7 +387,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
                 required
                 label="単価"
                 type="number"
-                value={formData.unit_price || ''}
+                value={formData.unit_price ?? ''}
                 onChange={(e) => setFormData({ ...formData, unit_price: Number(e.target.value) })}
                 InputProps={{
                   endAdornment: <InputAdornment position="end">円</InputAdornment>,

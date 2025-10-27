@@ -1563,12 +1563,12 @@ const CustomerDetail: React.FC = () => {
               <TextField
                 label="変更後単価"
                 type="number"
-                inputProps={{ min: 0, step: 1 }}
+                inputProps={{ step: 1 }}
                 value={unitPriceChangeNewPrice}
                 onChange={(e) => setUnitPriceChangeNewPrice(e.target.value === '' ? '' : Number(e.target.value))}
                 fullWidth
-                error={unitPriceChangeNewPrice !== '' && Number(unitPriceChangeNewPrice) < 0}
-                helperText={unitPriceChangeNewPrice !== '' && Number(unitPriceChangeNewPrice) < 0 ? '0以上の値を入力してください' : ''}
+                error={false}
+                helperText=""
               />
 
               <TextField
@@ -1584,7 +1584,7 @@ const CustomerDetail: React.FC = () => {
               <Button onClick={() => setOpenUnitPriceChange(false)}>閉じる</Button>
               <Button
                 variant="contained"
-                disabled={unitPriceChangeSaving || unitPriceChangeTargetId === '' || unitPriceChangeNewPrice === '' || !unitPriceChangeStartMonth || (typeof unitPriceChangeNewPrice === 'number' && unitPriceChangeNewPrice < 0)}
+                disabled={unitPriceChangeSaving || unitPriceChangeTargetId === '' || unitPriceChangeNewPrice === '' || !unitPriceChangeStartMonth}
                 onClick={handleUnitPriceChangeSave}
               >
                 {unitPriceChangeSaving ? '保存中...' : '保存'}

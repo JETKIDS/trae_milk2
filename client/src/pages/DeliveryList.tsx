@@ -1076,6 +1076,16 @@ const ProductSummaryTab: React.FC = () => {
     const saved = localStorage.getItem('productSummaryTab_autoFetch');
     return saved !== null ? JSON.parse(saved) : true;
   });
+  // メーカー別グループ化のトグル
+  const [groupByManufacturer, setGroupByManufacturer] = useState<boolean>(() => {
+    const saved = localStorage.getItem('productSummaryTab_groupByManufacturer');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+  // メーカー絞り込み（複数選択）
+  const [selectedManufacturers, setSelectedManufacturers] = useState<string[]>(() => {
+    const saved = localStorage.getItem('productSummaryTab_selectedManufacturers');
+    return saved !== null ? JSON.parse(saved) : [];
+  });
 
   const calculateEndDate = useCallback((start: string, dayCount: number): string => {
     const startDateObj = new Date(start);
@@ -1389,6 +1399,15 @@ const ProductSummaryTab: React.FC = () => {
     localStorage.setItem('productSummaryTab_autoFetch', JSON.stringify(autoFetch));
   }, [autoFetch]);
 
+  // メーカー別グループ化状態の保存
+  useEffect(() => {
+    localStorage.setItem('productSummaryTab_groupByManufacturer', JSON.stringify(groupByManufacturer));
+  }, [groupByManufacturer]);
+  // メーカー絞り込みの保存
+  useEffect(() => {
+    localStorage.setItem('productSummaryTab_selectedManufacturers', JSON.stringify(selectedManufacturers));
+  }, [selectedManufacturers]);
+
   useEffect(() => {
     fetchCourses();
     if (autoFetch) {
@@ -1410,11 +1429,83 @@ const ProductSummaryTab: React.FC = () => {
   const handleDaysChange = (value: number) => { if (value > 0 && value <= 365) setDays(value); };
   const handleCourseChange = (value: string) => setSelectedCourse(value);
 
+  // メーカー別グループ化した配列の算出
+  const manufacturerGroups = useMemo(() => {
+    const map = new Map<string, { manufacturer_name: string; rows: any[]; subtotal_quantity: number; subtotal_amount: number }>();
+    (summaryRows || []).forEach((r: any) => {
+      const key = r.manufacturer_name || '不明メーカー';
+      const existing = map.get(key) || { manufacturer_name: key, rows: [], subtotal_quantity: 0, subtotal_amount: 0 };
+      existing.rows.push(r);
+      existing.subtotal_quantity += Number(r.total_quantity || 0);
+      existing.subtotal_amount += Number(r.total_amount || 0);
+      map.set(key, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => String(a.manufacturer_name).localeCompare(String(b.manufacturer_name)));
+  }, [summaryRows]);
+
+  // メーカーの選択肢
+  const manufacturerOptions = useMemo(() => {
+    const set = new Set<string>();
+    (summaryRows || []).forEach((r: any) => set.add(r.manufacturer_name || '不明メーカー'));
+    return Array.from(set.values()).sort((a, b) => a.localeCompare(b));
+  }, [summaryRows]);
+
+  // メーカー絞り込みを適用した行
+  const filteredSummaryRows = useMemo(() => {
+    if (!selectedManufacturers || selectedManufacturers.length === 0) return summaryRows;
+    const set = new Set(selectedManufacturers);
+    return (summaryRows || []).filter((r: any) => set.has(r.manufacturer_name || '不明メーカー'));
+  }, [summaryRows, selectedManufacturers]);
+
+  // メーカー絞り込みを適用したグループ
+  const manufacturerGroupsFiltered = useMemo(() => {
+    if (!selectedManufacturers || selectedManufacturers.length === 0) return manufacturerGroups;
+    const set = new Set(selectedManufacturers);
+    return (manufacturerGroups || []).filter((g: any) => set.has(g.manufacturer_name || '不明メーカー'));
+  }, [manufacturerGroups, selectedManufacturers]);
+
   const handleCsvExport = useCallback(() => {
     if (!summaryRows || summaryRows.length === 0) return;
     const csvRows: string[] = [];
+
+    if (groupByManufacturer) {
+      // メーカー別で出力（絞り込み反映）
+      csvRows.push('メーカー,商品ID,商品名,単位,総数量,総金額');
+      manufacturerGroupsFiltered.forEach((g) => {
+        // メーカー見出し行
+        csvRows.push([`"${g.manufacturer_name || ''}"`, '', '', '', '', ''].join(','));
+        // 明細
+        g.rows.forEach((r: any) => {
+          csvRows.push([
+            `"${r.manufacturer_name || ''}"`,
+            r.product_id,
+            `"${r.product_name}"`,
+            r.unit || '',
+            r.total_quantity,
+            r.total_amount,
+          ].join(','));
+        });
+        // 小計行
+        csvRows.push(['小計', '', '', '', g.subtotal_quantity, g.subtotal_amount].join(','));
+        // 区切り
+        csvRows.push('');
+      });
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `商品合計表_メーカー別_${startDate}_${days}日間.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
+    // 既存: 商品別で出力（絞り込み反映）
     csvRows.push('商品ID,商品名,メーカー,単位,総数量,総金額');
-    summaryRows.forEach((r) => {
+    filteredSummaryRows.forEach((r) => {
       csvRows.push([
         r.product_id,
         `"${r.product_name}"`,
@@ -1434,7 +1525,7 @@ const ProductSummaryTab: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [summaryRows, startDate, days]);
+  }, [summaryRows, startDate, days, groupByManufacturer, manufacturerGroups]);
 
   const handleProductSummaryPdfExport = useCallback(async () => {
     if (!summaryRows || summaryRows.length === 0) return;
@@ -1496,10 +1587,38 @@ const ProductSummaryTab: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
+            {/* メーカー絞り込み */}
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>メーカー絞り込み</InputLabel>
+                <Select
+                  multiple
+                  value={selectedManufacturers}
+                  label="メーカー絞り込み"
+                  onChange={(e) => {
+                    const value = e.target.value as string[];
+                    setSelectedManufacturers(Array.isArray(value) ? value : []);
+                  }}
+                  renderValue={(selected) => {
+                    const arr = selected as string[];
+                    if (!arr || arr.length === 0) return '（全メーカー）';
+                    return arr.join(', ');
+                  }}
+                >
+                  {manufacturerOptions.map((name) => (
+                    <MenuItem key={name} value={name}>
+                      <Checkbox checked={selectedManufacturers.indexOf(name) > -1} />
+                      <span>{name}</span>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid item xs={12} md={3}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button variant="outlined" onClick={handleToday} size="small">今日</Button>
                 <Button variant="outlined" onClick={handleWeek} size="small">1週間</Button>
+                <Button variant="text" onClick={() => setSelectedManufacturers([])} size="small">絞り込みクリア</Button>
               </Box>
             </Grid>
           </Grid>
@@ -1517,6 +1636,12 @@ const ProductSummaryTab: React.FC = () => {
             <FormControlLabel
               control={<Checkbox checked={autoFetch} onChange={(e) => setAutoFetch(e.target.checked)} size="small" />}
               label="自動集計"
+              sx={{ ml: 1 }}
+            />
+            {/* メーカー別グループ化トグル */}
+            <FormControlLabel
+              control={<Checkbox checked={groupByManufacturer} onChange={(e) => setGroupByManufacturer(e.target.checked)} size="small" />}
+              label="メーカー別でグループ化"
               sx={{ ml: 1 }}
             />
             <Button variant="outlined" startIcon={<Print />} disabled={!summaryRows || summaryRows.length === 0} onClick={() => window.print()}>
@@ -1561,16 +1686,43 @@ const ProductSummaryTab: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {summaryRows.map((row) => (
-                  <TableRow key={row.product_id}>
-                    <TableCell>{row.product_id}</TableCell>
-                    <TableCell>{row.product_name}</TableCell>
-                    <TableCell>{row.manufacturer_name || '-'}</TableCell>
-                    <TableCell>{row.unit || '-'}</TableCell>
-                    <TableCell align="right">{row.total_quantity}</TableCell>
-                    <TableCell align="right">{row.total_amount}</TableCell>
-                  </TableRow>
-                ))}
+                {groupByManufacturer ? (
+                  manufacturerGroupsFiltered.map((g) => (
+                    <React.Fragment key={g.manufacturer_name}>
+                      <TableRow>
+                        <TableCell colSpan={6} sx={{ backgroundColor: '#f5f5f5', fontWeight: 600 }}>
+                          メーカー：{g.manufacturer_name || '-'}
+                        </TableCell>
+                      </TableRow>
+                      {g.rows.map((row: any) => (
+                        <TableRow key={row.product_id}>
+                          <TableCell>{row.product_id}</TableCell>
+                          <TableCell>{row.product_name}</TableCell>
+                          <TableCell>{row.manufacturer_name || '-'}</TableCell>
+                          <TableCell>{row.unit || '-'}</TableCell>
+                          <TableCell align="right">{row.total_quantity}</TableCell>
+                          <TableCell align="right">{row.total_amount}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow>
+                        <TableCell colSpan={4} align="right" sx={{ fontWeight: 600 }}>小計</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>{g.subtotal_quantity}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>{g.subtotal_amount}</TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  ))
+                ) : (
+                  filteredSummaryRows.map((row) => (
+                    <TableRow key={row.product_id}>
+                      <TableCell>{row.product_id}</TableCell>
+                      <TableCell>{row.product_name}</TableCell>
+                      <TableCell>{row.manufacturer_name || '-'}</TableCell>
+                      <TableCell>{row.unit || '-'}</TableCell>
+                      <TableCell align="right">{row.total_quantity}</TableCell>
+                      <TableCell align="right">{row.total_amount}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>

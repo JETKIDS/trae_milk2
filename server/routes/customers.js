@@ -954,7 +954,12 @@ router.get('/:id/calendar/:year/:month', (req, res) => {
   
   // 指定月の臨時変更を取得（当月のみ、add/modify/skip すべて）
   const temporaryQuery = `
-    SELECT tc.*, p.product_name, p.unit_price, p.unit, m.manufacturer_name
+    SELECT 
+      tc.*, 
+      p.product_name, 
+      p.unit_price AS product_unit_price, 
+      p.unit, 
+      m.manufacturer_name
     FROM temporary_changes tc
     JOIN products p ON tc.product_id = p.id
     JOIN manufacturers m ON p.manufacturer_id = m.id
@@ -1111,12 +1116,15 @@ function generateMonthlyCalendar(year, month, patterns, temporaryChanges = []) {
         tempChange.change_type === 'add' &&
         tempChange.quantity > 0
       ) {
+        const unitPrice = (tempChange.unit_price !== null && tempChange.unit_price !== undefined)
+          ? tempChange.unit_price
+          : tempChange.product_unit_price;
         dayData.products.push({
           productName: `（臨時）${tempChange.product_name}`,
           quantity: tempChange.quantity,
-          unitPrice: tempChange.unit_price,
+          unitPrice: unitPrice,
           unit: tempChange.unit,
-          amount: tempChange.quantity * tempChange.unit_price
+          amount: tempChange.quantity * unitPrice
         });
       }
     });
@@ -1175,7 +1183,12 @@ async function computeMonthlyTotal(db, customerId, year, month) {
     `;
 
     const temporaryQuery = `
-      SELECT tc.*, p.product_name, p.unit_price, p.unit, m.manufacturer_name
+      SELECT 
+        tc.*, 
+        p.product_name, 
+        p.unit_price AS product_unit_price, 
+        p.unit, 
+        m.manufacturer_name
       FROM temporary_changes tc
       JOIN products p ON tc.product_id = p.id
       JOIN manufacturers m ON p.manufacturer_id = m.id
