@@ -20,7 +20,6 @@ const dummyProducts = [
   { name: 'フルーツヨーグルト', unit: '個', price: 280, description: 'フルーツ入りヨーグルト' },
   { name: 'カマンベールチーズ', unit: '個', price: 500, description: 'クリーミーなカマンベールチーズ' },
   { name: 'モッツァレラチーズ', unit: '個', price: 450, description: 'フレッシュなモッツァレラチーズ' },
-  { name: '生クリーム', unit: '本', price: 400, description: '濃厚な生クリーム' },
   { name: 'バター', unit: '個', price: 350, description: '無塩バター' },
   { name: '低脂肪牛乳', unit: '本', price: 280, description: 'ヘルシーな低脂肪牛乳' },
   { name: 'カルシウム牛乳', unit: '本', price: 320, description: 'カルシウム強化牛乳' },

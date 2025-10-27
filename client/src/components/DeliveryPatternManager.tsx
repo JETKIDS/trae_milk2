@@ -28,6 +28,7 @@ import {
   Snackbar,
   ToggleButton,
   ToggleButtonGroup,
+  FormHelperText,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -106,7 +107,12 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   // 単価入力は文字列で保持し、保存時に数値へ変換（NaN防止）
   const [unitPriceInput, setUnitPriceInput] = useState<string>('');
-
+  // メーカー絞り込み（空文字は全メーカー）
+  const [manufacturerFilter, setManufacturerFilter] = useState<string>('');
+  const manufacturerNames = React.useMemo(
+    () => Array.from(new Set(products.map(p => p.manufacturer_name))).sort(),
+    [products]
+  );
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
   useEffect(() => {
@@ -212,17 +218,19 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
 
   // 「今契約している商品（patterns内）」を除外して表示するためのリスト（通常モード時のみ適用）
   const contractedProductIds = new Set<number>((patterns || []).filter(p => p.is_active).map(p => p.product_id));
-  const selectableProducts = isTemporaryMode
-    ? products
-    : products.filter(prod => !contractedProductIds.has(prod.id));
+  const selectableProducts = products; // すべての商品を表示（契約済みも含む）
+  const filteredProducts = manufacturerFilter
+    ? selectableProducts.filter((p) => p.manufacturer_name === manufacturerFilter)
+    : selectableProducts;
 
   // モード切替時に、通常モードへ移行した場合は契約済み商品の選択を解除
-  useEffect(() => {
-    if (!isTemporaryMode && formData.product_id && contractedProductIds.has(formData.product_id)) {
-      setFormData({ ...formData, product_id: 0 });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTemporaryMode]);
+  // ※ 全商品を表示する仕様に変更したため、選択解除のロジックは不要
+  // useEffect(() => {
+  //   if (!isTemporaryMode && formData.product_id && contractedProductIds.has(formData.product_id)) {
+  //     setFormData({ ...formData, product_id: 0 });
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [isTemporaryMode]);
 
   const handleSave = async () => {
     try {
@@ -659,18 +667,41 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
+                  <InputLabel>メーカー</InputLabel>
+                  <Select
+                    value={manufacturerFilter}
+                    onChange={(e) => setManufacturerFilter(String(e.target.value))}
+                    label="メーカー"
+                  >
+                    <MenuItem value="">全メーカー</MenuItem>
+                    {manufacturerNames.map((name) => (
+                      <MenuItem key={name} value={name}>{name}</MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>
+                    メーカーで絞り込みできます（現在: {manufacturerFilter || '全メーカー'}）
+                  </FormHelperText>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
                   <InputLabel>商品</InputLabel>
                   <Select
                     value={formData.product_id || ''}
                     onChange={(e) => handleProductChange(Number(e.target.value))}
                     label="商品"
                   >
-                    {selectableProducts.map((product) => (
+                    {filteredProducts.map((product) => (
                       <MenuItem key={product.id} value={product.id}>
                         {product.manufacturer_name} - {product.product_name}
                       </MenuItem>
                     ))}
                   </Select>
+                  <FormHelperText>
+                    {!isTemporaryMode && formData.product_id && contractedProductIds.has(formData.product_id)
+                      ? '選択中の商品は既に契約されています。必要に応じて重複追加となります。'
+                      : '商品管理に登録されている全商品が表示されています'}
+                  </FormHelperText>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>

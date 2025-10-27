@@ -50,7 +50,6 @@ db.serialize(() => {
     { id: 6, newCustomId: '008' },  // プレーンヨーグルト
     { id: 7, newCustomId: '009' },  // フルーツヨーグルト
     { id: 9, newCustomId: '010' },  // モッツァレラチーズ
-    { id: 10, newCustomId: '011' }, // 生クリーム
     { id: 11, newCustomId: '012' }, // バター
     { id: 12, newCustomId: '013' }, // 低脂肪牛乳
     { id: 13, newCustomId: '014' }  // カルシウム牛乳
