@@ -353,20 +353,38 @@ const CustomerDetail: React.FC = () => {
     // 確認ダイアログ
     const ok = window.confirm('この日以降の配達を解約します。過去分は残ります。よろしいですか？');
     if (!ok) return;
+    // APIペイロードのフォーマット補助（サーバ仕様に合わせる）
+    const toDaysString = (val: any): string => {
+      if (Array.isArray(val)) return JSON.stringify(val);
+      if (typeof val === 'string') return val;
+      return '[]';
+    };
+    const toDQString = (val: any): string | null => {
+      if (!val) return null;
+      if (typeof val === 'string') return val;
+      try { return JSON.stringify(val); } catch { return null; }
+    };
+
     const prevEndDate = pattern.end_date;
     const prevActive = pattern.is_active ? 1 : 0;
-    const endDate = moment(selectedCell.date).subtract(1, 'day').format('YYYY-MM-DD');
+    const endDateCandidate = moment(selectedCell.date).subtract(1, 'day').format('YYYY-MM-DD');
+    // start_date 以前に終了日が設定される場合は is_active=0 とし、終了日は start_date に合わせる
+    const endDateToSend = moment(endDateCandidate).isSameOrAfter(moment(pattern.start_date), 'day')
+      ? endDateCandidate
+      : moment(pattern.start_date).format('YYYY-MM-DD');
+    const isActiveToSend = moment(endDateCandidate).isSameOrAfter(moment(pattern.start_date), 'day') ? 1 : 0;
+
     try {
       await axios.put(`/api/delivery-patterns/${pattern.id}`, {
         product_id: pattern.product_id,
         quantity: pattern.quantity,
         unit_price: pattern.unit_price,
-        delivery_days: pattern.delivery_days,
-        daily_quantities: pattern.daily_quantities || {},
+        delivery_days: toDaysString(pattern.delivery_days),
+        daily_quantities: toDQString(pattern.daily_quantities),
         start_date: pattern.start_date,
-        end_date: endDate,
-        // is_active は保持（true のまま）して過去分を表示対象にする
-        is_active: true,
+        end_date: endDateToSend,
+        // 履歴表示のため、通常は is_active=1 のまま。開始日当日の解約の場合のみ 0。
+        is_active: isActiveToSend,
       });
       // Undo 記録：解約の取り消し（end_date を元に戻す、is_active を元の値に復元）
       pushUndo({
@@ -377,8 +395,8 @@ const CustomerDetail: React.FC = () => {
             product_id: pattern.product_id,
             quantity: pattern.quantity,
             unit_price: pattern.unit_price,
-            delivery_days: pattern.delivery_days,
-            daily_quantities: pattern.daily_quantities || {},
+            delivery_days: toDaysString(pattern.delivery_days),
+            daily_quantities: toDQString(pattern.daily_quantities),
             start_date: pattern.start_date,
             end_date: prevEndDate || null,
             is_active: prevActive,
@@ -389,9 +407,10 @@ const CustomerDetail: React.FC = () => {
       // パターンとカレンダーの再取得
       await fetchCustomerData();
       await fetchCalendarData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('解約処理に失敗しました:', error);
-      alert('解約処理に失敗しました。時間をおいて再度お試しください。');
+      const serverMessage = error?.response?.data?.error || error?.response?.data?.message;
+      alert(serverMessage || '解約処理に失敗しました。時間をおいて再度お試しください。');
     }
   };
 
@@ -452,23 +471,36 @@ const CustomerDetail: React.FC = () => {
       alert('取り消し対象のパターンが見つかりません。');
       return;
     }
+    // APIペイロードのフォーマット補助（サーバ仕様に合わせる）
+    const toDaysString = (val: any): string => {
+      if (Array.isArray(val)) return JSON.stringify(val);
+      if (typeof val === 'string') return val;
+      return '[]';
+    };
+    const toDQString = (val: any): string | null => {
+      if (!val) return null;
+      if (typeof val === 'string') return val;
+      try { return JSON.stringify(val); } catch { return null; }
+    };
+
     try {
       await axios.put(`/api/delivery-patterns/${target.id}`, {
         product_id: target.product_id,
         quantity: target.quantity,
         unit_price: target.unit_price,
-        delivery_days: target.delivery_days,
-        daily_quantities: target.daily_quantities || {},
+        delivery_days: toDaysString(target.delivery_days),
+        daily_quantities: toDQString(target.daily_quantities),
         start_date: target.start_date,
         end_date: null,
-        is_active: true,
+        is_active: 1,
       });
       closeCellMenu();
       await fetchCustomerData();
       await fetchCalendarData();
-    } catch (e) {
+    } catch (e: any) {
       console.error('解約取り消しに失敗しました:', e);
-      alert('解約取り消しに失敗しました。時間をおいて再度お試しください。');
+      const serverMessage = e?.response?.data?.error || e?.response?.data?.message;
+      alert(serverMessage || '解約取り消しに失敗しました。時間をおいて再度お試しください。');
     }
   };
 
