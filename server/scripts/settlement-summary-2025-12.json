@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2025-10-28T07:40:16.644Z",
+  "summary": [
+    {
+      "year": 2025,
+      "month": 1,
+      "adjusted": 0,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 2,
+      "adjusted": 0,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 3,
+      "adjusted": 0,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 4,
+      "adjusted": 0,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 5,
+      "adjusted": 0,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 6,
+      "adjusted": 0,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 7,
+      "adjusted": 0,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 8,
+      "adjusted": 0,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 9,
+      "adjusted": 0,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 10,
+      "adjusted": 48,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 11,
+      "adjusted": 49,
+      "failed": 0,
+      "dryRun": false
+    },
+    {
+      "year": 2025,
+      "month": 12,
+      "adjusted": 60,
+      "failed": 0,
+      "dryRun": false
+    }
+  ]
+}

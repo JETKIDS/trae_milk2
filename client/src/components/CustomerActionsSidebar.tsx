@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, Popover, TextField, Menu, MenuItem } from '@mui/material';
+import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, TextField, Menu, MenuItem } from '@mui/material';
 
 import { pad7 } from '../utils/id';
 
@@ -81,28 +81,7 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   accountHolderKatakana,
   // onOpenBillingRounding,
 }) => {
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
-  const [entryMode, setEntryMode] = React.useState<'auto' | 'manual'>('auto');
   const [manualAmount, setManualAmount] = React.useState<number | ''>('');
-  // 入金月（デフォルト：前月）
-  const now = new Date();
-  const defaultYear = prevYear || now.getFullYear();
-  const defaultMonth = prevMonth || (now.getMonth() === 0 ? 12 : now.getMonth()); // prevMonth が未提供時の簡易デフォルト
-  const [payYear, setPayYear] = React.useState<number>(defaultYear);
-  const [payMonth, setPayMonth] = React.useState<number>(defaultMonth);
-  const open = Boolean(anchorEl);
-  const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
-    // 前月未確定なら警告して開かない
-    if (prevMonthConfirmed === false) {
-      alert('前月の請求が未確定のため、入金処理はできません。先に「月次請求確定」を実行してください。');
-      return;
-    }
-    // ポップオーバーを開くたびにデフォルト（前月）に初期化
-    setPayYear(prevYear || defaultYear);
-    setPayMonth(prevMonth || defaultMonth);
-    setAnchorEl(e.currentTarget);
-  };
-  const handleClose = () => setAnchorEl(null);
 
   // 集金方法プルダウン（メニュー）
   const [methodMenuAnchor, setMethodMenuAnchor] = React.useState<HTMLElement | null>(null);
@@ -196,8 +175,16 @@ const saveMethodChange = async () => {
     </Box>
   );
 
-  const autoDisplayAmount = prevInvoiceAmount || 0;
-  const canSave = entryMode === 'auto' ? autoDisplayAmount > 0 : !!manualAmount && Number(manualAmount) > 0;
+  const autoFillAmount = prevInvoiceAmount || 0;
+  const isNextMonth = (() => {
+    if (!currentYear || !currentMonth || !prevYear || !prevMonth) return false;
+    const sameYearNext = prevYear === currentYear && prevMonth + 1 === currentMonth;
+    const yearTurn = prevYear + 1 === currentYear && prevMonth === 12 && currentMonth === 1;
+    return sameYearNext || yearTurn;
+  })();
+  const canShowPrevInvoice = Boolean(prevMonthConfirmed && isNextMonth);
+  // 保存対象は「前月（確定月）」に紐づくため、prevYear/prevMonth が必須
+  const canSave = !!manualAmount && Number(manualAmount) > 0 && canShowPrevInvoice && !!prevYear && !!prevMonth;
 
   return (
     <Box sx={{ position: 'sticky', top: 16 }}>
@@ -224,53 +211,37 @@ const saveMethodChange = async () => {
           ) : (
             <Typography variant="body2" color="text.secondary">顧客情報は読み込み中です</Typography>
           )}
-          {/* 前月請求額＋入金処理 */}
+          {/* 前月請求額＋当月入金 */}
           <Divider sx={{ my: 2 }} />
           <Box>
-            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>前月請求・入金</Typography>
-            {/* 入金モードの切替 */}
-            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-              <Chip label={entryMode === 'auto' ? '請求額に対する自動入金' : '手動入金'} size="small" variant="outlined" />
-              <Button size="small" variant="text" onClick={() => setEntryMode(entryMode === 'auto' ? 'manual' : 'auto')}>
-                {entryMode === 'auto' ? '手動に切替' : '自動に戻す'}
-              </Button>
-            </Stack>
-            {/* 自動入金時の金額 */}
-            {entryMode === 'auto' ? (
-              <Typography variant="body2" sx={{ mt: 1 }}>前月請求額: ¥{autoDisplayAmount.toLocaleString()} / 入金額入力不要</Typography>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>前月請求・当月入金</Typography>
+            {canShowPrevInvoice ? (
+              <>
+                <Typography variant="body2" sx={{ mt: 1 }}>前月請求額（{prevYear}年{prevMonth}月）: ¥{(prevInvoiceAmount || 0).toLocaleString()}</Typography>
+                <Box sx={{ mt: 1 }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="body2">当月入金額（{currentYear}年{currentMonth}月）</Typography>
+                    <TextField
+                      size="small"
+                      type="number"
+                      inputProps={{ min: 0, step: 1 }}
+                      value={manualAmount}
+                      onChange={e => setManualAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    />
+                    <Button size="small" variant="outlined" onClick={() => setManualAmount(autoFillAmount)}>自動</Button>
+                  </Stack>
+                  <Box sx={{ mt: 1 }}>
+                    <Button size="small" variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment?.(Number(manualAmount), 'manual', Number(prevYear), Number(prevMonth))}>入金保存</Button>
+                  </Box>
+                </Box>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  差し引き金額: ¥{(((prevInvoiceAmount || 0) - (prevPaymentAmount || 0)) || 0).toLocaleString()}
+                </Typography>
+              </>
             ) : (
-              <Box sx={{ mt: 1 }}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2">入金額</Typography>
-                  <TextField
-                    size="small"
-                    type="number"
-                    inputProps={{ min: 0, step: 1 }}
-                    value={manualAmount}
-                    onChange={e => setManualAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                  />
-                  <Button size="small" variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment?.(Number(manualAmount), 'manual', payYear, payMonth)}>入金保存</Button>
-                </Stack>
-              </Box>
-            )}
-            {/* 自動入金時の保存 */}
-            {entryMode === 'auto' && (
-              <Box sx={{ mt: 1 }}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Button size="small" variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment?.(autoDisplayAmount, 'auto', payYear, payMonth)}>入金保存</Button>
-                  <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
-                    <Box sx={{ p: 2 }}>
-                      <Typography variant="body2">入金月（既定：前月）</Typography>
-                      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                        <TextField size="small" type="number" label="年" value={payYear} onChange={e => setPayYear(Number(e.target.value))} />
-                        <TextField size="small" type="number" label="月" value={payMonth} onChange={e => setPayMonth(Number(e.target.value))} />
-                        <Button size="small" onClick={handleClose}>閉じる</Button>
-                      </Stack>
-                    </Box>
-                  </Popover>
-                  <Button size="small" variant="text" onClick={handleOpen}>入金月を変更</Button>
-                </Stack>
-              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                前月の請求が未確定、または当月が翌月ではないため表示できません。
+              </Typography>
             )}
           </Box>
           {/* 月次確定・取消 */}

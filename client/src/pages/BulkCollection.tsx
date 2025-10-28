@@ -266,13 +266,14 @@ export default function BulkCollection({ method = 'collection', readOnly = false
   }, [customers, hideFullyPaid, filterMode, remainingMap, viewMode]);
 
 
+  // 選択合計は「手入力した金額のみ」を集計する（自動的に残額を充当しない）
   const totalSelected = useMemo(() => {
     return customers.reduce((sum, c) => {
       if (!checked[c.id]) return sum;
-      const rem = remainingMap[c.id] || 0;
-      return sum + (amounts[c.id] || Math.min(rem, commonAmount || 0));
+      const entered = amounts[c.id] || 0;
+      return sum + (entered > 0 ? entered : 0);
     }, 0);
-  }, [customers, checked, remainingMap, amounts, commonAmount]);
+  }, [customers, checked, amounts]);
 
   const register = async () => {
     try {
@@ -282,17 +283,13 @@ export default function BulkCollection({ method = 'collection', readOnly = false
         .filter(c => checked[c.id] && confirmedMap[c.id])
         .map(c => {
           const rem = remainingMap[c.id] || 0;
-          const override = amounts[c.id];
-          const planned = (override && override > 0) ? Math.min(override, rem) : rem;
+          const override = amounts[c.id] || 0;
+          const planned = override > 0 ? Math.min(override, rem) : 0;
           return { customer_id: c.id, amount: planned, note };
-        });
+        })
+        .filter(e => e.amount > 0);
       if (entries.length === 0) {
-        setMessage('チェック済みで金額が設定された顧客がありません（未確定の顧客は選択できません）');
-        return;
-      }
-      const filtered = entries.filter(e => e.amount && e.amount > 0);
-      if (filtered.length === 0) {
-        setMessage('残額がないため登録できません');
+        setMessage('チェック済みで入金額が入力された顧客がありません（未確定の顧客は選択できません）');
         return;
       }
       const resp = await fetchWithTimeout('/api/customers/payments/batch', {
@@ -438,7 +435,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
                           disabled={(remainingMap[c.id] || 0) <= 0 || !confirmedMap[c.id]}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={4}>
+                      <Grid item xs={12} sm={3}>
                         <Typography variant="body2">{pad7(c.custom_id)} {c.customer_name}</Typography>
                       </Grid>
                       <Grid item xs={12} sm={2}>
@@ -455,6 +452,20 @@ export default function BulkCollection({ method = 'collection', readOnly = false
                         <Typography variant="body2" sx={{ textAlign: 'right', fontWeight: (remainingMap[c.id] || 0) <= 0 ? 500 : undefined }}>
                           残額: ￥{(remainingMap[c.id] || 0).toLocaleString()}
                         </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={2}>
+                        <TextField
+                          label="入金額"
+                          type="number"
+                          value={amounts[c.id] ?? ''}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value || '0', 10) || 0;
+                            setAmounts(prev => ({ ...prev, [c.id]: v }));
+                          }}
+                          inputProps={{ min: 0 }}
+                          fullWidth
+                          disabled={(remainingMap[c.id] || 0) <= 0 || !confirmedMap[c.id]}
+                        />
                       </Grid>
                     </>
                   )}
