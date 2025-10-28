@@ -148,7 +148,8 @@ router.put('/:id', (req, res) => {
     }
     const customerId = row.customer_id;
     const newStartKey = Number(String(start_date).slice(0, 4)) * 100 + Number(String(start_date).slice(5, 7));
-    const newEndKey = end_date ? (Number(String(end_date).slice(0, 4)) * 100 + Number(String(end_date).slice(5, 7))) : newStartKey;
+    // 新終了日が null（無期限）なら、十分に大きい将来キーとして扱う
+    const newEndKey = end_date ? (Number(String(end_date).slice(0, 4)) * 100 + Number(String(end_date).slice(5, 7))) : 999912;
     const oldStartKey = Number(String(row.start_date).slice(0, 4)) * 100 + Number(String(row.start_date).slice(5, 7));
     // 旧終了日が null（無期限）の場合は、十分に大きい将来キーとして扱う（終了日短縮の判定を正しく行うため）
     const oldEndKey = row.end_date ? (Number(String(row.end_date).slice(0, 4)) * 100 + Number(String(row.end_date).slice(5, 7))) : 999912;
@@ -160,6 +161,7 @@ router.put('/:id', (req, res) => {
     // 2) 上記以外の更新は従来通り、新旧期間に確定月が含まれないことを要件とする
 
     const isEndShortening = newEndKey < oldEndKey; // 終了日の月を前倒ししているか（旧終了日が無期限の場合も短縮に該当）
+    const isEndExtension = newEndKey > oldEndKey;  // 終了日の月を後ろに延長、または無期限へ戻す
     if (isEndShortening) {
       // 既存期間に含まれる確定月のうち、最大のキー（最新の確定月）を取得
       db.all(checkSql, [customerId, oldStartKey, oldEndKey], (chkErrRange, rowsRange) => {
@@ -183,6 +185,48 @@ router.put('/:id', (req, res) => {
 
         // 影響する月のみをチェック（(newEndKey+1)〜oldEndKey）し、従来の一律ブロックは行わない
         // この範囲に確定月が含まれていても、終了日短縮は許可（将来側の削除のみ）
+        db.run(query, [
+          product_id,
+          quantity,
+          unit_price,
+          delivery_days,
+          daily_quantities,
+          start_date,
+          end_date || null,
+          is_active,
+          id
+        ], function(err) {
+          if (err) {
+            console.error('配達パターン更新エラー:', err);
+            res.status(500).json({ error: '配達パターンの更新に失敗しました' });
+          } else if (this.changes === 0) {
+            res.status(404).json({ error: '配達パターンが見つかりません' });
+          } else {
+            res.json({ message: '配達パターンが更新されました' });
+          }
+          db.close();
+        });
+      });
+    } else if (isEndExtension) {
+      // 解約取り消し（終了日の延長、または無期限へ戻す）
+      // 影響範囲: (oldEndKey+1)〜newEndKey の月のうち、確定済みが含まれていないこと
+      db.all(checkSql, [customerId, oldStartKey, newEndKey], (chkErrRange, rowsRange) => {
+        if (chkErrRange) {
+          console.error('確定状況の確認エラー(延長範囲):', chkErrRange);
+          res.status(500).json({ error: '確定状況の確認に失敗しました' });
+          db.close();
+          return;
+        }
+        const confirmedInExtended = (rowsRange || [])
+          .filter(r => String(r.status) === 'confirmed')
+          .some(r => ((Number(r.year) * 100 + Number(r.month)) > oldEndKey));
+
+        if (confirmedInExtended) {
+          res.status(400).json({ error: '延長範囲に確定済みの月が含まれるため更新できません。延長する場合は該当月の確定解除を行ってください。' });
+          db.close();
+          return;
+        }
+
         db.run(query, [
           product_id,
           quantity,
