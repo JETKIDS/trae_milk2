@@ -1165,9 +1165,50 @@ function ensureLedgerTables(db) {
     );
   `;
   return new Promise((resolve, reject) => {
-    db.exec(sql, (err) => {
-      if (err) return reject(err);
-      resolve();
+    db.serialize(() => {
+      // 基本テーブル作成
+      db.exec(sql, (err) => {
+        if (err) return reject(err);
+        // 既存DBに不足カラムがある場合は追加（軽量な簡易マイグレーション）
+        db.all("PRAGMA table_info(ar_invoices)", [], (e1, invCols) => {
+          if (e1) return reject(e1);
+          const invNames = (invCols || []).map(r => r.name);
+          const alterOps = [];
+          if (!invNames.includes('status')) {
+            alterOps.push("ALTER TABLE ar_invoices ADD COLUMN status TEXT DEFAULT 'confirmed'");
+          }
+          if (!invNames.includes('confirmed_at')) {
+            alterOps.push("ALTER TABLE ar_invoices ADD COLUMN confirmed_at DATETIME DEFAULT CURRENT_TIMESTAMP");
+          }
+          if (!invNames.includes('rounding_enabled')) {
+            // 既存DBにない場合はデフォルト0で追加
+            alterOps.push("ALTER TABLE ar_invoices ADD COLUMN rounding_enabled INTEGER DEFAULT 0");
+          }
+
+          db.all("PRAGMA table_info(ar_payments)", [], (e2, payCols) => {
+            if (e2) return reject(e2);
+            const payNames = (payCols || []).map(r => r.name);
+            if (!payNames.includes('method')) {
+              alterOps.push("ALTER TABLE ar_payments ADD COLUMN method TEXT");
+            }
+            if (!payNames.includes('note')) {
+              alterOps.push("ALTER TABLE ar_payments ADD COLUMN note TEXT");
+            }
+            if (!payNames.includes('created_at')) {
+              alterOps.push("ALTER TABLE ar_payments ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP");
+            }
+
+            if (alterOps.length === 0) {
+              return resolve();
+            }
+            const alterSql = alterOps.join('; ');
+            db.exec(alterSql, (e3) => {
+              if (e3) return reject(e3);
+              resolve();
+            });
+          });
+        });
+      });
     });
   });
 }
@@ -1580,9 +1621,12 @@ router.post('/:id/payments', async (req, res) => {
         }
       );
     });
-    if (!inv || String(inv.status) !== 'confirmed') {
+    // 集金（collection）の場合は未確定でも登録を許可、引き落し（debit）の場合は確定必須
+    const methodStr = String(method);
+    const isConfirmed = inv && String(inv.status) === 'confirmed';
+    if (methodStr === 'debit' && !isConfirmed) {
       db.close();
-      return res.status(400).json({ error: '指定年月の請求が確定されていないため、入金登録できません。先に月次確定を行ってください。' });
+      return res.status(400).json({ error: '引き落し入金は指定年月の請求確定が必要です。先に月次確定を行ってください。' });
     }
 
     await new Promise((resolve, reject) => {
@@ -1678,7 +1722,7 @@ router.patch('/:id/payments/:paymentId', async (req, res) => {
 });
 
 // ===== 入金取消（マイナス入金の自動登録） =====
-router.post('/:id/payments/:paymentId/cancel', async (req, res) => {
+  router.post('/:id/payments/:paymentId/cancel', async (req, res) => {
   const db = getDB();
   const customerId = req.params.id;
   const paymentId = parseInt(String(req.params.paymentId), 10);
@@ -1775,7 +1819,7 @@ router.get('/:id/ar-summary', async (req, res) => {
       prevInvoiceAmount = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
     }
 
-    // 前月入金額：当該年月の入金合計
+    // 前月入金額：当該（前月）年月の入金合計
     const paymentRow = await new Promise((resolve, reject) => {
       db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND year = ? AND month = ?', [customerId, prevYear, prevMonth], (err, row) => {
         if (err) return reject(err);
@@ -1784,20 +1828,17 @@ router.get('/:id/ar-summary', async (req, res) => {
     });
     const prevPaymentAmount = paymentRow ? (paymentRow.total || 0) : 0;
 
-    // 繰越額：過去（前月まで）の請求累計 - 入金累計
-    const cumInvoiceRow = await new Promise((resolve, reject) => {
-      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_invoices WHERE customer_id = ? AND (year < ? OR (year = ? AND month <= ?))', [customerId, prevYear, prevYear, prevMonth], (err, row) => {
+    // 当月入金額：現在指定の year/month の入金合計
+    const currentPaymentRow = await new Promise((resolve, reject) => {
+      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND year = ? AND month = ?', [customerId, y, m], (err, row) => {
         if (err) return reject(err);
         resolve(row);
       });
     });
-    const cumPaymentRow = await new Promise((resolve, reject) => {
-      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND (year < ? OR (year = ? AND month <= ?))', [customerId, prevYear, prevYear, prevMonth], (err, row) => {
-        if (err) return reject(err);
-        resolve(row);
-      });
-    });
-    const carryoverAmount = (cumInvoiceRow?.total || 0) - (cumPaymentRow?.total || 0);
+    const currentPaymentAmount = currentPaymentRow ? (currentPaymentRow.total || 0) : 0;
+
+    // 繰越額：（前月請求額）-（当月入金額）
+    const carryoverAmount = (prevInvoiceAmount || 0) - currentPaymentAmount;
 
     db.close();
     return res.json({
@@ -1957,6 +1998,49 @@ router.put('/update-delivery-order', (req, res) => {
         res.status(500).json({ error: err.message });
       });
   });
+
+// ===== 入金削除（履歴から完全削除） =====
+router.delete('/:id/payments/:paymentId', async (req, res) => {
+  const db = getDB();
+  const customerId = req.params.id;
+  const paymentId = parseInt(String(req.params.paymentId), 10);
+  if (isNaN(paymentId)) {
+    db.close();
+    return res.status(400).json({ error: 'paymentId が不正です' });
+  }
+  try {
+    console.log('[DELETE payment] customer_id=', customerId, 'payment_id=', paymentId);
+    await ensureLedgerTables(db);
+    const exists = await new Promise((resolve, reject) => {
+      db.get('SELECT id FROM ar_payments WHERE id = ? AND customer_id = ?', [paymentId, customerId], (err, r) => {
+        if (err) return reject(err);
+        resolve(!!r);
+      });
+    });
+    if (!exists) {
+      const byId = await new Promise((resolve, reject) => {
+        db.get('SELECT id, customer_id FROM ar_payments WHERE id = ?', [paymentId], (err, r) => {
+          if (err) return reject(err);
+          resolve(r || null);
+        });
+      });
+      console.warn('[DELETE payment] not found for customer. lookup by id=', paymentId, '->', byId);
+      db.close();
+      return res.status(404).json({ error: '対象の入金が見つかりません' });
+    }
+    const deleted = await new Promise((resolve, reject) => {
+      db.run('DELETE FROM ar_payments WHERE id = ? AND customer_id = ?', [paymentId, customerId], function(err) {
+        if (err) return reject(err);
+        resolve(this.changes || 0);
+      });
+    });
+    db.close();
+    return res.json({ customer_id: Number(customerId), payment_id: paymentId, deleted_count: deleted });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
 
   db.close();
 });

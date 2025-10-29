@@ -136,6 +136,8 @@ const CustomerDetail: React.FC = () => {
 
   // 前月請求/入金/繰越サマリー
   const [arSummary, setArSummary] = useState<any | null>(null);
+  // 当月入金額（合計）
+  const [currentPaymentAmount, setCurrentPaymentAmount] = useState<number>(0);
 
   // Undoスタック
   const [undoStack, setUndoStack] = useState<Array<{ description: string; revert: () => Promise<void> }>>([]);
@@ -188,6 +190,8 @@ const CustomerDetail: React.FC = () => {
   const [paymentSaving, setPaymentSaving] = useState<boolean>(false);
   // 追記: 入金履歴ダイアログ開閉
   const [openPaymentHistory, setOpenPaymentHistory] = useState<boolean>(false);
+  // 履歴再読込トリガー（Hooks順序を安定化するため、上部に配置）
+  const [paymentHistoryRefresh, setPaymentHistoryRefresh] = useState<number>(0);
 
   // 単価変更ダイアログ
   const [openUnitPriceChange, setOpenUnitPriceChange] = useState<boolean>(false);
@@ -297,6 +301,21 @@ const CustomerDetail: React.FC = () => {
     }
   }, [id, currentDate]);
 
+  // 当月入金額を取得（当該月の入金レコード合計）
+  const fetchCurrentPaymentAmount = useCallback(async () => {
+    try {
+      const y = currentDate.year();
+      const m = currentDate.month() + 1;
+      const res = await axios.get(`/api/customers/${id}/payments`, { params: { year: y, month: m, limit: 1000 } });
+      const rows = Array.isArray(res.data) ? res.data : [];
+      const sum = rows.reduce((acc: number, p: any) => acc + (typeof p.amount === 'number' ? p.amount : 0), 0);
+      setCurrentPaymentAmount(sum);
+    } catch (e) {
+      console.error('当月入金額の取得に失敗しました', e);
+      setCurrentPaymentAmount(0);
+    }
+  }, [id, currentDate]);
+
   const handlePatternsChange = async () => {
     await fetchCustomerData();
     await fetchCalendarData();
@@ -317,7 +336,8 @@ const CustomerDetail: React.FC = () => {
     fetchCalendarData();
     fetchInvoiceStatus();
     fetchArSummary();
-  }, [fetchCalendarData, fetchInvoiceStatus, fetchArSummary]);
+    fetchCurrentPaymentAmount();
+  }, [fetchCalendarData, fetchInvoiceStatus, fetchArSummary, fetchCurrentPaymentAmount]);
   // 追加: ARサマリの前月値が揃ったら前月確定状態も取得
   useEffect(() => {
     fetchPrevInvoiceStatus();
@@ -1031,33 +1051,57 @@ const CustomerDetail: React.FC = () => {
     }
   };
 
+
   // 入金登録（指定の年月に紐づけて保存。デフォルトは前月）
   const savePrevPayment = async (amount: number, mode: 'auto' | 'manual', year?: number, month?: number) => {
     try {
-      const y = typeof year === 'number' ? year : arSummary?.prev_year;
-      const m = typeof month === 'number' ? month : arSummary?.prev_month;
-      if (!y || !m) {
-        alert('入金対象の年月が取得できていません');
+      // 金額のバリデーション
+      const amt = Number(amount);
+      if (!Number.isFinite(amt) || amt <= 0) {
+        alert('金額が正しくありません（半角数字のみを入力してください）');
         return;
       }
 
-      // 対象年月の請求確定状態を再確認（未確定なら入金登録禁止）
-      const statusRes = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
+      // 前月（請求確定対象）の年月を取得
+      const prevY = arSummary?.prev_year;
+      const prevM = arSummary?.prev_month;
+      if (!prevY || !prevM) {
+        alert('入金対象の基準（前月確定）が取得できていません');
+        return;
+      }
+
+      // 前月が未確定の場合のガード
+      // 集金（collection）は未確定でも保存可、引き落し（debit）は確定必須
+      const statusRes = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: prevY, month: prevM } });
       const { confirmed } = statusRes.data || {};
-      if (!confirmed) {
-        alert('対象の月の請求が未確定のため、入金登録はできません。先に「月次請求確定」を実行してください。');
+      if (!confirmed && billingMethod === 'debit') {
+        alert('対象の月の請求が未確定のため、引き落し入金はできません。先に「月次請求確定」を実行してください。');
         return;
       }
 
+      // 入金は「当月」に計上する（履歴・当月入金額の表示と整合）
+      const currentY = currentDate.year();
+      const currentM = currentDate.month() + 1;
+      // 事前チェック：引き落し(debit)の場合のみ、当月の請求確定を要求
+      if (billingMethod === 'debit') {
+        const currentStatusRes = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: currentY, month: currentM } });
+        if (!currentStatusRes?.data?.confirmed) {
+          alert('引き落し入金は当月の請求確定が必要です。先に「月次請求確定」を実行してください。');
+          return;
+        }
+      }
       await axios.post(`/api/customers/${id}/payments`, {
-        year: y,
-        month: m,
-        amount,
+        year: currentY,
+        month: currentM,
+        amount: amt,
         method: billingMethod,
         note: mode === 'auto' ? '請求額に対する自動入金' : '手動入金',
       });
       alert('入金を登録しました。');
+      // 表示の再取得（当月入金額・繰越・履歴）
+      await fetchCurrentPaymentAmount();
       await fetchArSummary();
+      setPaymentHistoryRefresh(prev => prev + 1);
     } catch (e) {
       console.error('入金登録エラー', e);
       alert('入金の登録に失敗しました。時間をおいて再度お試しください。');
@@ -1066,10 +1110,7 @@ const CustomerDetail: React.FC = () => {
 
   // 集金の登録
   const openCollectionDialog = () => {
-    if (!invoiceConfirmed) {
-      alert('当月の請求が未確定のため、入金登録はできません。先に「月次請求確定」を実行してください。');
-      return;
-    }
+    // 集金は未確定でも登録可能のため、ダイアログを開く
     setPaymentAmount('');
     setPaymentNote('');
     setOpenPaymentDialog(true);
@@ -1090,13 +1131,7 @@ const CustomerDetail: React.FC = () => {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
 
-      // 現在月が未確定ならサーバ側でも拒否されるが、事前にチェックしてユーザーへ分かりやすく通知
-      const statusRes = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
-      if (!statusRes?.data?.confirmed) {
-        setPaymentSaving(false);
-        alert('当月の請求が未確定のため、入金登録はできません。先に「月次請求確定」を実行してください。');
-        return;
-      }
+      // 集金（collection）は未確定でも登録可能
 
       await axios.post(`/api/customers/${id}/payments`, {
         year: y,
@@ -1108,6 +1143,9 @@ const CustomerDetail: React.FC = () => {
       setPaymentSaving(false);
       setOpenPaymentDialog(false);
       alert('入金（集金）を登録しました。');
+      await fetchCurrentPaymentAmount();
+      await fetchArSummary();
+      setPaymentHistoryRefresh(prev => prev + 1);
     } catch (e) {
       console.error('入金登録エラー', e);
       setPaymentSaving(false);
@@ -1548,6 +1586,7 @@ const CustomerDetail: React.FC = () => {
           currentMonth={currentDate.month() + 1}
           prevInvoiceAmount={arSummary?.prev_invoice_amount}
           prevPaymentAmount={arSummary?.prev_payment_amount}
+          currentPaymentAmount={currentPaymentAmount}
           prevYear={arSummary?.prev_year}
           prevMonth={arSummary?.prev_month}
           prevMonthConfirmed={prevInvoiceConfirmed ?? undefined}
@@ -1692,7 +1731,7 @@ const CustomerDetail: React.FC = () => {
 
       {/* 入金登録（集金） */}
       <Grid item xs={12}>
-        <Dialog open={openPaymentDialog} onClose={closeCollectionDialog} fullWidth maxWidth="sm">
+        <Dialog open={openPaymentDialog} onClose={closeCollectionDialog} fullWidth maxWidth="md">
           <Box sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>入金登録（集金）</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -1701,8 +1740,8 @@ const CustomerDetail: React.FC = () => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <TextField
                 label="金額"
-                type="number"
-                inputProps={{ min: 0, step: 1 }}
+                type="text"
+                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
                 fullWidth
@@ -1733,7 +1772,8 @@ const CustomerDetail: React.FC = () => {
           onClose={() => setOpenPaymentHistory(false)}
           defaultYear={currentDate.year()}
           defaultMonth={currentDate.month() + 1}
-          onUpdated={async () => { await fetchArSummary(); }}
+          onUpdated={async () => { await fetchArSummary(); await fetchCurrentPaymentAmount(); }}
+          refreshSignal={paymentHistoryRefresh}
         />
       </Grid>
 

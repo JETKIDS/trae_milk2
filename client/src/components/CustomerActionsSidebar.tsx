@@ -19,6 +19,8 @@ interface Props {
   // 前月サマリ
   prevInvoiceAmount?: number;
   prevPaymentAmount?: number;
+  // 当月入金額の表示用
+  currentPaymentAmount?: number;
   prevYear?: number;
   prevMonth?: number;
   onSavePrevPayment?: (amount: number, mode: 'auto' | 'manual', year: number, month: number) => Promise<void>;
@@ -57,6 +59,7 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   invoiceConfirmedAt,
   prevInvoiceAmount,
   prevPaymentAmount,
+  currentPaymentAmount,
   prevYear,
   prevMonth,
   onSavePrevPayment,
@@ -81,7 +84,7 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   accountHolderKatakana,
   // onOpenBillingRounding,
 }) => {
-  const [manualAmount, setManualAmount] = React.useState<number | ''>('');
+  const [manualAmount, setManualAmount] = React.useState<string>('');
 
   // 集金方法プルダウン（メニュー）
   const [methodMenuAnchor, setMethodMenuAnchor] = React.useState<HTMLElement | null>(null);
@@ -184,7 +187,12 @@ const saveMethodChange = async () => {
   })();
   const canShowPrevInvoice = Boolean(prevMonthConfirmed && isNextMonth);
   // 保存対象は「前月（確定月）」に紐づくため、prevYear/prevMonth が必須
-  const canSave = !!manualAmount && Number(manualAmount) > 0 && canShowPrevInvoice && !!prevYear && !!prevMonth;
+  // 集金は未確定でも保存可、引き落しは確定必須
+  const canSave = manualAmount.trim() !== ''
+    && Number(manualAmount) > 0
+    && canShowPrevInvoice
+    && !!prevYear && !!prevMonth
+    && (invoiceConfirmed || effectiveMethod === 'collection');
 
   return (
     <Box sx={{ position: 'sticky', top: 16 }}>
@@ -218,24 +226,26 @@ const saveMethodChange = async () => {
             {canShowPrevInvoice ? (
               <>
                 <Typography variant="body2" sx={{ mt: 1 }}>前月請求額（{prevYear}年{prevMonth}月）: ¥{(prevInvoiceAmount || 0).toLocaleString()}</Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>当月入金額（{currentYear}年{currentMonth}月）: ¥{(currentPaymentAmount || 0).toLocaleString()}</Typography>
                 <Box sx={{ mt: 1 }}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="body2">当月入金額（{currentYear}年{currentMonth}月）</Typography>
-                    <TextField
-                      size="small"
-                      type="number"
-                      inputProps={{ min: 0, step: 1 }}
-                      value={manualAmount}
-                      onChange={e => setManualAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                    />
-                    <Button size="small" variant="outlined" onClick={() => setManualAmount(autoFillAmount)}>自動</Button>
-                  </Stack>
-                  <Box sx={{ mt: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>当月入金額（{currentYear}年{currentMonth}月）</Typography>
+                  <TextField
+                    size="small"
+                    type="text"
+                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                    value={manualAmount}
+                    onChange={e => setManualAmount(e.target.value)}
+                    fullWidth
+                    multiline
+                    rows={2}
+                  />
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <Button size="small" variant="outlined" onClick={() => setManualAmount(String(autoFillAmount))}>自動</Button>
                     <Button size="small" variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment?.(Number(manualAmount), 'manual', Number(prevYear), Number(prevMonth))}>入金保存</Button>
-                  </Box>
+                  </Stack>
                 </Box>
                 <Typography variant="body2" sx={{ mt: 1 }}>
-                  差し引き金額: ¥{(((prevInvoiceAmount || 0) - (prevPaymentAmount || 0)) || 0).toLocaleString()}
+                  繰越額: ¥{(((prevInvoiceAmount || 0) - (currentPaymentAmount || 0)) || 0).toLocaleString()}
                 </Typography>
               </>
             ) : (

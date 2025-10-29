@@ -21,6 +21,7 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { PaymentRecord, PaymentMethod } from '../types/ledger';
 
 interface Props {
@@ -30,9 +31,10 @@ interface Props {
   defaultYear: number;
   defaultMonth: number;
   onUpdated?: () => void | Promise<void>;
+  refreshSignal?: number; // 外部からの再読込トリガー
 }
 
-const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defaultYear, defaultMonth, onUpdated }) => {
+const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defaultYear, defaultMonth, onUpdated, refreshSignal }) => {
   const [year, setYear] = useState<number>(defaultYear);
   const [month, setMonth] = useState<number>(defaultMonth);
   const [method, setMethod] = useState<'' | PaymentMethod>('');
@@ -67,7 +69,7 @@ const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defa
       }
     };
     fetchData();
-  }, [open, customerId, year, month, method, q]);
+  }, [open, customerId, year, month, method, q, refreshSignal]);
 
   const handleStartEdit = (r: PaymentRecord) => {
     setEditingId(r.id);
@@ -89,7 +91,10 @@ const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defa
     }
   };
 
-  const handleCancelPayment = async (id: number) => {
+  // 履歴の×ボタンは廃止（ゴミ箱と同挙動のため）
+
+  // 削除ボタンも取消（マイナス入金）と同じ挙動にする
+  const handleDeletePayment = async (id: number) => {
     if (!window.confirm('この入金を取消（マイナス入金）します。よろしいですか？')) return;
     try {
       await axios.post(`/api/customers/${customerId}/payments/${id}/cancel`);
@@ -162,7 +167,7 @@ const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defa
                   ) : (
                     <Stack direction="row" justifyContent="center" spacing={1}>
                       <IconButton size="small" onClick={() => handleStartEdit(r)}><EditIcon fontSize="small" /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleCancelPayment(r.id)}><CancelIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => handleDeletePayment(r.id)}><DeleteIcon fontSize="small" /></IconButton>
                     </Stack>
                   )}
                 </TableCell>
