@@ -1838,6 +1838,7 @@ router.get('/:id/ar-summary', async (req, res) => {
     const currentPaymentAmount = currentPaymentRow ? (currentPaymentRow.total || 0) : 0;
 
     // 繰越額：（前月請求額）-（当月入金額）
+    // 牛乳屋の業務フロー：前月の集金額に対して翌月（当月）に入金される
     const carryoverAmount = (prevInvoiceAmount || 0) - currentPaymentAmount;
 
     db.close();

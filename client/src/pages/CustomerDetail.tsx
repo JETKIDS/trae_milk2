@@ -991,12 +991,14 @@ const CustomerDetail: React.FC = () => {
 
   const monthlyQuantities = calculateMonthlyQuantity();
   const monthlyTotalRaw = calculateMonthlyTotal();
-  // 今月概算合計は「当月概算 + 前月繰越（前月請求額 - 前月入金額）」で表示
+  // 今月概算合計は「当月概算 + 前月繰越（前月請求額 - 当月入金額）」で表示
+  // 牛乳屋の業務フロー：前月の集金額に対して翌月（当月）に入金される
   const tmpBaseMonthlyTotal = billingRoundingEnabled
     ? Math.floor(monthlyTotalRaw / 10) * 10 // 1の位切り捨て（当月分のみ）
     : monthlyTotalRaw;
   const baseMonthlyTotal = Math.max(0, tmpBaseMonthlyTotal);
-  const carryoverFromPrev = (arSummary?.carryover_amount ?? ((arSummary?.prev_invoice_amount || 0) - (arSummary?.prev_payment_amount || 0))) || 0;
+  // 繰越額 = 前月請求額 - 当月入金額（サーバーから取得、またはフォールバックで計算）
+  const carryoverFromPrev = (arSummary?.carryover_amount ?? ((arSummary?.prev_invoice_amount || 0) - (currentPaymentAmount || 0))) || 0;
   const monthlyTotal = baseMonthlyTotal + carryoverFromPrev;
 
   // 設定保存ヘルパー
@@ -1460,9 +1462,16 @@ const CustomerDetail: React.FC = () => {
                     <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle1':'h6'} gutterBottom>
                       月次合計
                     </Typography>
-                    <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'h5':'h4'} color="primary" fontWeight="bold">
-                      ¥{monthlyTotal.toLocaleString()}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                      <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'h5':'h4'} color="primary" fontWeight="bold">
+                        ¥{monthlyTotal.toLocaleString()}
+                      </Typography>
+                      {carryoverFromPrev !== 0 && (
+                        <Typography variant="body2" color="textSecondary">
+                          （繰越分 ¥{carryoverFromPrev.toLocaleString()} 含む）
+                        </Typography>
+                      )}
+                    </Box>
                     <Typography variant="body2" color="textSecondary" sx={{ mt: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1 }}>
                       {currentDate.format('YYYY年M月')}分
                     </Typography>

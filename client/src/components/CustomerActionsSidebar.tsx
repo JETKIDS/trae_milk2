@@ -236,8 +236,15 @@ const saveMethodChange = async () => {
                     value={manualAmount}
                     onChange={e => setManualAmount(e.target.value)}
                     fullWidth
-                    multiline
-                    rows={2}
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        height: 32,
+                      },
+                      '& .MuiInputBase-input': {
+                        padding: '6px 8px',
+                        lineHeight: 1.4,
+                      },
+                    }}
                   />
                   <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
                     <Button size="small" variant="outlined" onClick={() => setManualAmount(String(autoFillAmount))}>自動</Button>
