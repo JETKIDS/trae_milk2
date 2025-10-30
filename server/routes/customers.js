@@ -1280,7 +1280,37 @@ router.post('/:id/invoices/confirm', async (req, res) => {
 
     const totalRaw = await computeMonthlyTotal(db, customerId, y, m);
     const amountRaw = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
-    const amount = Math.max(0, amountRaw);
+    const baseAmount = Math.max(0, amountRaw);
+
+    // 繰越額（前月請求額 - 当月入金額）を加算
+    const prevMomentForCarry = moment(`${y}-${String(m).padStart(2, '0')}-01`).subtract(1, 'month');
+    const prevYearForCarry = parseInt(prevMomentForCarry.format('YYYY'), 10);
+    const prevMonthForCarry = parseInt(prevMomentForCarry.format('MM'), 10);
+    // 前月請求額（確定があれば優先）
+    const prevInvoiceRow = await new Promise((resolve, reject) => {
+      db.get('SELECT amount FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?', [customerId, prevYearForCarry, prevMonthForCarry], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    let prevInvoiceAmountForCarry;
+    if (prevInvoiceRow && typeof prevInvoiceRow.amount === 'number') {
+      prevInvoiceAmountForCarry = prevInvoiceRow.amount;
+    } else {
+      const prevRaw = await computeMonthlyTotal(db, customerId, prevYearForCarry, prevMonthForCarry);
+      prevInvoiceAmountForCarry = roundingEnabled ? Math.floor(prevRaw / 10) * 10 : prevRaw;
+    }
+    // 当月入金額
+    const currentPaymentRowForCarry = await new Promise((resolve, reject) => {
+      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND year = ? AND month = ?', [customerId, y, m], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    const currentPaymentAmountForCarry = currentPaymentRowForCarry ? (currentPaymentRowForCarry.total || 0) : 0;
+    const carryoverAmountForConfirm = (prevInvoiceAmountForCarry || 0) - currentPaymentAmountForCarry;
+
+    const amount = baseAmount + carryoverAmountForConfirm;
 
     // UPSERT（顧客×年月は一意）
     await new Promise((resolve, reject) => {
@@ -1300,7 +1330,7 @@ router.post('/:id/invoices/confirm', async (req, res) => {
     });
 
     db.close();
-    return res.json({ customer_id: Number(customerId), year: y, month: m, amount, rounding_enabled: roundingEnabled });
+    return res.json({ customer_id: Number(customerId), year: y, month: m, amount, rounding_enabled: roundingEnabled, carryover_included: carryoverAmountForConfirm });
   } catch (e) {
     db.close();
     return res.status(500).json({ error: e.message });
@@ -1417,7 +1447,35 @@ router.post('/invoices/confirm-batch', async (req, res) => {
 
                 const totalRaw = await computeMonthlyTotal(db, customerId, y, m);
                 const amountRaw = roundingEnabled ? Math.floor(totalRaw / 10) * 10 : totalRaw;
-                const amount = Math.max(0, amountRaw);
+                const baseAmount = Math.max(0, amountRaw);
+
+                // 繰越額（前月請求額 - 当月入金額）を加算
+                const prevMomentForCarry = moment(`${y}-${String(m).padStart(2, '0')}-01`).subtract(1, 'month');
+                const prevYearForCarry = parseInt(prevMomentForCarry.format('YYYY'), 10);
+                const prevMonthForCarry = parseInt(prevMomentForCarry.format('MM'), 10);
+                const prevInvoiceRow = await new Promise((res2a, rej2a) => {
+                  db.get('SELECT amount FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?', [customerId, prevYearForCarry, prevMonthForCarry], (err, row) => {
+                    if (err) return rej2a(err);
+                    res2a(row);
+                  });
+                });
+                let prevInvoiceAmountForCarry;
+                if (prevInvoiceRow && typeof prevInvoiceRow.amount === 'number') {
+                  prevInvoiceAmountForCarry = prevInvoiceRow.amount;
+                } else {
+                  const prevRaw = await computeMonthlyTotal(db, customerId, prevYearForCarry, prevMonthForCarry);
+                  prevInvoiceAmountForCarry = roundingEnabled ? Math.floor(prevRaw / 10) * 10 : prevRaw;
+                }
+                const currentPaymentRowForCarry = await new Promise((res2b, rej2b) => {
+                  db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND year = ? AND month = ?', [customerId, y, m], (err, row) => {
+                    if (err) return rej2b(err);
+                    res2b(row);
+                  });
+                });
+                const currentPaymentAmountForCarry = currentPaymentRowForCarry ? (currentPaymentRowForCarry.total || 0) : 0;
+                const carryoverAmountForConfirm = (prevInvoiceAmountForCarry || 0) - currentPaymentAmountForCarry;
+
+                const amount = baseAmount + carryoverAmountForConfirm;
 
                 await new Promise((res3, rej3) => {
                   const sql = `
@@ -1435,7 +1493,7 @@ router.post('/invoices/confirm-batch', async (req, res) => {
                   });
                 });
 
-                results.push({ customer_id: customerId, year: y, month: m, amount, rounding_enabled: roundingEnabled });
+                results.push({ customer_id: customerId, year: y, month: m, amount, rounding_enabled: roundingEnabled, carryover_included: carryoverAmountForConfirm });
               }
 
               db.run('COMMIT', (cErr) => {
