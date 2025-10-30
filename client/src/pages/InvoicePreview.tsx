@@ -447,7 +447,10 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
         <>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
             <Typography variant="h6" className="title no-print">請求書プレビュー</Typography>
-            <Button variant="contained" className="no-print" onClick={handlePrint}>印刷</Button>
+            <Stack direction="row" spacing={1} className="no-print">
+              <Button variant="outlined" onClick={() => navigate(`/customers/${id}`)}>戻る</Button>
+              <Button variant="contained" onClick={handlePrint}>印刷</Button>
+            </Stack>
           </Stack>
 
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

@@ -277,3 +277,14 @@
   /* 御請求額ラベルの黒背景を印刷時は白に強制（後勝ちで確実に適用） */
   .totals-grand-label { background: #fff !important; color: #000 !important; }
 }
+
+/* ===== 画面表示のみ：カレンダー内の文字を50%拡大（印刷は変更なし） ===== */
+@media screen {
+  .thin-box.calendar-section .calendar-header { font-size: 5.6px !important; }
+  .thin-box.calendar-section .calendar-cell { font-size: 7.5px !important; }
+  .thin-box.calendar-section .product-header { font-size: 5.6px !important; }
+  .thin-box.calendar-section .product-cell { font-size: 7.5px !important; }
+  .thin-box.calendar-section .totals-header { font-size: 5.6px !important; }
+  .thin-box.calendar-section .totals-qty, 
+  .thin-box.calendar-section .totals-amount { font-size: 7.5px !important; }
+}
