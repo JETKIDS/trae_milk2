@@ -662,8 +662,8 @@ const PeriodDeliveryListTab: React.FC = () => {
                 value={days}
                 onChange={(e) => handleDaysChange(parseInt(e.target.value) || 1)}
                 fullWidth
-                inputProps={{ min: 1, max: 365 }}
-                helperText="1〜365日"
+                inputProps={{ min: 1, max: 31 }}
+                helperText="1〜31日"
               />
             </Grid>
             <Grid item xs={12} md={3}>
@@ -1072,6 +1072,7 @@ const ProductSummaryTab: React.FC = () => {
   const [skipMap, setSkipMap] = useState<Map<string, Set<string>>>(new Map());
   const [patternsMap, setPatternsMap] = useState<Map<string, any>>(new Map());
   const [summaryRows, setSummaryRows] = useState<any[]>([]);
+  const [summaryDateList, setSummaryDateList] = useState<string[]>([]);
   const [autoFetch, setAutoFetch] = useState<boolean>(() => {
     const saved = localStorage.getItem('productSummaryTab_autoFetch');
     return saved !== null ? JSON.parse(saved) : true;
@@ -1080,6 +1081,11 @@ const ProductSummaryTab: React.FC = () => {
   const [groupByManufacturer, setGroupByManufacturer] = useState<boolean>(() => {
     const saved = localStorage.getItem('productSummaryTab_groupByManufacturer');
     return saved !== null ? JSON.parse(saved) : false;
+  });
+  // 総金額表示のトグル（デフォルトは表示）
+  const [showTotalAmount, setShowTotalAmount] = useState<boolean>(() => {
+    const saved = localStorage.getItem('productSummaryTab_showTotalAmount');
+    return saved !== null ? JSON.parse(saved) : true;
   });
   // メーカー絞り込み（複数選択）
   const [selectedManufacturers, setSelectedManufacturers] = useState<string[]>(() => {
@@ -1348,7 +1354,15 @@ const ProductSummaryTab: React.FC = () => {
         });
       }
 
-      // 集計（商品別）
+      // 期間内の日付リストを生成
+      const dateList: string[] = [];
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
+        dateList.push(d.toISOString().split('T')[0]);
+      }
+
+      // 集計（商品別・日別）
       const summaryMap = new Map<number, any>();
       Object.entries(deliveries).forEach(([courseName, courseData]: [string, any]) => {
         Object.entries(courseData).forEach(([date, customers]: [string, any]) => {
@@ -1363,17 +1377,24 @@ const ProductSummaryTab: React.FC = () => {
               })();
               const qty = skipped ? 0 : Number(product.quantity || 0);
               const amount = skipped ? 0 : Number(product.amount || (qty * Number(product.unit_price || 0)));
+              
               const existing = summaryMap.get(product.product_id);
               if (!existing) {
+                const dailyQuantities: Record<string, number> = {};
+                dateList.forEach(d => dailyQuantities[d] = 0);
+                dailyQuantities[date] = qty;
                 summaryMap.set(product.product_id, {
                   product_id: product.product_id,
                   product_name: product.product_name,
                   manufacturer_name: product.manufacturer_name || '',
                   unit: product.unit || '',
+                  daily_quantities: dailyQuantities,
                   total_quantity: qty,
-                  total_amount: amount
+                  total_amount: amount,
+                  unit_price: product.unit_price || 0
                 });
               } else {
+                existing.daily_quantities[date] = (existing.daily_quantities[date] || 0) + qty;
                 existing.total_quantity += qty;
                 existing.total_amount += amount;
               }
@@ -1382,11 +1403,13 @@ const ProductSummaryTab: React.FC = () => {
         });
       });
 
+      // 日付リストも保存（テーブル表示用）
       const rows = Array.from(summaryMap.values()).sort((a, b) => {
         // 商品名でソート
         return String(a.product_name).localeCompare(String(b.product_name));
       });
       setSummaryRows(rows);
+      setSummaryDateList(dateList);
     } catch (err) {
       console.error('商品合計データ取得エラー:', err);
       setError(err instanceof Error ? err.message : '商品合計データの取得に失敗しました');
@@ -1426,7 +1449,7 @@ const ProductSummaryTab: React.FC = () => {
     setDays(7);
   };
   const handleStartDateChange = (value: string) => setStartDate(value);
-  const handleDaysChange = (value: number) => { if (value > 0 && value <= 365) setDays(value); };
+  const handleDaysChange = (value: number) => { if (value > 0 && value <= 31) setDays(value); };
   const handleCourseChange = (value: string) => setSelectedCourse(value);
 
   // メーカー別グループ化した配列の算出
@@ -1465,56 +1488,86 @@ const ProductSummaryTab: React.FC = () => {
   }, [manufacturerGroups, selectedManufacturers]);
 
   const handleCsvExport = useCallback(() => {
-    if (!summaryRows || summaryRows.length === 0) return;
+    if (!summaryRows || summaryRows.length === 0 || !summaryDateList || summaryDateList.length === 0) return;
     const csvRows: string[] = [];
+
+    // ヘッダー行：商品ID、商品名、各日付、合計本数、総金額（オプション）
+    const dateHeaders = summaryDateList.map(d => `${new Date(d).getMonth() + 1}/${new Date(d).getDate()}`);
+    const baseHeader = ['商品ID', '商品名', ...dateHeaders, '合計本数'];
+    const header = showTotalAmount ? [...baseHeader, '総金額'] : baseHeader;
+    csvRows.push(header.join(','));
 
     if (groupByManufacturer) {
       // メーカー別で出力（絞り込み反映）
-      csvRows.push('メーカー,商品ID,商品名,単位,総数量,総金額');
       manufacturerGroupsFiltered.forEach((g) => {
         // メーカー見出し行
-        csvRows.push([`"${g.manufacturer_name || ''}"`, '', '', '', '', ''].join(','));
+        csvRows.push([`"${g.manufacturer_name || ''}"`, ...Array(header.length - 1).fill('')].join(','));
         // 明細
         g.rows.forEach((r: any) => {
-          csvRows.push([
-            `"${r.manufacturer_name || ''}"`,
+          const dailyValues = summaryDateList.map(date => r.daily_quantities?.[date] || 0);
+          const row = [
             r.product_id,
             `"${r.product_name}"`,
-            r.unit || '',
-            r.total_quantity,
-            r.total_amount,
-          ].join(','));
+            ...dailyValues,
+            r.total_quantity
+          ];
+          if (showTotalAmount) {
+            row.push(r.total_amount);
+          }
+          csvRows.push(row.join(','));
         });
         // 小計行
-        csvRows.push(['小計', '', '', '', g.subtotal_quantity, g.subtotal_amount].join(','));
+        const dayTotals = summaryDateList.map(date => 
+          g.rows.reduce((sum: number, r: any) => sum + (r.daily_quantities?.[date] || 0), 0)
+        );
+        const subtotalRow = ['小計', '', ...dayTotals, g.subtotal_quantity];
+        if (showTotalAmount) {
+          subtotalRow.push(g.subtotal_amount.toString());
+        }
+        csvRows.push(subtotalRow.join(','));
         // 区切り
         csvRows.push('');
       });
-      const csvContent = csvRows.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `商品合計表_メーカー別_${startDate}_${days}日間.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
+      // 全体合計行
+      const grandDayTotals = summaryDateList.map(date => 
+        manufacturerGroupsFiltered.reduce((sum, g) => 
+          sum + g.rows.reduce((s: number, r: any) => s + (r.daily_quantities?.[date] || 0), 0), 0
+        )
+      );
+      const grandTotalQuantity = manufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_quantity, 0);
+      const grandTotalAmount = manufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_amount, 0);
+      const grandTotalRow = ['合計', '', ...grandDayTotals, grandTotalQuantity];
+      if (showTotalAmount) {
+        grandTotalRow.push(grandTotalAmount.toString());
+      }
+      csvRows.push(grandTotalRow.join(','));
+    } else {
+      // 商品別で出力（絞り込み反映）
+      filteredSummaryRows.forEach((r) => {
+        const dailyValues = summaryDateList.map(date => r.daily_quantities?.[date] || 0);
+        const row = [
+          r.product_id,
+          `"${r.product_name}"`,
+          ...dailyValues,
+          r.total_quantity
+        ];
+        if (showTotalAmount) {
+          row.push(r.total_amount.toString());
+        }
+        csvRows.push(row.join(','));
+      });
+      // 合計行
+      const dayTotals = summaryDateList.map(date => 
+        filteredSummaryRows.reduce((sum, row) => sum + (row.daily_quantities?.[date] || 0), 0)
+      );
+      const grandTotalQuantity = filteredSummaryRows.reduce((sum, row) => sum + row.total_quantity, 0);
+      const grandTotalAmount = filteredSummaryRows.reduce((sum, row) => sum + row.total_amount, 0);
+      const grandTotalRow = ['合計', '', ...dayTotals, grandTotalQuantity];
+      if (showTotalAmount) {
+        grandTotalRow.push(grandTotalAmount.toString());
+      }
+      csvRows.push(grandTotalRow.join(','));
     }
-
-    // 既存: 商品別で出力（絞り込み反映）
-    csvRows.push('商品ID,商品名,メーカー,単位,総数量,総金額');
-    filteredSummaryRows.forEach((r) => {
-      csvRows.push([
-        r.product_id,
-        `"${r.product_name}"`,
-        `"${r.manufacturer_name || ''}"`,
-        r.unit || '',
-        r.total_quantity,
-        r.total_amount
-      ].join(','));
-    });
     const csvContent = csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -1525,7 +1578,7 @@ const ProductSummaryTab: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [summaryRows, startDate, days, groupByManufacturer, manufacturerGroups]);
+  }, [summaryRows, summaryDateList, startDate, days, groupByManufacturer, manufacturerGroupsFiltered, showTotalAmount, filteredSummaryRows]);
 
   const handleProductSummaryPdfExport = useCallback(async () => {
     if (!summaryRows || summaryRows.length === 0) return;
@@ -1565,8 +1618,8 @@ const ProductSummaryTab: React.FC = () => {
                 value={days}
                 onChange={(e) => handleDaysChange(parseInt(e.target.value) || 1)}
                 fullWidth
-                inputProps={{ min: 1, max: 365 }}
-                helperText="1〜365日"
+                inputProps={{ min: 1, max: 31 }}
+                helperText="1〜31日"
               />
             </Grid>
             <Grid item xs={12} md={3}>
@@ -1640,8 +1693,14 @@ const ProductSummaryTab: React.FC = () => {
             />
             {/* メーカー別グループ化トグル */}
             <FormControlLabel
-              control={<Checkbox checked={groupByManufacturer} onChange={(e) => setGroupByManufacturer(e.target.checked)} size="small" />}
+              control={<Checkbox checked={groupByManufacturer} onChange={(e) => { setGroupByManufacturer(e.target.checked); localStorage.setItem('productSummaryTab_groupByManufacturer', JSON.stringify(e.target.checked)); }} size="small" />}
               label="メーカー別でグループ化"
+              sx={{ ml: 1 }}
+            />
+            {/* 総金額表示トグル */}
+            <FormControlLabel
+              control={<Checkbox checked={showTotalAmount} onChange={(e) => { setShowTotalAmount(e.target.checked); localStorage.setItem('productSummaryTab_showTotalAmount', JSON.stringify(e.target.checked)); }} size="small" />}
+              label="総金額を表示"
               sx={{ ml: 1 }}
             />
             <Button variant="outlined" startIcon={<Print />} disabled={!summaryRows || summaryRows.length === 0} onClick={() => window.print()}>
@@ -1670,62 +1729,152 @@ const ProductSummaryTab: React.FC = () => {
       {/* 集計結果表示 */}
       {!loading && !error && summaryRows && summaryRows.length > 0 ? (
         <div id="product-summary-content">
-          <Typography variant="h6" sx={{ mb: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }} className="no-print">
             集計期間: {startDate} ～ {calculateEndDate(startDate, days)} ({days}日間)
           </Typography>
-          <TableContainer component={Paper}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>商品ID</TableCell>
-                  <TableCell>商品名</TableCell>
-                  <TableCell>メーカー</TableCell>
-                  <TableCell>単位</TableCell>
-                  <TableCell align="right">総数量</TableCell>
-                  <TableCell align="right">総金額</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {groupByManufacturer ? (
-                  manufacturerGroupsFiltered.map((g) => (
-                    <React.Fragment key={g.manufacturer_name}>
-                      <TableRow>
-                        <TableCell colSpan={6} sx={{ backgroundColor: '#f5f5f5', fontWeight: 600 }}>
-                          メーカー：{g.manufacturer_name || '-'}
-                        </TableCell>
-                      </TableRow>
-                      {g.rows.map((row: any) => (
-                        <TableRow key={row.product_id}>
-                          <TableCell>{row.product_id}</TableCell>
-                          <TableCell>{row.product_name}</TableCell>
-                          <TableCell>{row.manufacturer_name || '-'}</TableCell>
-                          <TableCell>{row.unit || '-'}</TableCell>
-                          <TableCell align="right">{row.total_quantity}</TableCell>
-                          <TableCell align="right">{row.total_amount}</TableCell>
+          {(() => {
+            // 日付リストを7日ごとに分割
+            const dateChunks: string[][] = [];
+            for (let i = 0; i < summaryDateList.length; i += 7) {
+              dateChunks.push(summaryDateList.slice(i, i + 7));
+            }
+
+            return dateChunks.map((dateChunk, chunkIndex) => {
+              const chunkStartDate = dateChunk[0];
+              const chunkEndDate = dateChunk[dateChunk.length - 1];
+              const chunkDays = dateChunk.length;
+
+              return (
+                <Box
+                  key={chunkIndex}
+                  sx={{
+                    mb: 3,
+                    '@media print': {
+                      pageBreakBefore: chunkIndex > 0 ? 'always' : 'auto',
+                      pageBreakInside: 'avoid',
+                      mb: 2,
+                    }
+                  }}
+                  className="print-page-chunk"
+                >
+                  <Typography variant="h6" sx={{ mb: 2, '@media print': { fontSize: '14px', mb: 1 } }}>
+                    集計期間: {chunkStartDate} ～ {chunkEndDate} ({chunkDays}日間)
+                    {dateChunks.length > 1 && ` (${chunkIndex + 1}/${dateChunks.length})`}
+                  </Typography>
+                  <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                    <Table size="small" stickyHeader>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: 'white', zIndex: 3 }}>商品ID</TableCell>
+                          <TableCell sx={{ position: 'sticky', left: 60, backgroundColor: 'white', zIndex: 3 }}>商品名</TableCell>
+                          {dateChunk.map((date) => (
+                            <TableCell key={date} align="right" sx={{ minWidth: 60 }}>
+                              {new Date(date).getDate()}日
+                            </TableCell>
+                          ))}
+                          <TableCell align="right" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>合計本数</TableCell>
+                          {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>総金額</TableCell>}
                         </TableRow>
-                      ))}
-                      <TableRow>
-                        <TableCell colSpan={4} align="right" sx={{ fontWeight: 600 }}>小計</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>{g.subtotal_quantity}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>{g.subtotal_amount}</TableCell>
-                      </TableRow>
-                    </React.Fragment>
-                  ))
+                      </TableHead>
+                      <TableBody>
+                {groupByManufacturer ? (
+                  <>
+                    {manufacturerGroupsFiltered.map((g) => (
+                      <React.Fragment key={g.manufacturer_name}>
+                        <TableRow>
+                          <TableCell colSpan={2 + dateChunk.length + (showTotalAmount ? 2 : 1)} sx={{ backgroundColor: '#f5f5f5', fontWeight: 600 }}>
+                            メーカー：{g.manufacturer_name || '-'}
+                          </TableCell>
+                        </TableRow>
+                        {g.rows.map((row: any) => (
+                          <TableRow key={row.product_id}>
+                            <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: 'white', zIndex: 2 }}>{row.product_id}</TableCell>
+                            <TableCell sx={{ position: 'sticky', left: 60, backgroundColor: 'white', zIndex: 2 }}>{row.product_name}</TableCell>
+                            {dateChunk.map((date) => (
+                              <TableCell key={date} align="right">
+                                {row.daily_quantities?.[date] || 0}
+                              </TableCell>
+                            ))}
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>{row.total_quantity}</TableCell>
+                            {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600 }}>{row.total_amount}</TableCell>}
+                          </TableRow>
+                        ))}
+                        <TableRow>
+                          <TableCell colSpan={2} align="right" sx={{ fontWeight: 600 }}>小計</TableCell>
+                          {dateChunk.map((date) => {
+                            const dayTotal = g.rows.reduce((sum: number, r: any) => sum + (r.daily_quantities?.[date] || 0), 0);
+                            return (
+                              <TableCell key={date} align="right" sx={{ fontWeight: 600 }}>{dayTotal}</TableCell>
+                            );
+                          })}
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>{g.subtotal_quantity}</TableCell>
+                          {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600 }}>{g.subtotal_amount}</TableCell>}
+                        </TableRow>
+                      </React.Fragment>
+                    ))}
+                    {/* 全体の合計行 */}
+                    {(() => {
+                      const grandTotalQuantity = manufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_quantity, 0);
+                      const grandTotalAmount = manufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_amount, 0);
+                      const dayTotals = dateChunk.map(date => 
+                        manufacturerGroupsFiltered.reduce((sum, g) => 
+                          sum + g.rows.reduce((s: number, r: any) => s + (r.daily_quantities?.[date] || 0), 0), 0
+                        )
+                      );
+                      return (
+                        <TableRow sx={{ backgroundColor: '#e3f2fd', fontWeight: 700 }}>
+                          <TableCell colSpan={2} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>合計</TableCell>
+                          {dayTotals.map((total, idx) => (
+                            <TableCell key={dateChunk[idx]} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{total}</TableCell>
+                          ))}
+                          <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalQuantity}</TableCell>
+                          {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalAmount}</TableCell>}
+                        </TableRow>
+                      );
+                    })()}
+                  </>
                 ) : (
-                  filteredSummaryRows.map((row) => (
-                    <TableRow key={row.product_id}>
-                      <TableCell>{row.product_id}</TableCell>
-                      <TableCell>{row.product_name}</TableCell>
-                      <TableCell>{row.manufacturer_name || '-'}</TableCell>
-                      <TableCell>{row.unit || '-'}</TableCell>
-                      <TableCell align="right">{row.total_quantity}</TableCell>
-                      <TableCell align="right">{row.total_amount}</TableCell>
-                    </TableRow>
-                  ))
+                  <>
+                    {filteredSummaryRows.map((row) => (
+                      <TableRow key={row.product_id}>
+                        <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: 'white', zIndex: 2 }}>{row.product_id}</TableCell>
+                        <TableCell sx={{ position: 'sticky', left: 60, backgroundColor: 'white', zIndex: 2 }}>{row.product_name}</TableCell>
+                        {dateChunk.map((date) => (
+                          <TableCell key={date} align="right">
+                            {row.daily_quantities?.[date] || 0}
+                          </TableCell>
+                        ))}
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>{row.total_quantity}</TableCell>
+                        {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600 }}>{row.total_amount}</TableCell>}
+                      </TableRow>
+                    ))}
+                    {/* 合計行 */}
+                    {(() => {
+                      const dayTotals = dateChunk.map(date => 
+                        filteredSummaryRows.reduce((sum, row) => sum + (row.daily_quantities?.[date] || 0), 0)
+                      );
+                      const grandTotalQuantity = filteredSummaryRows.reduce((sum, row) => sum + row.total_quantity, 0);
+                      const grandTotalAmount = filteredSummaryRows.reduce((sum, row) => sum + row.total_amount, 0);
+                      return (
+                        <TableRow sx={{ backgroundColor: '#e3f2fd', fontWeight: 700 }}>
+                          <TableCell colSpan={2} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>合計</TableCell>
+                          {dayTotals.map((total, idx) => (
+                            <TableCell key={dateChunk[idx]} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{total}</TableCell>
+                          ))}
+                          <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalQuantity}</TableCell>
+                          {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalAmount}</TableCell>}
+                        </TableRow>
+                      );
+                    })()}
+                  </>
                 )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              );
+            });
+          })()}
         </div>
       ) : (
         !loading && !error && (

@@ -229,8 +229,54 @@ interface ProductMaster {
         el.media = 'print';
         document.head.appendChild(el);
       }
-      const margin = orientation === 'landscape' ? 'margin: 6mm 7mm 6mm 8mm;' : '';
-      el.textContent = `@page { size: A4 ${orientation}; ${margin} }`;
+      const margin = orientation === 'landscape' ? 'margin: 0 !important;' : '';
+      el.textContent = `
+        @page {
+          size: A4 ${orientation};
+          margin: 0 !important;
+          @top-left { content: none !important; }
+          @top-center { content: none !important; }
+          @top-right { content: none !important; }
+          @bottom-left { content: none !important; }
+          @bottom-center { content: none !important; }
+          @bottom-right { content: none !important; }
+        }
+        @media print {
+          * { margin-top: 0 !important; }
+          body { margin: 0 !important; padding: 0 !important; }
+          html { margin: 0 !important; padding: 0 !important; }
+          .print-root { 
+            margin: 0 !important; 
+            padding: 0 !important;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+          }
+          .print-root.MuiBox-root { 
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .print-root > *:not(.print-page) { 
+            display: none !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 0 !important;
+          }
+          .print-page:first-of-type,
+          .print-page:first-child { 
+            margin-top: 0 !important; 
+            padding-top: 0 !important;
+            page-break-before: avoid !important;
+          }
+          /* すべてのprint-pageのマージンを確実に0に */
+          .print-page { 
+            margin: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            padding-top: 0 !important;
+          }
+        }
+      `;
     } catch (e) {
       // noop
     }

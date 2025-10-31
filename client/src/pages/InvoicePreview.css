@@ -28,8 +28,17 @@
   .print-page { height: 198mm; margin: 0 !important; padding: 0 !important; border: none !important; break-inside: avoid; }
   /* ページ全体の余白をゼロにして先頭空白を抑制 */
   .invoice-root { margin: 0 !important; padding: 0 !important; }
+  .print-root { margin: 0 !important; padding: 0 !important; }
+  /* MUI Boxのパディングを確実に無効化 */
+  .print-root.MuiBox-root { padding: 0 !important; }
   /* 印刷専用ラッパーで .print-page 以外（タイトルバーやエラー表示など）を非表示にして、先頭の余白要素を排除 */
-  .print-root > :not(.print-page) { display: none !important; }
+  .print-root > :not(.print-page) { display: none !important; height: 0 !important; margin: 0 !important; padding: 0 !important; }
+  /* 最初のページの前に改ページが発生しないようにする */
+  .print-page:first-of-type { page-break-before: avoid !important; margin-top: 0 !important; padding-top: 0 !important; }
+  /* print-root直下の最初のprint-pageを確実に先頭に */
+  .print-root > .print-page:first-child { margin-top: 0 !important; padding-top: 0 !important; page-break-before: avoid !important; }
+  /* 最初のCardのマージンも無効化 */
+  .print-page:first-of-type .MuiCard-root { margin-top: 0 !important; }
   /* ブラウザ既定余白の影響を排除 */
   html, body { margin: 0 !important; padding: 0 !important; }
   .print-page .MuiCardContent-root { padding: 0 !important; }
