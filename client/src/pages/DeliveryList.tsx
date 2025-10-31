@@ -39,6 +39,13 @@ const lazyExportToPdf = async () => (await import('../utils/pdfExport')).exportT
 
 
 
+// 日付から曜日を取得するヘルパー関数
+const getDayOfWeek = (dateString: string): string => {
+  const days = ['日', '月', '火', '水', '木', '金', '土'];
+  const date = new Date(dateString);
+  return days[date.getDay()];
+};
+
 // 期間別・コース別配達リストタブのコンポーネント
 const PeriodDeliveryListTab: React.FC = () => {
   // 今日の日付を取得してフォーマット（日本標準時）
@@ -914,8 +921,21 @@ const PeriodDeliveryListTab: React.FC = () => {
                 return a.customer_id - b.customer_id;
               });
               
+              // コースのインデックスを取得（ページ分割用）
+              const courseIndex = Object.keys(deliveryData).indexOf(courseName);
+              const isFirstCourse = courseIndex === 0;
+              
               return (
-                <Accordion key={courseName} defaultExpanded>
+                <Accordion 
+                  key={courseName} 
+                  defaultExpanded
+                  sx={{
+                    '@media print': {
+                      pageBreakBefore: !isFirstCourse ? 'always' : 'auto',
+                      pageBreakInside: 'avoid',
+                    }
+                  }}
+                >
                   <AccordionSummary expandIcon={<ExpandMore />}>
                     <Typography variant="h6" color="primary">
                       {courseName} ({totalCustomers}件)
@@ -934,7 +954,7 @@ const PeriodDeliveryListTab: React.FC = () => {
                             <TableCell sx={{ minWidth: isSimpleDisplay ? 120 : 100 }}>商品名</TableCell>
                             {allDates.map(date => (
                               <TableCell key={date} align="center" sx={{ minWidth: 80 }}>
-                                {date}
+                                {date}<br />({getDayOfWeek(date)})
                               </TableCell>
                             ))}
                           </TableRow>
@@ -1073,6 +1093,7 @@ const ProductSummaryTab: React.FC = () => {
   const [patternsMap, setPatternsMap] = useState<Map<string, any>>(new Map());
   const [summaryRows, setSummaryRows] = useState<any[]>([]);
   const [summaryDateList, setSummaryDateList] = useState<string[]>([]);
+  const [summaryByCourse, setSummaryByCourse] = useState<Record<string, { rows: any[], dateList: string[] }>>({});
   const [autoFetch, setAutoFetch] = useState<boolean>(() => {
     const saved = localStorage.getItem('productSummaryTab_autoFetch');
     return saved !== null ? JSON.parse(saved) : true;
@@ -1363,53 +1384,103 @@ const ProductSummaryTab: React.FC = () => {
       }
 
       // 集計（商品別・日別）
-      const summaryMap = new Map<number, any>();
-      Object.entries(deliveries).forEach(([courseName, courseData]: [string, any]) => {
-        Object.entries(courseData).forEach(([date, customers]: [string, any]) => {
-          (customers as any[]).forEach((customer: any) => {
-            (customer.products || []).forEach((product: any) => {
-              const skipped = (() => {
-                const key = `${date}-${customer.customer_id}`;
-                const set = newSkipMap.get(key);
-                if (!set) return false;
-                if (set.has('ALL')) return true;
-                return set.has(String(product.product_id));
-              })();
-              const qty = skipped ? 0 : Number(product.quantity || 0);
-              const amount = skipped ? 0 : Number(product.amount || (qty * Number(product.unit_price || 0)));
-              
-              const existing = summaryMap.get(product.product_id);
-              if (!existing) {
-                const dailyQuantities: Record<string, number> = {};
-                dateList.forEach(d => dailyQuantities[d] = 0);
-                dailyQuantities[date] = qty;
-                summaryMap.set(product.product_id, {
-                  product_id: product.product_id,
-                  product_name: product.product_name,
-                  manufacturer_name: product.manufacturer_name || '',
-                  unit: product.unit || '',
-                  daily_quantities: dailyQuantities,
-                  total_quantity: qty,
-                  total_amount: amount,
-                  unit_price: product.unit_price || 0
-                });
-              } else {
-                existing.daily_quantities[date] = (existing.daily_quantities[date] || 0) + qty;
-                existing.total_quantity += qty;
-                existing.total_amount += amount;
-              }
+      if (selectedCourse === 'all-by-course') {
+        // コース別に集計
+        const summaryByCourseData: Record<string, { rows: any[], dateList: string[] }> = {};
+        Object.entries(deliveries).forEach(([courseName, courseData]: [string, any]) => {
+          const courseSummaryMap = new Map<number, any>();
+          Object.entries(courseData).forEach(([date, customers]: [string, any]) => {
+            (customers as any[]).forEach((customer: any) => {
+              (customer.products || []).forEach((product: any) => {
+                const skipped = (() => {
+                  const key = `${date}-${customer.customer_id}`;
+                  const set = newSkipMap.get(key);
+                  if (!set) return false;
+                  if (set.has('ALL')) return true;
+                  return set.has(String(product.product_id));
+                })();
+                const qty = skipped ? 0 : Number(product.quantity || 0);
+                const amount = skipped ? 0 : Number(product.amount || (qty * Number(product.unit_price || 0)));
+                
+                const existing = courseSummaryMap.get(product.product_id);
+                if (!existing) {
+                  const dailyQuantities: Record<string, number> = {};
+                  dateList.forEach(d => dailyQuantities[d] = 0);
+                  dailyQuantities[date] = qty;
+                  courseSummaryMap.set(product.product_id, {
+                    product_id: product.product_id,
+                    product_name: product.product_name,
+                    manufacturer_name: product.manufacturer_name || '',
+                    unit: product.unit || '',
+                    daily_quantities: dailyQuantities,
+                    total_quantity: qty,
+                    total_amount: amount,
+                    unit_price: product.unit_price || 0
+                  });
+                } else {
+                  existing.daily_quantities[date] = (existing.daily_quantities[date] || 0) + qty;
+                  existing.total_quantity += qty;
+                  existing.total_amount += amount;
+                }
+              });
+            });
+          });
+          const courseRows = Array.from(courseSummaryMap.values()).sort((a, b) => {
+            return String(a.product_name).localeCompare(String(b.product_name));
+          });
+          summaryByCourseData[courseName] = { rows: courseRows, dateList };
+        });
+        setSummaryByCourse(summaryByCourseData);
+        setSummaryRows([]);
+        setSummaryDateList([]);
+      } else {
+        // 全コース合算または単一コースの集計
+        const summaryMap = new Map<number, any>();
+        Object.entries(deliveries).forEach(([courseName, courseData]: [string, any]) => {
+          Object.entries(courseData).forEach(([date, customers]: [string, any]) => {
+            (customers as any[]).forEach((customer: any) => {
+              (customer.products || []).forEach((product: any) => {
+                const skipped = (() => {
+                  const key = `${date}-${customer.customer_id}`;
+                  const set = newSkipMap.get(key);
+                  if (!set) return false;
+                  if (set.has('ALL')) return true;
+                  return set.has(String(product.product_id));
+                })();
+                const qty = skipped ? 0 : Number(product.quantity || 0);
+                const amount = skipped ? 0 : Number(product.amount || (qty * Number(product.unit_price || 0)));
+                
+                const existing = summaryMap.get(product.product_id);
+                if (!existing) {
+                  const dailyQuantities: Record<string, number> = {};
+                  dateList.forEach(d => dailyQuantities[d] = 0);
+                  dailyQuantities[date] = qty;
+                  summaryMap.set(product.product_id, {
+                    product_id: product.product_id,
+                    product_name: product.product_name,
+                    manufacturer_name: product.manufacturer_name || '',
+                    unit: product.unit || '',
+                    daily_quantities: dailyQuantities,
+                    total_quantity: qty,
+                    total_amount: amount,
+                    unit_price: product.unit_price || 0
+                  });
+                } else {
+                  existing.daily_quantities[date] = (existing.daily_quantities[date] || 0) + qty;
+                  existing.total_quantity += qty;
+                  existing.total_amount += amount;
+                }
+              });
             });
           });
         });
-      });
-
-      // 日付リストも保存（テーブル表示用）
-      const rows = Array.from(summaryMap.values()).sort((a, b) => {
-        // 商品名でソート
-        return String(a.product_name).localeCompare(String(b.product_name));
-      });
-      setSummaryRows(rows);
-      setSummaryDateList(dateList);
+        const rows = Array.from(summaryMap.values()).sort((a, b) => {
+          return String(a.product_name).localeCompare(String(b.product_name));
+        });
+        setSummaryRows(rows);
+        setSummaryDateList(dateList);
+        setSummaryByCourse({});
+      }
     } catch (err) {
       console.error('商品合計データ取得エラー:', err);
       setError(err instanceof Error ? err.message : '商品合計データの取得に失敗しました');
@@ -1488,6 +1559,106 @@ const ProductSummaryTab: React.FC = () => {
   }, [manufacturerGroups, selectedManufacturers]);
 
   const handleCsvExport = useCallback(() => {
+    // コース別表示の場合
+    if (selectedCourse === 'all-by-course' && Object.keys(summaryByCourse).length > 0) {
+      const csvRows: string[] = [];
+      Object.entries(summaryByCourse).forEach(([courseName, courseData]) => {
+        const courseRows = courseData.rows;
+        const courseDateList = courseData.dateList;
+        // コース名のヘッダー
+        csvRows.push([`"${courseName}"`, ...Array(courseDateList.length + (showTotalAmount ? 3 : 2)).fill('')].join(','));
+        // 日付ヘッダー
+        const dateHeaders = courseDateList.map(d => `${new Date(d).getMonth() + 1}/${new Date(d).getDate()}`);
+        const baseHeader = ['商品ID', '商品名', ...dateHeaders, '合計本数'];
+        const header = showTotalAmount ? [...baseHeader, '総金額'] : baseHeader;
+        csvRows.push(header.join(','));
+        
+        if (groupByManufacturer) {
+          const courseManufacturerGroupsMap = new Map<string, { manufacturer_name: string; rows: any[]; subtotal_quantity: number; subtotal_amount: number }>();
+          courseRows.forEach((r: any) => {
+            const key = r.manufacturer_name || '不明メーカー';
+            const existing = courseManufacturerGroupsMap.get(key) || { manufacturer_name: key, rows: [], subtotal_quantity: 0, subtotal_amount: 0 };
+            existing.rows.push(r);
+            existing.subtotal_quantity += Number(r.total_quantity || 0);
+            existing.subtotal_amount += Number(r.total_amount || 0);
+            courseManufacturerGroupsMap.set(key, existing);
+          });
+          const courseManufacturerGroups = Array.from(courseManufacturerGroupsMap.values()).sort((a, b) => String(a.manufacturer_name).localeCompare(String(b.manufacturer_name)));
+          const courseManufacturerGroupsFiltered = (!selectedManufacturers || selectedManufacturers.length === 0)
+            ? courseManufacturerGroups
+            : courseManufacturerGroups.filter((g: any) => selectedManufacturers.includes(g.manufacturer_name || '不明メーカー'));
+          
+          courseManufacturerGroupsFiltered.forEach((g) => {
+            csvRows.push([`"メーカー：${g.manufacturer_name || ''}"`, ...Array(header.length - 1).fill('')].join(','));
+            g.rows.forEach((r: any) => {
+              const dailyValues = courseDateList.map(date => r.daily_quantities?.[date] || 0);
+              const row = [r.product_id, `"${r.product_name}"`, ...dailyValues, r.total_quantity];
+              if (showTotalAmount) {
+                row.push(r.total_amount);
+              }
+              csvRows.push(row.join(','));
+            });
+            const dayTotals = courseDateList.map(date => 
+              g.rows.reduce((sum: number, r: any) => sum + (r.daily_quantities?.[date] || 0), 0)
+            );
+            const subtotalRow = ['小計', '', ...dayTotals, g.subtotal_quantity];
+            if (showTotalAmount) {
+              subtotalRow.push(g.subtotal_amount.toString());
+            }
+            csvRows.push(subtotalRow.join(','));
+          });
+          const grandDayTotals = courseDateList.map(date => 
+            courseManufacturerGroupsFiltered.reduce((sum, g) => 
+              sum + g.rows.reduce((s: number, r: any) => s + (r.daily_quantities?.[date] || 0), 0), 0
+            )
+          );
+          const grandTotalQuantity = courseManufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_quantity, 0);
+          const grandTotalAmount = courseManufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_amount, 0);
+          const grandTotalRow = ['合計', '', ...grandDayTotals, grandTotalQuantity];
+          if (showTotalAmount) {
+            grandTotalRow.push(grandTotalAmount.toString());
+          }
+          csvRows.push(grandTotalRow.join(','));
+        } else {
+          const courseFilteredRows = (!selectedManufacturers || selectedManufacturers.length === 0) 
+            ? courseRows 
+            : courseRows.filter((r: any) => selectedManufacturers.includes(r.manufacturer_name || '不明メーカー'));
+          
+          courseFilteredRows.forEach((r: any) => {
+            const dailyValues = courseDateList.map(date => r.daily_quantities?.[date] || 0);
+            const row = [r.product_id, `"${r.product_name}"`, ...dailyValues, r.total_quantity];
+            if (showTotalAmount) {
+              row.push(r.total_amount.toString());
+            }
+            csvRows.push(row.join(','));
+          });
+          const dayTotals = courseDateList.map(date => 
+            courseFilteredRows.reduce((sum, row) => sum + (row.daily_quantities?.[date] || 0), 0)
+          );
+          const grandTotalQuantity = courseFilteredRows.reduce((sum, row) => sum + row.total_quantity, 0);
+          const grandTotalAmount = courseFilteredRows.reduce((sum, row) => sum + row.total_amount, 0);
+          const grandTotalRow = ['合計', '', ...dayTotals, grandTotalQuantity];
+          if (showTotalAmount) {
+            grandTotalRow.push(grandTotalAmount.toString());
+          }
+          csvRows.push(grandTotalRow.join(','));
+        }
+        csvRows.push(''); // コース間の区切り
+      });
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `商品合計表_コース別_${startDate}_${days}日間.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+    
+    // 通常表示（合算または単一コース）
     if (!summaryRows || summaryRows.length === 0 || !summaryDateList || summaryDateList.length === 0) return;
     const csvRows: string[] = [];
 
@@ -1578,22 +1749,28 @@ const ProductSummaryTab: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [summaryRows, summaryDateList, startDate, days, groupByManufacturer, manufacturerGroupsFiltered, showTotalAmount, filteredSummaryRows]);
+  }, [summaryRows, summaryDateList, summaryByCourse, selectedCourse, startDate, days, groupByManufacturer, manufacturerGroupsFiltered, showTotalAmount, filteredSummaryRows, selectedManufacturers]);
 
   const handleProductSummaryPdfExport = useCallback(async () => {
-    if (!summaryRows || summaryRows.length === 0) return;
+    if ((!summaryRows || summaryRows.length === 0) && Object.keys(summaryByCourse).length === 0) return;
     try {
       const exportToPdf = await lazyExportToPdf();
+      const filename = selectedCourse === 'all-by-course' 
+        ? `商品合計表_コース別_${startDate}_${days}日間.pdf`
+        : `商品合計表_${startDate}_${days}日間.pdf`;
+      const title = selectedCourse === 'all-by-course'
+        ? `商品合計表（コース別） (${startDate} - ${days}日間)`
+        : `商品合計表 (${startDate} - ${days}日間)`;
       await exportToPdf('product-summary-content', {
-        filename: `商品合計表_${startDate}_${days}日間.pdf`,
-        title: `商品合計表 (${startDate} - ${days}日間)`,
+        filename,
+        title,
         orientation: 'landscape'
       });
     } catch (error) {
       console.error('PDF出力エラー:', error);
       alert('PDF出力に失敗しました');
     }
-  }, [summaryRows, startDate, days]);
+  }, [summaryRows, summaryByCourse, selectedCourse, startDate, days]);
 
   return (
     <Box>
@@ -1703,13 +1880,13 @@ const ProductSummaryTab: React.FC = () => {
               label="総金額を表示"
               sx={{ ml: 1 }}
             />
-            <Button variant="outlined" startIcon={<Print />} disabled={!summaryRows || summaryRows.length === 0} onClick={() => window.print()}>
+            <Button variant="outlined" startIcon={<Print />} disabled={(!summaryRows || summaryRows.length === 0) && Object.keys(summaryByCourse).length === 0} onClick={() => window.print()}>
               印刷
             </Button>
-            <Button variant="outlined" startIcon={<GetApp />} disabled={!summaryRows || summaryRows.length === 0} onClick={handleCsvExport}>
+            <Button variant="outlined" startIcon={<GetApp />} disabled={(!summaryRows || summaryRows.length === 0) && Object.keys(summaryByCourse).length === 0} onClick={handleCsvExport}>
               CSV出力
             </Button>
-            <Button variant="outlined" startIcon={<PictureAsPdf />} disabled={!summaryRows || summaryRows.length === 0} onClick={handleProductSummaryPdfExport}>
+            <Button variant="outlined" startIcon={<PictureAsPdf />} disabled={(!summaryRows || summaryRows.length === 0) && Object.keys(summaryByCourse).length === 0} onClick={handleProductSummaryPdfExport}>
               PDF出力
             </Button>
           </Box>
@@ -1727,59 +1904,93 @@ const ProductSummaryTab: React.FC = () => {
       )}
 
       {/* 集計結果表示 */}
-      {!loading && !error && summaryRows && summaryRows.length > 0 ? (
+      {!loading && !error && ((summaryRows && summaryRows.length > 0) || (Object.keys(summaryByCourse).length > 0)) ? (
         <div id="product-summary-content">
           <Typography variant="h6" sx={{ mb: 2 }} className="no-print">
             集計期間: {startDate} ～ {calculateEndDate(startDate, days)} ({days}日間)
           </Typography>
-          {(() => {
-            // 日付リストを7日ごとに分割
-            const dateChunks: string[][] = [];
-            for (let i = 0; i < summaryDateList.length; i += 7) {
-              dateChunks.push(summaryDateList.slice(i, i + 7));
-            }
+          {selectedCourse === 'all-by-course' && Object.keys(summaryByCourse).length > 0 ? (
+            // コース別表示
+            Object.entries(summaryByCourse).map(([courseName, courseData], courseIndex) => {
+              const isFirstCourse = courseIndex === 0;
+              const courseRows = courseData.rows;
+              const courseDateList = courseData.dateList;
+              
+              // 日付リストを7日ごとに分割
+              const dateChunks: string[][] = [];
+              for (let i = 0; i < courseDateList.length; i += 7) {
+                dateChunks.push(courseDateList.slice(i, i + 7));
+              }
 
-            return dateChunks.map((dateChunk, chunkIndex) => {
-              const chunkStartDate = dateChunk[0];
-              const chunkEndDate = dateChunk[dateChunk.length - 1];
-              const chunkDays = dateChunk.length;
+              return dateChunks.map((dateChunk, chunkIndex) => {
+                const chunkStartDate = dateChunk[0];
+                const chunkEndDate = dateChunk[dateChunk.length - 1];
+                const chunkDays = dateChunk.length;
+                const isFirstChunk = chunkIndex === 0;
+                // 最初のコースの最初のチャンク以外は改ページ
+                const shouldPageBreak = !(courseIndex === 0 && chunkIndex === 0);
 
-              return (
-                <Box
-                  key={chunkIndex}
-                  sx={{
-                    mb: 3,
-                    '@media print': {
-                      pageBreakBefore: chunkIndex > 0 ? 'always' : 'auto',
-                      pageBreakInside: 'avoid',
-                      mb: 2,
-                    }
-                  }}
-                  className="print-page-chunk"
-                >
-                  <Typography variant="h6" sx={{ mb: 2, '@media print': { fontSize: '14px', mb: 1 } }}>
-                    集計期間: {chunkStartDate} ～ {chunkEndDate} ({chunkDays}日間)
-                    {dateChunks.length > 1 && ` (${chunkIndex + 1}/${dateChunks.length})`}
-                  </Typography>
-                  <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
-                    <Table size="small" stickyHeader>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: 'white', zIndex: 3 }}>商品ID</TableCell>
-                          <TableCell sx={{ position: 'sticky', left: 60, backgroundColor: 'white', zIndex: 3 }}>商品名</TableCell>
-                          {dateChunk.map((date) => (
-                            <TableCell key={date} align="right" sx={{ minWidth: 60 }}>
-                              {new Date(date).getDate()}日
-                            </TableCell>
-                          ))}
-                          <TableCell align="right" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>合計本数</TableCell>
-                          {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>総金額</TableCell>}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                {groupByManufacturer ? (
-                  <>
-                    {manufacturerGroupsFiltered.map((g) => (
+                // コース別のメーカーグループとフィルタリング
+                const courseManufacturerGroupsMap = new Map<string, { manufacturer_name: string; rows: any[]; subtotal_quantity: number; subtotal_amount: number }>();
+                courseRows.forEach((r: any) => {
+                  const key = r.manufacturer_name || '不明メーカー';
+                  const existing = courseManufacturerGroupsMap.get(key) || { manufacturer_name: key, rows: [], subtotal_quantity: 0, subtotal_amount: 0 };
+                  existing.rows.push(r);
+                  existing.subtotal_quantity += Number(r.total_quantity || 0);
+                  existing.subtotal_amount += Number(r.total_amount || 0);
+                  courseManufacturerGroupsMap.set(key, existing);
+                });
+                const courseManufacturerGroups = Array.from(courseManufacturerGroupsMap.values()).sort((a, b) => String(a.manufacturer_name).localeCompare(String(b.manufacturer_name)));
+
+                const courseFilteredRows = (!selectedManufacturers || selectedManufacturers.length === 0) 
+                  ? courseRows 
+                  : courseRows.filter((r: any) => selectedManufacturers.includes(r.manufacturer_name || '不明メーカー'));
+
+                const courseManufacturerGroupsFiltered = (!selectedManufacturers || selectedManufacturers.length === 0)
+                  ? courseManufacturerGroups
+                  : courseManufacturerGroups.filter((g: any) => selectedManufacturers.includes(g.manufacturer_name || '不明メーカー'));
+
+                return (
+                  <Box
+                    key={`${courseName}-${chunkIndex}`}
+                    sx={{
+                      mb: 3,
+                      '@media print': {
+                        pageBreakBefore: shouldPageBreak ? 'always' : 'auto',
+                        pageBreakInside: 'avoid',
+                        mb: 2,
+                      }
+                    }}
+                    className="print-page-chunk"
+                  >
+                    {isFirstChunk && (
+                      <Typography variant="h5" sx={{ mb: 1, '@media print': { fontSize: '16px', mb: 0.5 }, fontWeight: 600 }}>
+                        {courseName}
+                      </Typography>
+                    )}
+                    <Typography variant="h6" sx={{ mb: 2, '@media print': { fontSize: '14px', mb: 1 } }}>
+                      集計期間: {chunkStartDate} ～ {chunkEndDate} ({chunkDays}日間)
+                      {dateChunks.length > 1 && ` (${chunkIndex + 1}/${dateChunks.length})`}
+                    </Typography>
+                    <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: 'white', zIndex: 3 }}>商品ID</TableCell>
+                            <TableCell sx={{ position: 'sticky', left: 60, backgroundColor: 'white', zIndex: 3 }}>商品名</TableCell>
+                            {dateChunk.map((date) => (
+                              <TableCell key={date} align="right" sx={{ minWidth: 60 }}>
+                                {new Date(date).getDate()}日（{getDayOfWeek(date)}）
+                              </TableCell>
+                            ))}
+                            <TableCell align="right" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>合計本数</TableCell>
+                            {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>総金額</TableCell>}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {groupByManufacturer ? (
+                            <>
+                              {courseManufacturerGroupsFiltered.map((g) => (
                       <React.Fragment key={g.manufacturer_name}>
                         <TableRow>
                           <TableCell colSpan={2 + dateChunk.length + (showTotalAmount ? 2 : 1)} sx={{ backgroundColor: '#f5f5f5', fontWeight: 600 }}>
@@ -1814,10 +2025,10 @@ const ProductSummaryTab: React.FC = () => {
                     ))}
                     {/* 全体の合計行 */}
                     {(() => {
-                      const grandTotalQuantity = manufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_quantity, 0);
-                      const grandTotalAmount = manufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_amount, 0);
+                      const grandTotalQuantity = courseManufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_quantity, 0);
+                      const grandTotalAmount = courseManufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_amount, 0);
                       const dayTotals = dateChunk.map(date => 
-                        manufacturerGroupsFiltered.reduce((sum, g) => 
+                        courseManufacturerGroupsFiltered.reduce((sum, g) => 
                           sum + g.rows.reduce((s: number, r: any) => s + (r.daily_quantities?.[date] || 0), 0), 0
                         )
                       );
@@ -1835,7 +2046,7 @@ const ProductSummaryTab: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    {filteredSummaryRows.map((row) => (
+                    {courseFilteredRows.map((row) => (
                       <TableRow key={row.product_id}>
                         <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: 'white', zIndex: 2 }}>{row.product_id}</TableCell>
                         <TableCell sx={{ position: 'sticky', left: 60, backgroundColor: 'white', zIndex: 2 }}>{row.product_name}</TableCell>
@@ -1851,10 +2062,10 @@ const ProductSummaryTab: React.FC = () => {
                     {/* 合計行 */}
                     {(() => {
                       const dayTotals = dateChunk.map(date => 
-                        filteredSummaryRows.reduce((sum, row) => sum + (row.daily_quantities?.[date] || 0), 0)
+                        courseFilteredRows.reduce((sum, row) => sum + (row.daily_quantities?.[date] || 0), 0)
                       );
-                      const grandTotalQuantity = filteredSummaryRows.reduce((sum, row) => sum + row.total_quantity, 0);
-                      const grandTotalAmount = filteredSummaryRows.reduce((sum, row) => sum + row.total_amount, 0);
+                      const grandTotalQuantity = courseFilteredRows.reduce((sum, row) => sum + row.total_quantity, 0);
+                      const grandTotalAmount = courseFilteredRows.reduce((sum, row) => sum + row.total_amount, 0);
                       return (
                         <TableRow sx={{ backgroundColor: '#e3f2fd', fontWeight: 700 }}>
                           <TableCell colSpan={2} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>合計</TableCell>
@@ -1873,8 +2084,154 @@ const ProductSummaryTab: React.FC = () => {
                   </TableContainer>
                 </Box>
               );
-            });
-          })()}
+            }).flat();
+            })
+          ) : (
+            // 通常表示（合算または単一コース）
+            (() => {
+              // 日付リストを7日ごとに分割
+              const dateChunks: string[][] = [];
+              for (let i = 0; i < summaryDateList.length; i += 7) {
+                dateChunks.push(summaryDateList.slice(i, i + 7));
+              }
+
+              return dateChunks.map((dateChunk, chunkIndex) => {
+                const chunkStartDate = dateChunk[0];
+                const chunkEndDate = dateChunk[dateChunk.length - 1];
+                const chunkDays = dateChunk.length;
+
+                return (
+                  <Box
+                    key={chunkIndex}
+                    sx={{
+                      mb: 3,
+                      '@media print': {
+                        pageBreakBefore: chunkIndex > 0 ? 'always' : 'auto',
+                        pageBreakInside: 'avoid',
+                        mb: 2,
+                      }
+                    }}
+                    className="print-page-chunk"
+                  >
+                    <Typography variant="h6" sx={{ mb: 2, '@media print': { fontSize: '14px', mb: 1 } }}>
+                      集計期間: {chunkStartDate} ～ {chunkEndDate} ({chunkDays}日間)
+                      {dateChunks.length > 1 && ` (${chunkIndex + 1}/${dateChunks.length})`}
+                    </Typography>
+                    <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: 'white', zIndex: 3 }}>商品ID</TableCell>
+                            <TableCell sx={{ position: 'sticky', left: 60, backgroundColor: 'white', zIndex: 3 }}>商品名</TableCell>
+                            {dateChunk.map((date) => (
+                              <TableCell key={date} align="right" sx={{ minWidth: 60 }}>
+                                {new Date(date).getDate()}日（{getDayOfWeek(date)}）
+                              </TableCell>
+                            ))}
+                            <TableCell align="right" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>合計本数</TableCell>
+                            {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>総金額</TableCell>}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {groupByManufacturer ? (
+                            <>
+                              {manufacturerGroupsFiltered.map((g) => (
+                                <React.Fragment key={g.manufacturer_name}>
+                                  <TableRow>
+                                    <TableCell colSpan={2 + dateChunk.length + (showTotalAmount ? 2 : 1)} sx={{ backgroundColor: '#f5f5f5', fontWeight: 600 }}>
+                                      メーカー：{g.manufacturer_name || '-'}
+                                    </TableCell>
+                                  </TableRow>
+                                  {g.rows.map((row: any) => (
+                                    <TableRow key={row.product_id}>
+                                      <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: 'white', zIndex: 2 }}>{row.product_id}</TableCell>
+                                      <TableCell sx={{ position: 'sticky', left: 60, backgroundColor: 'white', zIndex: 2 }}>{row.product_name}</TableCell>
+                                      {dateChunk.map((date) => (
+                                        <TableCell key={date} align="right">
+                                          {row.daily_quantities?.[date] || 0}
+                                        </TableCell>
+                                      ))}
+                                      <TableCell align="right" sx={{ fontWeight: 600 }}>{row.total_quantity}</TableCell>
+                                      {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600 }}>{row.total_amount}</TableCell>}
+                                    </TableRow>
+                                  ))}
+                                  <TableRow>
+                                    <TableCell colSpan={2} align="right" sx={{ fontWeight: 600 }}>小計</TableCell>
+                                    {dateChunk.map((date) => {
+                                      const dayTotal = g.rows.reduce((sum: number, r: any) => sum + (r.daily_quantities?.[date] || 0), 0);
+                                      return (
+                                        <TableCell key={date} align="right" sx={{ fontWeight: 600 }}>{dayTotal}</TableCell>
+                                      );
+                                    })}
+                                    <TableCell align="right" sx={{ fontWeight: 600 }}>{g.subtotal_quantity}</TableCell>
+                                    {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600 }}>{g.subtotal_amount}</TableCell>}
+                                  </TableRow>
+                                </React.Fragment>
+                              ))}
+                              {/* 全体の合計行 */}
+                              {(() => {
+                                const grandTotalQuantity = manufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_quantity, 0);
+                                const grandTotalAmount = manufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_amount, 0);
+                                const dayTotals = dateChunk.map(date => 
+                                  manufacturerGroupsFiltered.reduce((sum, g) => 
+                                    sum + g.rows.reduce((s: number, r: any) => s + (r.daily_quantities?.[date] || 0), 0), 0
+                                  )
+                                );
+                                return (
+                                  <TableRow sx={{ backgroundColor: '#e3f2fd', fontWeight: 700 }}>
+                                    <TableCell colSpan={2} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>合計</TableCell>
+                                    {dayTotals.map((total, idx) => (
+                                      <TableCell key={dateChunk[idx]} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{total}</TableCell>
+                                    ))}
+                                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalQuantity}</TableCell>
+                                    {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalAmount}</TableCell>}
+                                  </TableRow>
+                                );
+                              })()}
+                            </>
+                          ) : (
+                            <>
+                              {filteredSummaryRows.map((row) => (
+                                <TableRow key={row.product_id}>
+                                  <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: 'white', zIndex: 2 }}>{row.product_id}</TableCell>
+                                  <TableCell sx={{ position: 'sticky', left: 60, backgroundColor: 'white', zIndex: 2 }}>{row.product_name}</TableCell>
+                                  {dateChunk.map((date) => (
+                                    <TableCell key={date} align="right">
+                                      {row.daily_quantities?.[date] || 0}
+                                    </TableCell>
+                                  ))}
+                                  <TableCell align="right" sx={{ fontWeight: 600 }}>{row.total_quantity}</TableCell>
+                                  {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 600 }}>{row.total_amount}</TableCell>}
+                                </TableRow>
+                              ))}
+                              {/* 合計行 */}
+                              {(() => {
+                                const dayTotals = dateChunk.map(date => 
+                                  filteredSummaryRows.reduce((sum, row) => sum + (row.daily_quantities?.[date] || 0), 0)
+                                );
+                                const grandTotalQuantity = filteredSummaryRows.reduce((sum, row) => sum + row.total_quantity, 0);
+                                const grandTotalAmount = filteredSummaryRows.reduce((sum, row) => sum + row.total_amount, 0);
+                                return (
+                                  <TableRow sx={{ backgroundColor: '#e3f2fd', fontWeight: 700 }}>
+                                    <TableCell colSpan={2} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>合計</TableCell>
+                                    {dayTotals.map((total, idx) => (
+                                      <TableCell key={dateChunk[idx]} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{total}</TableCell>
+                                    ))}
+                                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalQuantity}</TableCell>
+                                    {showTotalAmount && <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalAmount}</TableCell>}
+                                  </TableRow>
+                                );
+                              })()}
+                            </>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                );
+              });
+            })()
+          )}
         </div>
       ) : (
         !loading && !error && (
@@ -1900,7 +2257,7 @@ const DeliveryList: React.FC = () => {
       {/* ヘッダー部分 */}
       <Box sx={{ mb: 3 }} className="print-header-hide">
         <Typography variant="h4" component="h1" gutterBottom>
-          各種帳票出力
+          配達帳票出力
         </Typography>
         <Typography variant="body1" color="textSecondary">
           配達リストや商品合計表などの各種帳票を出力できます

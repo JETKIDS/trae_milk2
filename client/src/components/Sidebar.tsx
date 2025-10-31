@@ -30,7 +30,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { text: 'ダッシュボード', icon: <DashboardIcon />, path: '/' },
   { text: '顧客管理', icon: <PeopleIcon />, path: '/customers' },
-  { text: '各種帳票出力', icon: <DeliveryIcon />, path: '/delivery' },
+  { text: '配達帳票出力', icon: <DeliveryIcon />, path: '/delivery' },
   { text: '請求業務', icon: <BillingIcon />, path: '/billing' },
   { text: '商品管理', icon: <InventoryIcon />, path: '/products' },
   { text: 'コース管理', icon: <RouteIcon />, path: '/courses' },
