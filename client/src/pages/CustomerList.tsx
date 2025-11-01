@@ -12,7 +12,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { Add as AddIcon, Visibility as VisibilityIcon, Search as SearchIcon } from '@mui/icons-material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { FixedSizeList, ListOnItemsRenderedProps } from 'react-window';
 import CustomerForm from '../components/CustomerForm';
 import { pad7 } from '../utils/id';
@@ -57,7 +57,7 @@ const CustomerList: React.FC = () => {
         params.page = 1;
         params.pageSize = PAGE_SIZE;
 
-        const response = await axios.get('/api/customers/paged', { params });
+        const response = await apiClient.get('/api/customers/paged', { params });
         const { items, total } = response.data;
         setCustomers(items || []);
         setTotal(total || 0);
@@ -103,14 +103,10 @@ const CustomerList: React.FC = () => {
   };
 
   const handleViewCustomer = (customerId: number) => {
-    const url = `${window.location.origin}/customers/${customerId}?view=standalone`;
-    // 大きめの別ウィンドウで顧客詳細を開く（ブラウザによっては新しいタブになる場合があります）。
-    // ブラウザUIは可能な限り最小化（location/menubar/toolbar/status を非表示）。
-    window.open(
-      url,
-      'customer-detail',
-      'noopener,noreferrer,width=1080,height=720,scrollbars=yes,resizable=yes,location=no,menubar=no,toolbar=no,status=no,titlebar=no'
-    );
+    // 共通関数で別ウインドウ表示
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { openCustomerStandalone } = require('../utils/window');
+    openCustomerStandalone(customerId);
   };
 
   const handleOpenCustomerForm = () => {
@@ -134,7 +130,7 @@ const CustomerList: React.FC = () => {
         params.page = page;
         params.pageSize = PAGE_SIZE;
 
-        const response = await axios.get('/api/customers/paged', { params });
+        const response = await apiClient.get('/api/customers/paged', { params });
         const { items, total } = response.data;
         setCustomers(items || []);
         setTotal(total || 0);
@@ -161,7 +157,7 @@ const CustomerList: React.FC = () => {
       params.page = nextPage;
       params.pageSize = PAGE_SIZE;
 
-      const response = await axios.get('/api/customers/paged', { params });
+      const response = await apiClient.get('/api/customers/paged', { params });
       const { items } = response.data;
       setCustomers((prev) => [...prev, ...(items || [])]);
       setPage(nextPage);

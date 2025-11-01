@@ -16,7 +16,7 @@ import {
   Divider,
   CircularProgress,
 } from '@mui/material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import moment from 'moment';
 
 interface Course {
@@ -54,7 +54,7 @@ const MonthlyManagement: React.FC = () => {
   const fetchCourses = async () => {
     setLoadingCourses(true);
     try {
-      const res = await axios.get('/api/masters/courses');
+      const res = await apiClient.get('/api/masters/courses');
       setCourses(res.data || []);
     } catch (e) {
       console.error('コース一覧取得失敗', e);
@@ -66,11 +66,11 @@ const MonthlyManagement: React.FC = () => {
   const fetchStatusForCourse = async (courseId: number, y: number, m: number) => {
     setLoadingStatus(true);
     try {
-      const customers: Customer[] = await (await axios.get(`/api/customers/by-course/${courseId}`)).data;
+      const customers: Customer[] = await (await apiClient.get(`/api/customers/by-course/${courseId}`)).data;
       const rows: StatusRow[] = [];
       for (const c of customers) {
         try {
-          const resp = await axios.get(`/api/customers/${c.id}/invoices/status`, { params: { year: y, month: m } });
+          const resp = await apiClient.get(`/api/customers/${c.id}/invoices/status`, { params: { year: y, month: m } });
           const data = resp.data;
           rows.push({ customer_id: c.id, confirmed: !!data.confirmed, amount: data.amount });
         } catch (e) {
@@ -97,7 +97,7 @@ const MonthlyManagement: React.FC = () => {
     }
     try {
       const body = { year, month, course_id: selectedCourseId };
-      const res = await axios.post('/api/customers/invoices/confirm-batch', body);
+      const res = await apiClient.post('/api/customers/invoices/confirm-batch', body);
       const count = res.data?.count ?? 0;
       setSnackbarMsg(`月次確定が完了しました（${count}件）`);
       setSnackbarSeverity('success');
@@ -122,7 +122,7 @@ const MonthlyManagement: React.FC = () => {
     if (!ok) return;
     try {
       const body = { year, month, course_id: selectedCourseId };
-      const res = await axios.post('/api/customers/invoices/unconfirm-batch', body);
+      const res = await apiClient.post('/api/customers/invoices/unconfirm-batch', body);
       const count = res.data?.count ?? 0;
       setSnackbarMsg(`月次確定の解除が完了しました（${count}件）`);
       setSnackbarSeverity('success');

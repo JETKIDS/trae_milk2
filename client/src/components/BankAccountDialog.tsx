@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, Box, Typography, TextField, Button, FormControl, InputLabel, Select, MenuItem, Stack, Alert } from '@mui/material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { halfKanaRegex, isBankCode4, isBranchCode3, isAccountNumber7 } from '../utils/validation';
 
 interface BankValues {
@@ -39,7 +39,7 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
     if (!open || !customerId) return;
     (async () => {
       try {
-        const res = await axios.get(`/api/customers/${customerId}`);
+        const res = await apiClient.get(`/api/customers/${customerId}`);
         const s = res.data?.settings || null;
         if (!s) return;
         setVals(prev => ({
@@ -109,7 +109,7 @@ const BankAccountDialog: React.FC<Props> = ({ customerId, open, onClose, initial
         billing_method: currentBillingMethod,
         rounding_enabled: typeof currentRoundingEnabled === 'boolean' ? (currentRoundingEnabled ? 1 : 0) : undefined,
       };
-      const res = await axios.put(`/api/customers/${customerId}/settings`, payload);
+      const res = await apiClient.put(`/api/customers/${customerId}/settings`, payload);
       setSaving(false);
       setInfo('口座情報を保存しました');
       if (onSaved) onSaved(res.data);

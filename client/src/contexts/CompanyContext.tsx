@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 
 interface CompanyInfo {
   id: number;
@@ -40,7 +40,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
 
   const fetchCompanyInfo = async () => {
     try {
-      const response = await axios.get<CompanyInfo>('/api/masters/company');
+      const response = await apiClient.get<CompanyInfo>('/api/masters/company');
       if (response.data) {
         setCompanyInfo(response.data);
       }

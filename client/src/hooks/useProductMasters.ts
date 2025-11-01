@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { ProductMaster } from '../types/customerDetail';
 
 interface UseProductMastersReturn {
@@ -19,7 +19,7 @@ export const useProductMasters = (): UseProductMastersReturn => {
       setLoading(true);
       setError(null);
       
-      const res = await axios.get('/api/products');
+      const res = await apiClient.get('/api/products');
       const masters: ProductMaster[] = (res.data || []).map((p: any) => ({
         product_name: p.product_name,
         sales_tax_type: p.sales_tax_type,

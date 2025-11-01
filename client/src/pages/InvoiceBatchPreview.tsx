@@ -17,7 +17,7 @@ import {
   TableContainer,
   Paper
 } from '@mui/material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import moment from 'moment';
 import './InvoicePreview.css';
 import { pad7 } from '../utils/id';
@@ -119,8 +119,8 @@ const InvoiceContent: React.FC<{
     const fetchData = async () => {
       setError(null);
       try {
-        const cus = axios.get(`/api/customers/${customerId}`);
-        const cal = axios.get(`/api/customers/${customerId}/calendar/${year}/${month}`);
+        const cus = apiClient.get(`/api/customers/${customerId}`);
+        const cal = apiClient.get(`/api/customers/${customerId}/calendar/${year}/${month}`);
         const [customerRes, calendarRes] = await Promise.all([cus, cal]);
         setCustomer(customerRes.data.customer);
         setPatterns(customerRes.data.patterns || []);
@@ -142,7 +142,7 @@ const InvoiceContent: React.FC<{
     const fetchArSummary = async () => {
       try {
         if (!customerId || !year || !month) return;
-        const res = await axios.get(`/api/customers/${customerId}/ar-summary`, { params: { year, month } });
+        const res = await apiClient.get(`/api/customers/${customerId}/ar-summary`, { params: { year, month } });
         setArSummary(res.data as ArSummary);
       } catch (e) {
         console.error('ARサマリ（バッチ）取得エラー', e);
@@ -523,8 +523,8 @@ const InvoiceBatchPreview: React.FC = () => {
     const fetchStatic = async () => {
       try {
         const [companyRes, productsRes] = await Promise.all([
-          axios.get('/api/masters/company'),
-          axios.get('/api/products'),
+          apiClient.get('/api/masters/company'),
+          apiClient.get('/api/products'),
         ]);
         setCompany(companyRes.data);
         const masters: ProductMaster[] = (productsRes.data || []).map((p: any) => ({
@@ -550,7 +550,7 @@ const InvoiceBatchPreview: React.FC = () => {
           setCustomers([]);
           return;
         }
-        const res = await axios.get(`/api/customers/by-course/${courseId}`);
+        const res = await apiClient.get(`/api/customers/by-course/${courseId}`);
         const list: Customer[] = res.data || [];
         setCustomers(list);
       } catch (e) {
@@ -567,8 +567,8 @@ const InvoiceBatchPreview: React.FC = () => {
       try {
         if (!courseId) { setHasUnconfirmed(false); return; }
         const [resC, resD] = await Promise.all([
-          axios.get(`/api/customers/by-course/${courseId}/invoices-amounts`, { params: { year, month, method: 'collection' } }),
-          axios.get(`/api/customers/by-course/${courseId}/invoices-amounts`, { params: { year, month, method: 'debit' } }),
+          apiClient.get(`/api/customers/by-course/${courseId}/invoices-amounts`, { params: { year, month, method: 'collection' } }),
+          apiClient.get(`/api/customers/by-course/${courseId}/invoices-amounts`, { params: { year, month, method: 'debit' } }),
         ]);
         const itemsC: Array<{ confirmed?: boolean }> = resC.data?.items || [];
         const itemsD: Array<{ confirmed?: boolean }> = resD.data?.items || [];

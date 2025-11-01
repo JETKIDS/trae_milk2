@@ -19,7 +19,7 @@ import {
   Menu,
   Card,
 } from '@mui/material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { pad7 } from '../utils/id';
 import { hiraganaRegex } from '../utils/validation';
 import { Customer } from '../types/customer';
@@ -93,7 +93,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
       // 現在の端数設定を取得して維持
       let roundingEnabled = 1;
       try {
-        const res = await axios.get(`/api/customers/${customer.id}`);
+        const res = await apiClient.get(`/api/customers/${customer.id}`);
         roundingEnabled = typeof res.data?.settings?.rounding_enabled === 'number'
           ? res.data.settings.rounding_enabled
           : (res.data?.settings?.rounding_enabled ? 1 : 0);
@@ -101,7 +101,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
         // 取得失敗時は1で保存（丸め有り）
         console.warn('端数設定の取得に失敗しました。1として保存します。', e);
       }
-      await axios.put(`/api/customers/${customer.id}/settings`, {
+      await apiClient.put(`/api/customers/${customer.id}/settings`, {
         billing_method: draftBillingMethod,
         rounding_enabled: roundingEnabled,
       });
@@ -145,7 +145,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
         // 新規登録のときは未使用の最小4桁IDを取得して表示
         (async () => {
           try {
-            const res = await axios.get('/api/customers/next-id');
+            const res = await apiClient.get('/api/customers/next-id');
             if (res.data?.custom_id) {
               setFormData(prev => ({ ...prev, custom_id: res.data.custom_id }));
             }
@@ -160,7 +160,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
 
   const fetchCourses = async () => {
     try {
-      const response = await axios.get('/api/masters/courses');
+      const response = await apiClient.get('/api/masters/courses');
       setCourses(response.data);
     } catch (error) {
       console.error('コース情報の取得に失敗しました:', error);
@@ -209,9 +209,9 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
     setLoading(true);
     try {
       if (isEdit && customer?.id) {
-        await axios.put(`/api/customers/${customer.id}`, formData);
+        await apiClient.put(`/api/customers/${customer.id}`, formData);
       } else {
-        await axios.post('/api/customers', formData);
+        await apiClient.post('/api/customers', formData);
       }
       onSave();
       onClose();

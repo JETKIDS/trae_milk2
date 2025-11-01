@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { Customer, DeliveryPattern, ProductMaster } from '../types/customerDetail';
 import { useErrorHandler } from './useErrorHandler';
 import { ApiError } from '../utils/errorHandler';
@@ -30,7 +30,7 @@ export const useCustomerData = (customerId: string | undefined): UseCustomerData
       setLoading(true);
       clearError();
       
-      const res = await axios.get(`/api/customers/${customerId}`);
+    const res = await apiClient.get(`/api/customers/${customerId}`);
       const data = res.data || {};
       
       if (data.customer) {

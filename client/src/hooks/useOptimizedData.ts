@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 
 interface UseOptimizedDataOptions {
   cacheKey: string;
@@ -66,7 +66,7 @@ export const useOptimizedData = <T>(
         return;
       }
 
-      const response = await axios.get(url);
+      const response = await apiClient.get(url);
       const responseData = response.data;
 
       // データをキャッシュに保存
@@ -122,7 +122,7 @@ export const useBatchData = <T>(
       setLoading(true);
       setError(null);
 
-      const promises = urls.map(url => axios.get(url));
+      const promises = urls.map(url => apiClient.get(url));
       const responses = await Promise.all(promises);
       const batchData = responses.map(response => response.data);
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import {
   Box,
   Typography,
@@ -192,7 +192,7 @@ const PeriodDeliveryListTab: React.FC = () => {
       if (customerIds.length === 0) return [];
       
       // バッチAPIを使用して一括取得
-      const response = await axios.get(`/api/temporary-changes/batch/period/${start}/${end}`, {
+      const response = await apiClient.get(`/api/temporary-changes/batch/period/${start}/${end}`, {
         params: { customerIds: customerIds.join(',') }
       });
       
@@ -226,7 +226,7 @@ const PeriodDeliveryListTab: React.FC = () => {
       for (let i = 0; i < customerIds.length; i += batchSize) {
         const batch = customerIds.slice(i, i + batchSize);
         const requests = batch.map((cid) => (
-          axios.get(`/api/delivery-patterns/customer/${cid}`)
+          apiClient.get(`/api/delivery-patterns/customer/${cid}`)
             .then((res) => Array.isArray(res.data) ? res.data.map((r: any) => ({ ...r, customer_id: typeof r.customer_id === 'number' ? r.customer_id : cid })) : [])
             .catch((err) => {
               console.warn(`顧客ID ${cid} の配達パターン取得に失敗しました`, err);
@@ -976,12 +976,10 @@ const PeriodDeliveryListTab: React.FC = () => {
                                       <Box
                                         component="button"
                                         onClick={() => {
-                                          const url = `${window.location.origin}/customers/${customerProduct.customer_id}?view=standalone`;
-                                          window.open(
-                                            url,
-                                            'customer-detail',
-                                            'noopener,noreferrer,width=1080,height=720,scrollbars=yes,resizable=yes,location=no,menubar=no,toolbar=no,status=no,titlebar=no'
-                                          );
+                                          // 共通関数で別ウインドウ表示
+                                          // eslint-disable-next-line @typescript-eslint/no-var-requires
+                                          const { openCustomerStandalone } = require('../utils/window');
+                                          openCustomerStandalone(customerProduct.customer_id);
                                         }}
                                         style={{
                                           background: 'none',
@@ -1137,7 +1135,7 @@ const ProductSummaryTab: React.FC = () => {
   const fetchTemporaryChangesInRange = async (start: string, end: string, customerIds: number[]) => {
     try {
       if (customerIds.length === 0) return [];
-      const response = await axios.get(`/api/temporary-changes/batch/period/${start}/${end}`, {
+      const response = await apiClient.get(`/api/temporary-changes/batch/period/${start}/${end}`, {
         params: { customerIds: customerIds.join(',') }
       });
       return Array.isArray(response.data) ? response.data : [];
@@ -1169,7 +1167,7 @@ const ProductSummaryTab: React.FC = () => {
       for (let i = 0; i < customerIds.length; i += batchSize) {
         const batch = customerIds.slice(i, i + batchSize);
         const requests = batch.map((cid) => (
-          axios.get(`/api/delivery-patterns/customer/${cid}`)
+          apiClient.get(`/api/delivery-patterns/customer/${cid}`)
             .then((res) => Array.isArray(res.data) ? res.data.map((r: any) => ({ ...r, customer_id: typeof r.customer_id === 'number' ? r.customer_id : cid })) : [])
             .catch((err) => {
               console.warn(`顧客ID ${cid} の配達パターン取得に失敗しました`, err);
@@ -1916,11 +1914,9 @@ const ProductSummaryTab: React.FC = () => {
               const courseRows = courseData.rows;
               const courseDateList = courseData.dateList;
               
-              // 日付リストを7日ごとに分割
-              const dateChunks: string[][] = [];
-              for (let i = 0; i < courseDateList.length; i += 7) {
-                dateChunks.push(courseDateList.slice(i, i + 7));
-              }
+              // 日付リストを7日ごとに分割（共通ユーティリティ）
+              const { chunkArray } = require('../utils/array');
+              const dateChunks: string[][] = chunkArray(courseDateList, 7);
 
               return dateChunks.map((dateChunk, chunkIndex) => {
                 const chunkStartDate = dateChunk[0];
@@ -2025,17 +2021,14 @@ const ProductSummaryTab: React.FC = () => {
                     ))}
                     {/* 全体の合計行 */}
                     {(() => {
-                      const grandTotalQuantity = courseManufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_quantity, 0);
-                      const grandTotalAmount = courseManufacturerGroupsFiltered.reduce((sum, g) => sum + g.subtotal_amount, 0);
-                      const dayTotals = dateChunk.map(date => 
-                        courseManufacturerGroupsFiltered.reduce((sum, g) => 
-                          sum + g.rows.reduce((s: number, r: any) => s + (r.daily_quantities?.[date] || 0), 0), 0
-                        )
-                      );
+                      const { computeDayTotalsForRows, computeGrandTotalQuantity, computeGrandTotalAmount } = require('../utils/summary');
+                      const dayTotals = computeDayTotalsForRows(courseManufacturerGroupsFiltered.flatMap((g:any)=>g.rows), dateChunk);
+                      const grandTotalQuantity = courseManufacturerGroupsFiltered.reduce((sum:any, g:any) => sum + g.subtotal_quantity, 0);
+                      const grandTotalAmount = courseManufacturerGroupsFiltered.reduce((sum:any, g:any) => sum + g.subtotal_amount, 0);
                       return (
                         <TableRow sx={{ backgroundColor: '#e3f2fd', fontWeight: 700 }}>
                           <TableCell colSpan={2} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>合計</TableCell>
-                          {dayTotals.map((total, idx) => (
+                          {dayTotals.map((total: number, idx: number) => (
                             <TableCell key={dateChunk[idx]} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{total}</TableCell>
                           ))}
                           <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalQuantity}</TableCell>
@@ -2061,15 +2054,14 @@ const ProductSummaryTab: React.FC = () => {
                     ))}
                     {/* 合計行 */}
                     {(() => {
-                      const dayTotals = dateChunk.map(date => 
-                        courseFilteredRows.reduce((sum, row) => sum + (row.daily_quantities?.[date] || 0), 0)
-                      );
-                      const grandTotalQuantity = courseFilteredRows.reduce((sum, row) => sum + row.total_quantity, 0);
-                      const grandTotalAmount = courseFilteredRows.reduce((sum, row) => sum + row.total_amount, 0);
+                      const { computeDayTotalsForRows, computeGrandTotalQuantity, computeGrandTotalAmount } = require('../utils/summary');
+                      const dayTotals = computeDayTotalsForRows(courseFilteredRows, dateChunk);
+                      const grandTotalQuantity = computeGrandTotalQuantity(courseFilteredRows);
+                      const grandTotalAmount = computeGrandTotalAmount(courseFilteredRows);
                       return (
                         <TableRow sx={{ backgroundColor: '#e3f2fd', fontWeight: 700 }}>
                           <TableCell colSpan={2} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>合計</TableCell>
-                          {dayTotals.map((total, idx) => (
+                          {dayTotals.map((total: number, idx: number) => (
                             <TableCell key={dateChunk[idx]} align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{total}</TableCell>
                           ))}
                           <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem' }}>{grandTotalQuantity}</TableCell>
@@ -2089,11 +2081,9 @@ const ProductSummaryTab: React.FC = () => {
           ) : (
             // 通常表示（合算または単一コース）
             (() => {
-              // 日付リストを7日ごとに分割
-              const dateChunks: string[][] = [];
-              for (let i = 0; i < summaryDateList.length; i += 7) {
-                dateChunks.push(summaryDateList.slice(i, i + 7));
-              }
+              // 日付リストを7日ごとに分割（共通ユーティリティ）
+              const { chunkArray } = require('../utils/array');
+              const dateChunks: string[][] = chunkArray(summaryDateList, 7);
 
               return dateChunks.map((dateChunk, chunkIndex) => {
                 const chunkStartDate = dateChunk[0];

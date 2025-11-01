@@ -7,7 +7,7 @@ import MonthlyManagement from './MonthlyManagement';
 import CollectionList from './CollectionList';
 
 import { useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { pad7 } from '../utils/id';
 
 const BillingOperations: React.FC = () => {
@@ -70,7 +70,7 @@ const BillingOperations: React.FC = () => {
   const handleLoadPreview = async () => {
     try {
       setLoadingPreview(true);
-      const res = await axios.get('/api/debits/preview');
+      const res = await apiClient.get('/api/debits/preview');
       setPreview(res.data);
     } catch (err: any) {
       console.error(err);
@@ -83,7 +83,7 @@ const BillingOperations: React.FC = () => {
   const handleLoadParse = async () => {
     try {
       setLoadingParse(true);
-      const res = await axios.get('/api/debits/parse');
+      const res = await apiClient.get('/api/debits/parse');
       setParse(res.data);
     } catch (err: any) {
       console.error(err);
@@ -111,7 +111,7 @@ const BillingOperations: React.FC = () => {
       if (csvFormat) {
         params.format = csvFormat;
       }
-      const res = await axios.get('/api/debits/generate', {
+      const res = await apiClient.get('/api/debits/generate', {
         params,
         responseType: 'arraybuffer'
       });
@@ -138,7 +138,7 @@ const BillingOperations: React.FC = () => {
     (async () => {
       setLoadingCourses(true);
       try {
-        const res = await axios.get('/api/masters/courses');
+        const res = await apiClient.get('/api/masters/courses');
         setCourses(res.data || []);
       } catch (e) {
         console.error('コース一覧取得失敗', e);
@@ -152,7 +152,7 @@ const BillingOperations: React.FC = () => {
     (async () => {
       setLoadingInstitutions(true);
       try {
-        const res = await axios.get('/api/masters/institutions');
+        const res = await apiClient.get('/api/masters/institutions');
         setInstitutions(res.data || []);
       } catch (e) {
         console.error('収納機関一覧取得失敗', e);
@@ -168,7 +168,7 @@ const BillingOperations: React.FC = () => {
         // month（YYYY-MM）は将来的に試算・確定額表示に使用予定。現時点では一覧取得のみ。
         setLoadingCustomers(true);
         try {
-          const res = await axios.get(`/api/customers/by-course/${Number(selectedCourseId)}`);
+          const res = await apiClient.get(`/api/customers/by-course/${Number(selectedCourseId)}`);
           setCustomers(res.data || []);
         } catch (e) {
           console.error('顧客一覧取得失敗', e);

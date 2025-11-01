@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Grid, TextField, FormControl, InputLabel, Select, MenuItem, ToggleButtonGroup, ToggleButton, Button, Typography, Table, TableHead, TableRow, TableCell, TableBody, Stack, CircularProgress, Alert } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { pad7 } from '../utils/id';
+import { getPrevYearMonth, parseMonthInput } from '../utils/date';
 
 type MethodFilter = 'all' | 'collection' | 'debit';
 type ListType = 'paid' | 'unpaid';
@@ -28,16 +29,15 @@ export default function PaymentDetails() {
   const [invoicesMap, setInvoicesMap] = useState<Record<number, number>>({}); // 前月請求額
   const [customersMap, setCustomersMap] = useState<Record<number, CustomerBasic>>({}); // 顧客名など
 
-  const y = parseInt(monthStr.slice(0, 4), 10);
-  const m = parseInt(monthStr.slice(5, 7), 10);
-  const prev = new Date(y, m - 1, 1); prev.setMonth(prev.getMonth() - 1);
-  const invY = prev.getFullYear();
-  const invM = prev.getMonth() + 1;
+  const parsed = parseMonthInput(monthStr);
+  const y = parsed ? parsed.year : new Date().getFullYear();
+  const m = parsed ? parsed.month : (new Date().getMonth() + 1);
+  const { year: invY, month: invM } = getPrevYearMonth(y, m);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get('/api/masters/courses');
+        const res = await apiClient.get('/api/masters/courses');
         setCourses(res.data || []);
       } catch (e) {
         console.error('コース一覧取得失敗', e);
@@ -61,15 +61,15 @@ export default function PaymentDetails() {
       // methodFilterに応じて対象顧客集合を制約するために顧客リストを取得
       const fetchCustomersByMethod = async (cid: number): Promise<CustomerBasic[]> => {
         if (methodFilter === 'collection') {
-          const r = await axios.get(`/api/customers/by-course/${cid}/collection`);
+          const r = await apiClient.get(`/api/customers/by-course/${cid}/collection`);
           return (r.data || []).map((c: any) => ({ id: c.id, custom_id: c.custom_id, customer_name: c.customer_name }));
         } else if (methodFilter === 'debit') {
-          const r = await axios.get(`/api/customers/by-course/${cid}/debit`);
+          const r = await apiClient.get(`/api/customers/by-course/${cid}/debit`);
           return (r.data || []).map((c: any) => ({ id: c.id, custom_id: c.custom_id, customer_name: c.customer_name }));
         } else {
           // all: collection + debit
-          const r1 = await axios.get(`/api/customers/by-course/${cid}/collection`);
-          const r2 = await axios.get(`/api/customers/by-course/${cid}/debit`);
+          const r1 = await apiClient.get(`/api/customers/by-course/${cid}/collection`);
+          const r2 = await apiClient.get(`/api/customers/by-course/${cid}/debit`);
           const a = (r1.data || []).concat(r2.data || []);
           return a.map((c: any) => ({ id: c.id, custom_id: c.custom_id, customer_name: c.customer_name }));
         }
@@ -80,12 +80,12 @@ export default function PaymentDetails() {
         baseCustomers.forEach((c) => { nextCustomers[c.id] = c; });
 
         // 入金合計（当月）
-        const pay = await axios.get(`/api/customers/by-course/${cid}/payments-sum`, { params: { year: y, month: m } });
+        const pay = await apiClient.get(`/api/customers/by-course/${cid}/payments-sum`, { params: { year: y, month: m } });
         const payMap: Record<number, number> = {};
         (pay.data?.items || []).forEach((it: PaymentsSumItem) => { payMap[it.customer_id] = it.total || 0; });
         // 前月請求（顧客課金方法のフィルタで出し分け）
         const invMethod = methodFilter === 'debit' ? 'debit' : 'collection';
-        const inv = await axios.get(`/api/customers/by-course/${cid}/invoices-amounts`, { params: { year: invY, month: invM, method: invMethod } });
+        const inv = await apiClient.get(`/api/customers/by-course/${cid}/invoices-amounts`, { params: { year: invY, month: invM, method: invMethod } });
         const invMap: Record<number, number> = {};
         (inv.data?.items || []).forEach((it: InvoiceAmountItem) => { invMap[it.customer_id] = it.amount || 0; });
 
@@ -221,12 +221,8 @@ export default function PaymentDetails() {
                   <Box
                     component="button"
                     onClick={() => {
-                      const url = `${window.location.origin}/customers/${r.id}?view=standalone`;
-                      window.open(
-                        url,
-                        'customer-detail',
-                        'noopener,noreferrer,width=1080,height=720,scrollbars=yes,resizable=yes,location=no,menubar=no,toolbar=no,status=no,titlebar=no'
-                      );
+                      const { openCustomerStandalone } = require('../utils/window');
+                      openCustomerStandalone(r.id);
                     }}
                     style={{
                       background: 'none',

@@ -17,7 +17,7 @@ import {
   TableContainer,
   Paper
 } from '@mui/material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import moment from 'moment';
 import './InvoicePreview.css';
 import { pad7 } from '../utils/id';
@@ -133,11 +133,11 @@ interface ProductMaster {
     const fetchAll = async () => {
       setError(null);
       try {
-        const cop = axios.get('/api/masters/company');
-        const cus = axios.get(`/api/customers/${id}`);
-        const cal = axios.get(`/api/customers/${id}/calendar/${year}/${month}`);
-        const prods = axios.get('/api/products');
-        const st = axios.get(`/api/customers/${id}/invoices/status`, { params: { year, month } });
+        const cop = apiClient.get('/api/masters/company');
+        const cus = apiClient.get(`/api/customers/${id}`);
+        const cal = apiClient.get(`/api/customers/${id}/calendar/${year}/${month}`);
+        const prods = apiClient.get('/api/products');
+        const st = apiClient.get(`/api/customers/${id}/invoices/status`, { params: { year, month } });
         const [companyRes, customerRes, calendarRes, productsRes, statusRes] = await Promise.all([cop, cus, cal, prods, st]);
         const status = statusRes.data || { confirmed: false };
         setConfirmedStatus(status);
@@ -393,7 +393,7 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
       try {
         const idNum = Number(id);
         if (!idNum || !year || !month) return;
-        const res = await axios.get(`/api/customers/${idNum}/ar-summary`, { params: { year, month } });
+        const res = await apiClient.get(`/api/customers/${idNum}/ar-summary`, { params: { year, month } });
         setArSummary(res.data as ArSummary);
       } catch (e) {
         console.error('ARサマリ取得エラー', e);

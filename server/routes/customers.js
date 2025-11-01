@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDB } = require('../connection');
 const moment = require('moment');
+const { getPrevYearMonth, getPaymentsSum, isInvoiceConfirmed } = require('../utils/ar');
 
 // 顧客一覧取得（複数検索条件対応）
 router.get('/', (req, res) => {
@@ -846,10 +847,7 @@ router.post('/payments/batch', async (req, res) => {
     // 入金登録の許可判定：
     // - 集金(collection): 前月の請求が確定していれば登録可（当月確定は不要）
     // - 引き落し(debit): 当月（入金月）の請求確定が必要
-    const prev = new Date(y, m - 1, 1);
-    prev.setMonth(prev.getMonth() - 1);
-    const py = prev.getFullYear();
-    const pm = prev.getMonth() + 1;
+    const { year: py, month: pm } = getPrevYearMonth(y, m);
 
     // 集金/引き落しに関わらず、前月（請求月）が確定済みであることを条件とする
     const confirmedRows = await new Promise((resolve, reject) => {
@@ -1838,9 +1836,7 @@ router.get('/:id/ar-summary', async (req, res) => {
     await ensureLedgerTables(db);
 
     // 前月
-    const prevMoment = moment(`${y}-${String(m).padStart(2, '0')}-01`).subtract(1, 'month');
-    const prevYear = parseInt(prevMoment.format('YYYY'), 10);
-    const prevMonth = parseInt(prevMoment.format('MM'), 10);
+    const { year: prevYear, month: prevMonth } = getPrevYearMonth(y, m);
 
     // 端数設定（デフォルトON）
     const roundingRow = await new Promise((resolve, reject) => {
@@ -1869,22 +1865,10 @@ router.get('/:id/ar-summary', async (req, res) => {
     }
 
     // 前月入金額：当該（前月）年月の入金合計
-    const paymentRow = await new Promise((resolve, reject) => {
-      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND year = ? AND month = ?', [customerId, prevYear, prevMonth], (err, row) => {
-        if (err) return reject(err);
-        resolve(row);
-      });
-    });
-    const prevPaymentAmount = paymentRow ? (paymentRow.total || 0) : 0;
+    const prevPaymentAmount = await getPaymentsSum(db, customerId, prevYear, prevMonth);
 
     // 当月入金額：現在指定の year/month の入金合計
-    const currentPaymentRow = await new Promise((resolve, reject) => {
-      db.get('SELECT COALESCE(SUM(amount), 0) AS total FROM ar_payments WHERE customer_id = ? AND year = ? AND month = ?', [customerId, y, m], (err, row) => {
-        if (err) return reject(err);
-        resolve(row);
-      });
-    });
-    const currentPaymentAmount = currentPaymentRow ? (currentPaymentRow.total || 0) : 0;
+    const currentPaymentAmount = await getPaymentsSum(db, customerId, y, m);
 
     // 繰越額：（前月請求額）-（当月入金額）
     // 牛乳屋の業務フロー：前月の集金額に対して翌月（当月）に入金される

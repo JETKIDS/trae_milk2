@@ -38,7 +38,7 @@ import {
   Save as SaveIcon,
   Cancel as CancelIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 
 interface Product {
   id: number;
@@ -99,7 +99,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('/api/products');
+      const response = await apiClient.get('/api/products');
       setProducts(response.data);
     } catch (error) {
       console.error('商品データの取得に失敗しました:', error);
@@ -109,7 +109,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
   // 指定日の定期配達があるかどうか（同一商品の臨時追加防止用）
   const isScheduledDeliveryDay = async (productId: number, dateStr: string): Promise<boolean> => {
     try {
-      const res = await axios.get(`/api/delivery-patterns/customer/${customerId}`);
+      const res = await apiClient.get(`/api/delivery-patterns/customer/${customerId}`);
       const patterns: any[] = Array.isArray(res.data) ? res.data : [];
       const date = new Date(dateStr);
       const dow = date.getDay();
@@ -264,14 +264,14 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
       const payload = { ...formData, unit_price: parsedUnitPrice ?? formData.unit_price ?? null };
 
       if (editingChange) {
-        await axios.put(`/api/temporary-changes/${editingChange.id}`, payload);
+        await apiClient.put(`/api/temporary-changes/${editingChange.id}`, payload);
         setSnackbar({
           open: true,
           message: '臨時変更を更新しました。',
           severity: 'success',
         });
       } else {
-        await axios.post('/api/temporary-changes', payload);
+        await apiClient.post('/api/temporary-changes', payload);
         setSnackbar({
           open: true,
           message: '臨時変更を追加しました。',
@@ -302,7 +302,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
     }
 
     try {
-      await axios.delete(`/api/temporary-changes/${changeId}`);
+      await apiClient.delete(`/api/temporary-changes/${changeId}`);
       setSnackbar({
         open: true,
         message: '臨時変更を削除しました。',

@@ -53,7 +53,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 // import { pad7 } from '../utils/id';
 
 interface Course {
@@ -173,7 +173,7 @@ const CourseManagement: React.FC = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/courses');
+      const response = await apiClient.get('/api/courses');
       setCourses(response.data);
     } catch (error) {
       console.error('コース一覧取得エラー:', error);
@@ -191,7 +191,7 @@ const CourseManagement: React.FC = () => {
   const fetchCustomers = async (courseId: number) => {
     try {
       setLoadingCustomers(true);
-      const response = await axios.get(`/api/customers/by-course/${courseId}`);
+      const response = await apiClient.get(`/api/customers/by-course/${courseId}`);
       setCustomers(response.data);
     } catch (error) {
       console.error('顧客一覧取得エラー:', error);
@@ -246,7 +246,7 @@ const CourseManagement: React.FC = () => {
     if (!selectedCourseId) return;
 
     try {
-      await axios.put(`/api/customers/update-delivery-order`, {
+      await apiClient.put(`/api/customers/update-delivery-order`, {
         courseId: selectedCourseId,
         customers: customers.map((customer, index) => ({
           id: customer.id,
@@ -272,7 +272,7 @@ const CourseManagement: React.FC = () => {
   // 新規コース作成
   const handleCreateCourse = async () => {
     try {
-      await axios.post('/api/courses', courseForm);
+      await apiClient.post('/api/courses', courseForm);
       setNewCourseDialog(false);
       setCourseForm({ custom_id: '', course_name: '', description: '' });
       fetchCourses();
@@ -296,7 +296,7 @@ const CourseManagement: React.FC = () => {
     if (!selectedCourse) return;
 
     try {
-      await axios.put(`/api/courses/${selectedCourse.id}`, courseForm);
+      await apiClient.put(`/api/courses/${selectedCourse.id}`, courseForm);
       setEditCourseDialog(false);
       setCourseForm({ custom_id: '', course_name: '', description: '' });
       setSelectedCourse(null);
@@ -321,7 +321,7 @@ const CourseManagement: React.FC = () => {
     if (!selectedCourse) return;
 
     try {
-      await axios.delete(`/api/courses/${selectedCourse.id}`);
+      await apiClient.delete(`/api/courses/${selectedCourse.id}`);
       setDeleteDialog(false);
       setSelectedCourse(null);
       fetchCourses();

@@ -16,7 +16,7 @@ import {
   Grid,
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import ProductForm from '../components/ProductForm';
 
 interface Product {
@@ -53,7 +53,7 @@ const ProductList: React.FC = () => {
       const params: any = { page, pageSize: PAGE_SIZE };
       if (searchId) params.searchId = searchId;
       if (searchName) params.searchName = searchName;
-      const response = await axios.get('/api/products/paged', { params });
+      const response = await apiClient.get('/api/products/paged', { params });
       const { items, total } = response.data || {};
       setProducts(items || []);
       setTotal(total || 0);
@@ -107,7 +107,7 @@ const ProductList: React.FC = () => {
     const ok = window.confirm(`商品「${product.product_name}」を削除します。よろしいですか？`);
     if (!ok) return;
     try {
-      await axios.delete(`/api/products/${product.id}`);
+      await apiClient.delete(`/api/products/${product.id}`);
       await fetchProducts();
     } catch (error: any) {
       console.error('商品削除に失敗しました:', error);

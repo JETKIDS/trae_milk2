@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import moment from 'moment';
 import { CalendarDay, TemporaryChange } from '../types/customerDetail';
 
@@ -32,7 +32,7 @@ export const useCalendarData = (
       
       const y = currentDate.year();
       const m = currentDate.month() + 1;
-      const res = await axios.get(`/api/customers/${customerId}/calendar/${y}/${m}`);
+      const res = await apiClient.get(`/api/customers/${customerId}/calendar/${y}/${m}`);
       const data = res.data || {};
       
       setCalendar(data.calendar || []);

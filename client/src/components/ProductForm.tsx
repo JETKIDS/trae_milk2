@@ -18,7 +18,7 @@ import {
   Divider,
   InputAdornment,
 } from '@mui/material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 // 日本語入力の拡張（ローマ字変換）は撤去し、標準のTextFieldに戻します
 
 interface Product {
@@ -127,7 +127,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
 
   const fetchManufacturers = async () => {
     try {
-      const response = await axios.get('/api/masters/manufacturers');
+      const response = await apiClient.get('/api/masters/manufacturers');
       if (response.data && Array.isArray(response.data)) {
         // データの安全性チェック
         const validManufacturers = response.data.filter(manufacturer => 
@@ -148,7 +148,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
 
   const fetchNextAvailableId = async (): Promise<string> => {
     try {
-      const response = await axios.get('/api/products');
+      const response = await apiClient.get('/api/products');
       const products = response.data;
       
       // 4桁数値形式のcustom_idを取得
@@ -196,11 +196,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
 
     try {
       if (product?.id) {
-        await axios.put(`/api/products/${product.id}`, formData);
+        await apiClient.put(`/api/products/${product.id}`, formData);
       } else {
         // 新規作成時はidを除外してサーバーに送信
         const { id, ...dataWithoutId } = formData;
-        await axios.post('/api/products', dataWithoutId);
+        await apiClient.post('/api/products', dataWithoutId);
       }
       onSave();
       onClose();

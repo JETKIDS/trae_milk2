@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, Button, IconButton, Grid, Card, CardContent, Typography, Chip, Paper, Table, TableHead, TableRow, TableCell, TableBody, TextField, Dialog, Popover, FormControl, InputLabel, Select, MenuItem, TableContainer, Alert } from '@mui/material';
 import { Undo as UndoIcon, Edit as EditIcon, ArrowBack as ArrowBackIcon, ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import moment from 'moment';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProductMasters } from '../hooks/useProductMasters';
@@ -210,7 +210,7 @@ const CustomerDetail: React.FC = () => {
   // ===== データ取得関数 =====
   const fetchCustomerData = useCallback(async () => {
     try {
-      const res = await axios.get(`/api/customers/${id}`);
+      const res = await apiClient.get(`/api/customers/${id}`);
       const data = res.data || {};
       if (data.customer) {
         setCustomer(data.customer);
@@ -230,7 +230,7 @@ const CustomerDetail: React.FC = () => {
     try {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
-      const res = await axios.get(`/api/customers/${id}/calendar/${y}/${m}`);
+      const res = await apiClient.get(`/api/customers/${id}/calendar/${y}/${m}`);
       const data = res.data || {};
       setCalendar(data.calendar || []);
       setTemporaryChanges(data.temporaryChanges || []);
@@ -243,7 +243,7 @@ const CustomerDetail: React.FC = () => {
     try {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
-      const res = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
+      const res = await apiClient.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
       const status: ArInvoiceStatus = res?.data || {} as any;
       setInvoiceConfirmed(Boolean(status?.confirmed));
       setInvoiceConfirmedAt(status?.confirmed_at || null);
@@ -260,7 +260,7 @@ const CustomerDetail: React.FC = () => {
       const y = arSummary?.prev_year;
       const m = arSummary?.prev_month;
       if (!y || !m) { setPrevInvoiceConfirmed(null); return; }
-      const res = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
+      const res = await apiClient.get(`/api/customers/${id}/invoices/status`, { params: { year: y, month: m } });
       const status: ArInvoiceStatus = res?.data || {} as any;
       setPrevInvoiceConfirmed(Boolean(status?.confirmed));
     } catch (e) {
@@ -271,7 +271,7 @@ const CustomerDetail: React.FC = () => {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await axios.get(`/api/customers/${id}`);
+      const res = await apiClient.get(`/api/customers/${id}`);
       const settings = res.data?.settings || null;
       const bm = settings?.billing_method;
       const re = settings?.rounding_enabled;
@@ -293,7 +293,7 @@ const CustomerDetail: React.FC = () => {
     try {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
-      const res = await axios.get(`/api/customers/${id}/ar-summary`, { params: { year: y, month: m } });
+      const res = await apiClient.get(`/api/customers/${id}/ar-summary`, { params: { year: y, month: m } });
       setArSummary(res.data || null);
     } catch (e) {
       console.error('ARサマリ取得エラー', e);
@@ -306,7 +306,7 @@ const CustomerDetail: React.FC = () => {
     try {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
-      const res = await axios.get(`/api/customers/${id}/payments`, { params: { year: y, month: m, limit: 1000 } });
+      const res = await apiClient.get(`/api/customers/${id}/payments`, { params: { year: y, month: m, limit: 1000 } });
       const rows = Array.isArray(res.data) ? res.data : [];
       const sum = rows.reduce((acc: number, p: any) => acc + (typeof p.amount === 'number' ? p.amount : 0), 0);
       setCurrentPaymentAmount(sum);
@@ -395,7 +395,7 @@ const CustomerDetail: React.FC = () => {
     const isActiveToSend = moment(endDateCandidate).isSameOrAfter(moment(pattern.start_date), 'day') ? 1 : 0;
 
     try {
-      await axios.put(`/api/delivery-patterns/${pattern.id}`, {
+      await apiClient.put(`/api/delivery-patterns/${pattern.id}`, {
         product_id: pattern.product_id,
         quantity: pattern.quantity,
         unit_price: pattern.unit_price,
@@ -411,7 +411,7 @@ const CustomerDetail: React.FC = () => {
         description: '解約を元に戻す',
         revert: async () => {
           if (!pattern.id) return;
-          await axios.put(`/api/delivery-patterns/${pattern.id}`, {
+          await apiClient.put(`/api/delivery-patterns/${pattern.id}`, {
             product_id: pattern.product_id,
             quantity: pattern.quantity,
             unit_price: pattern.unit_price,
@@ -504,7 +504,7 @@ const CustomerDetail: React.FC = () => {
     };
 
     try {
-      await axios.put(`/api/delivery-patterns/${target.id}`, {
+      await apiClient.put(`/api/delivery-patterns/${target.id}`, {
         product_id: target.product_id,
         quantity: target.quantity,
         unit_price: target.unit_price,
@@ -600,7 +600,7 @@ const CustomerDetail: React.FC = () => {
       return;
     }
     try {
-      const res = await axios.post('/api/temporary-changes', {
+      const res = await apiClient.post('/api/temporary-changes', {
         customer_id: Number(id),
         change_date: overrideDate || selectedCell.date,
         change_type,
@@ -614,7 +614,7 @@ const CustomerDetail: React.FC = () => {
         pushUndo({
           description: '臨時変更の取り消し',
           revert: async () => {
-            await axios.delete(`/api/temporary-changes/${createdId}`);
+            await apiClient.delete(`/api/temporary-changes/${createdId}`);
           },
         });
       }
@@ -705,7 +705,7 @@ const CustomerDetail: React.FC = () => {
         revert: async () => {
           for (const tid of createdIds) {
             try {
-              await axios.delete(`/api/temporary-changes/${tid}`);
+              await apiClient.delete(`/api/temporary-changes/${tid}`);
             } catch (e) {
               console.error('休配（期間）取り消しの一部削除:', e);
             }
@@ -728,7 +728,7 @@ const CustomerDetail: React.FC = () => {
     if (!productId) return;
 
     try {
-      const res = await axios.get(`/api/temporary-changes/customer/${id}/period/${start}/${end}`);
+      const res = await apiClient.get(`/api/temporary-changes/customer/${id}/period/${start}/${end}`);
       const rows: TemporaryChange[] = res.data || [];
       const targets = rows.filter(tc => tc.change_type === 'skip' && tc.product_id === productId);
       // 削除前に復元用データを保持
@@ -743,7 +743,7 @@ const CustomerDetail: React.FC = () => {
       }));
       for (const t of targets) {
         if (t.id) {
-          await axios.delete(`/api/temporary-changes/${t.id}`);
+          await apiClient.delete(`/api/temporary-changes/${t.id}`);
         }
       }
       setUnskipStartDate('');
@@ -756,7 +756,7 @@ const CustomerDetail: React.FC = () => {
           revert: async () => {
             for (const payload of restorePayloads) {
               try {
-                await axios.post('/api/temporary-changes', payload);
+                await apiClient.post('/api/temporary-changes', payload);
               } catch (e) {
                 console.error('休配解除の取り消し（再作成）に失敗:', e);
               }
@@ -822,7 +822,7 @@ const CustomerDetail: React.FC = () => {
         : null;
 
       // 既存パターンの終了日を変更開始前日に更新（履歴として非アクティブ化）
-      await axios.put(`/api/delivery-patterns/${unitPriceChangeTargetId}`, {
+      await apiClient.put(`/api/delivery-patterns/${unitPriceChangeTargetId}`, {
         product_id: target.product_id,
         quantity: target.quantity,
         unit_price: target.unit_price,
@@ -834,7 +834,7 @@ const CustomerDetail: React.FC = () => {
       });
 
       // 新単価の新パターンを開始月1日で作成（終了日は無期限: null）
-      const createRes = await axios.post(`/api/delivery-patterns`, {
+      const createRes = await apiClient.post(`/api/delivery-patterns`, {
         customer_id: target.customer_id,
         product_id: target.product_id,
         quantity: target.quantity,
@@ -854,13 +854,13 @@ const CustomerDetail: React.FC = () => {
         revert: async () => {
           try {
             if (newPatternId) {
-              await axios.delete(`/api/delivery-patterns/${newPatternId}`);
+              await apiClient.delete(`/api/delivery-patterns/${newPatternId}`);
             }
           } catch (e) {
             console.error('新規パターン削除（Undo）に失敗:', e);
           }
           try {
-            await axios.put(`/api/delivery-patterns/${unitPriceChangeTargetId}`, {
+            await apiClient.put(`/api/delivery-patterns/${unitPriceChangeTargetId}`, {
               product_id: target.product_id,
               quantity: target.quantity,
               unit_price: target.unit_price,
@@ -1004,7 +1004,7 @@ const CustomerDetail: React.FC = () => {
   // 設定保存ヘルパー
   const saveBillingSettings = async (method: 'collection' | 'debit', roundingEnabled: boolean) => {
     try {
-      await axios.put(`/api/customers/${id}/settings`, {
+      await apiClient.put(`/api/customers/${id}/settings`, {
         billing_method: method,
         rounding_enabled: roundingEnabled ? 1 : 0,
       });
@@ -1028,7 +1028,7 @@ const CustomerDetail: React.FC = () => {
     try {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
-      await axios.post(`/api/customers/${id}/invoices/confirm`, { year: y, month: m });
+      await apiClient.post(`/api/customers/${id}/invoices/confirm`, { year: y, month: m });
       alert('当月の請求を確定しました。');
       await fetchArSummary(); // 前月・繰越に影響が出る可能性があるため再取得
       await fetchInvoiceStatus();
@@ -1043,7 +1043,7 @@ const CustomerDetail: React.FC = () => {
     try {
       const y = currentDate.year();
       const m = currentDate.month() + 1;
-      await axios.post(`/api/customers/${id}/invoices/unconfirm`, { year: y, month: m });
+      await apiClient.post(`/api/customers/${id}/invoices/unconfirm`, { year: y, month: m });
       alert('当月の請求確定を取り消しました。');
       await fetchArSummary();
       await fetchInvoiceStatus();
@@ -1078,7 +1078,7 @@ const CustomerDetail: React.FC = () => {
       const currentY = currentDate.year();
       const currentM = currentDate.month() + 1;
       // 以前の当月確定チェック（debitのみ）も撤廃し、方式に関わらず保存可能とする
-      await axios.post(`/api/customers/${id}/payments`, {
+      await apiClient.post(`/api/customers/${id}/payments`, {
         year: currentY,
         month: currentM,
         amount: amt,
@@ -1121,7 +1121,7 @@ const CustomerDetail: React.FC = () => {
 
       // 集金（collection）は未確定でも登録可能
 
-      await axios.post(`/api/customers/${id}/payments`, {
+      await apiClient.post(`/api/customers/${id}/payments`, {
         year: y,
         month: m,
         amount: Number(paymentAmount),

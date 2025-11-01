@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import {
   Dialog,
   DialogTitle,
@@ -58,7 +58,7 @@ const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defa
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`/api/customers/${customerId}/payments`, {
+        const res = await apiClient.get(`/api/customers/${customerId}/payments`, {
           params: { year, month, method: method || undefined, q: q || undefined },
         });
         setRows(res.data || []);
@@ -78,9 +78,9 @@ const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defa
 
   const handleSaveNote = async (id: number) => {
     try {
-      await axios.patch(`/api/customers/${customerId}/payments/${id}`, { note: editingNote });
+      await apiClient.patch(`/api/customers/${customerId}/payments/${id}`, { note: editingNote });
       // refresh
-      const res = await axios.get(`/api/customers/${customerId}/payments`, { params: { year, month, method: method || undefined, q: q || undefined } });
+      const res = await apiClient.get(`/api/customers/${customerId}/payments`, { params: { year, month, method: method || undefined, q: q || undefined } });
       setRows(res.data || []);
       setEditingId(null);
       setEditingNote('');
@@ -97,9 +97,9 @@ const PaymentHistoryDialog: React.FC<Props> = ({ customerId, open, onClose, defa
   const handleDeletePayment = async (id: number) => {
     if (!window.confirm('この入金を取消（マイナス入金）します。よろしいですか？')) return;
     try {
-      await axios.post(`/api/customers/${customerId}/payments/${id}/cancel`);
+      await apiClient.post(`/api/customers/${customerId}/payments/${id}/cancel`);
       // refresh
-      const res = await axios.get(`/api/customers/${customerId}/payments`, { params: { year, month, method: method || undefined, q: q || undefined } });
+      const res = await apiClient.get(`/api/customers/${customerId}/payments`, { params: { year, month, method: method || undefined, q: q || undefined } });
       setRows(res.data || []);
       if (onUpdated) await onUpdated();
     } catch (e) {

@@ -19,7 +19,7 @@ import {
   Alert,
 } from '@mui/material';
 import { Add as AddIcon, Save as SaveIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { useCompany } from '../contexts/CompanyContext';
 import { halfKanaRegex } from '../utils/validation';
 
@@ -139,8 +139,8 @@ const MasterManagement: React.FC = () => {
     const fetchMasterData = async (): Promise<void> => {
       try {
         const [staffRes, manufacturersRes] = await Promise.all([
-          axios.get('/api/masters/staff'),
-          axios.get('/api/masters/manufacturers'),
+          apiClient.get('/api/masters/staff'),
+          apiClient.get('/api/masters/manufacturers'),
         ]);
 
         setStaff(staffRes.data);
@@ -148,14 +148,14 @@ const MasterManagement: React.FC = () => {
 
         // 会社情報も取得（まだAPIがない場合はデフォルト値を使用）
         try {
-          const companyRes = await axios.get('/api/masters/company');
+          const companyRes = await apiClient.get('/api/masters/company');
           setCompanyInfo(companyRes.data);
         } catch (error) {
           console.log('会社情報APIがまだ実装されていません');
         }
 
         try {
-          const listRes = await axios.get('/api/masters/institutions');
+          const listRes = await apiClient.get('/api/masters/institutions');
           const list: InstitutionInfo[] = listRes.data || [];
           setInstitutions(list);
           if (list.length > 0) {
@@ -167,7 +167,7 @@ const MasterManagement: React.FC = () => {
         } catch (error) {
           console.log('収納機関一覧APIがまだ実装されていません。単一設定APIの取得を試みます。');
           try {
-            const instRes = await axios.get('/api/masters/institution');
+            const instRes = await apiClient.get('/api/masters/institution');
             setInstitutionInfo(instRes.data);
           } catch (err) {
             console.log('収納機関設定APIがまだ実装されていません');
@@ -241,10 +241,10 @@ const MasterManagement: React.FC = () => {
       setSavingInstitution(true);
       const payload = { ...institutionInfo };
       if (selectedInstitutionId) {
-        const res = await axios.put(`/api/masters/institutions/${selectedInstitutionId}`, payload);
+        const res = await apiClient.put(`/api/masters/institutions/${selectedInstitutionId}`, payload);
         setSnackbar({ open: true, message: res.data?.message || '収納機関を更新しました', severity: 'success' });
       } else {
-        const res = await axios.post('/api/masters/institutions', payload);
+        const res = await apiClient.post('/api/masters/institutions', payload);
         setSnackbar({ open: true, message: res.data?.message || '収納機関を作成しました', severity: 'success' });
         const newId = res?.data?.id as number | undefined;
         if (newId) setSelectedInstitutionId(newId);
@@ -260,7 +260,7 @@ const MasterManagement: React.FC = () => {
   };
   const refreshStaff = async () => {
     try {
-      const res = await axios.get('/api/masters/staff');
+      const res = await apiClient.get('/api/masters/staff');
       setStaff(res.data);
     } catch (error) {
       console.error('スタッフ一覧更新に失敗しました:', error);
@@ -270,7 +270,7 @@ const MasterManagement: React.FC = () => {
 
   const refreshManufacturers = async () => {
     try {
-      const res = await axios.get('/api/masters/manufacturers');
+      const res = await apiClient.get('/api/masters/manufacturers');
       setManufacturers(res.data);
     } catch (error) {
       console.error('メーカー一覧更新に失敗しました:', error);
@@ -282,7 +282,7 @@ const MasterManagement: React.FC = () => {
     const ok = window.confirm(`スタッフ「${member.staff_name}」を削除します。よろしいですか？`);
     if (!ok) return;
     try {
-      await axios.delete(`/api/masters/staff/${member.id}`);
+      await apiClient.delete(`/api/masters/staff/${member.id}`);
       await refreshStaff();
       setSnackbar({ open: true, message: 'スタッフを削除しました', severity: 'success' });
     } catch (error: any) {
@@ -296,7 +296,7 @@ const MasterManagement: React.FC = () => {
     const ok = window.confirm(`メーカー「${manufacturer.manufacturer_name}」を削除します。よろしいですか？`);
     if (!ok) return;
     try {
-      await axios.delete(`/api/masters/manufacturers/${manufacturer.id}`);
+      await apiClient.delete(`/api/masters/manufacturers/${manufacturer.id}`);
       await refreshManufacturers();
       setSnackbar({ open: true, message: 'メーカーを削除しました', severity: 'success' });
     } catch (error: any) {
@@ -309,7 +309,7 @@ const MasterManagement: React.FC = () => {
   const handleSaveCompanyInfo = async () => {
     try {
       setSaving(true);
-      await axios.post('/api/masters/company', companyInfo);
+      await apiClient.post('/api/masters/company', companyInfo);
       // コンテキストの状態も更新
       updateCompanyInfo(companyInfo);
       setSnackbar({ open: true, message: '会社情報を保存しました', severity: 'success' });
@@ -324,7 +324,7 @@ const MasterManagement: React.FC = () => {
   // 収納機関一覧の再取得
   const refreshInstitutions = async () => {
     try {
-      const res = await axios.get('/api/masters/institutions');
+      const res = await apiClient.get('/api/masters/institutions');
       const list: InstitutionInfo[] = res.data || [];
       setInstitutions(list);
       if (selectedInstitutionId) {
@@ -389,7 +389,7 @@ const MasterManagement: React.FC = () => {
     const ok = window.confirm('選択中の収納機関を削除します。よろしいですか？');
     if (!ok) return;
     try {
-      await axios.delete(`/api/masters/institutions/${id}`);
+      await apiClient.delete(`/api/masters/institutions/${id}`);
       await refreshInstitutions();
       setSnackbar({ open: true, message: '収納機関を削除しました', severity: 'success' });
     } catch (error: any) {

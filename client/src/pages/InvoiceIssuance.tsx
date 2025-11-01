@@ -19,7 +19,7 @@ import {
   TableCell,
   TableBody,
 } from '@mui/material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 import { pad7 } from '../utils/id';
 import { useNavigate } from 'react-router-dom';
 
@@ -64,7 +64,7 @@ const InvoiceIssuance: React.FC = () => {
   useEffect(() => {
     const loadCourses = async () => {
       try {
-        const res = await axios.get('/api/masters/courses');
+        const res = await apiClient.get('/api/masters/courses');
         const list: Course[] = (res.data || []).map((c: any) => ({ id: c.id, custom_id: c.custom_id, course_name: c.course_name }));
         setCourses(list);
       } catch (e: any) {
@@ -91,9 +91,9 @@ const InvoiceIssuance: React.FC = () => {
     setLoading(true);
     try {
       const [customersRes, amountsResC, amountsResD] = await Promise.all([
-        axios.get(`/api/customers/by-course/${selectedCourseId}`),
-        axios.get(`/api/customers/by-course/${selectedCourseId}/invoices-amounts`, { params: { year, month, method: 'collection' } }),
-        axios.get(`/api/customers/by-course/${selectedCourseId}/invoices-amounts`, { params: { year, month, method: 'debit' } }),
+        apiClient.get(`/api/customers/by-course/${selectedCourseId}`),
+        apiClient.get(`/api/customers/by-course/${selectedCourseId}/invoices-amounts`, { params: { year, month, method: 'collection' } }),
+        apiClient.get(`/api/customers/by-course/${selectedCourseId}/invoices-amounts`, { params: { year, month, method: 'debit' } }),
       ]);
       const custs: CustomerRow[] = (customersRes.data || []).map((r: any) => ({
         id: r.id,

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Checkbox, Container, FormControlLabel, Grid, MenuItem, Paper, Select, TextField, Typography, ToggleButtonGroup, ToggleButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
 import { pad7 } from '../utils/id';
+import { getPrevYearMonth } from '../utils/date';
 
 interface Course { id: number; custom_id: string; course_name: string; }
 interface Customer { id: number; custom_id: string; customer_name: string; billing_method?: string; rounding_enabled?: number; course_name?: string; course_custom_id?: string; delivery_order?: number }
@@ -104,11 +105,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
       const addCourseInfo = (list: Customer[]) => list.map(c => ({ ...c, course_name: co?.course_name, course_custom_id: co?.custom_id }));
       let rows: Customer[] = [];
       // 対象（入金）月と前月（請求参照）を分離
-      const date = new Date(year, month - 1, 1);
-      const prevDate = new Date(date);
-      prevDate.setMonth(prevDate.getMonth() - 1);
-      const invYear = prevDate.getFullYear();
-      const invMonth = prevDate.getMonth() + 1;
+      const { year: invYear, month: invMonth } = getPrevYearMonth(year, month);
       if (readOnly || method === 'both') {
         try {
           const respC = await fetchWithTimeout(`/api/customers/by-course/${cid}/collection`);
@@ -151,11 +148,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
     const confAll: Record<number, boolean> = {};
     const paidAll: Record<number, number> = {};
     let allRows: Customer[] = [];
-    const date = new Date(year, month - 1, 1);
-    const prevDate = new Date(date);
-    prevDate.setMonth(prevDate.getMonth() - 1);
-    const invYear = prevDate.getFullYear();
-    const invMonth = prevDate.getMonth() + 1;
+    const { year: invYear, month: invMonth } = getPrevYearMonth(year, month);
     for (const co of courses) {
       let rows: Customer[] = [];
       if (readOnly || method === 'both') {

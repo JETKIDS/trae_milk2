@@ -39,7 +39,7 @@ import {
   Schedule as ScheduleIcon,
   CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 
 interface Product {
   id: number;
@@ -121,7 +121,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('/api/products');
+      const response = await apiClient.get('/api/products');
       // 商品管理に登録されている全商品を候補にする（フィルタしない）
       setProducts(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
@@ -273,13 +273,13 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
           reason: '臨時配達'
         };
 
-        const res = await axios.post('/api/temporary-changes', temporaryData);
+        const res = await apiClient.post('/api/temporary-changes', temporaryData);
         const createdTempId = res?.data?.id as number | undefined;
         if (createdTempId && onRecordUndo) {
           onRecordUndo({
             description: '臨時配達の追加を元に戻す',
             revert: async () => {
-              await axios.delete(`/api/temporary-changes/${createdTempId}`);
+              await apiClient.delete(`/api/temporary-changes/${createdTempId}`);
             },
           });
         }
@@ -337,7 +337,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
               .split('T')[0];
 
             // 1) 既存パターンを分割開始前日で終了し、履歴として非アクティブル化
-            await axios.put(`/api/delivery-patterns/${editingPattern.id}`, {
+            await apiClient.put(`/api/delivery-patterns/${editingPattern.id}`, {
               product_id: editingPattern.product_id,
               quantity: editingPattern.quantity,
               unit_price: editingPattern.unit_price,
@@ -350,7 +350,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
             });
 
             // 2) 新パターンを新開始日で作成（フォームの設定を適用）
-            const createRes = await axios.post('/api/delivery-patterns', {
+            const createRes = await apiClient.post('/api/delivery-patterns', {
               customer_id: editingPattern.customer_id,
               product_id: formData.product_id,
               quantity: formData.quantity,
@@ -369,12 +369,12 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                 description: '配達パターン分割の取り消し',
                 revert: async () => {
                   try {
-                    await axios.delete(`/api/delivery-patterns/${newPatternId}`);
+                    await apiClient.delete(`/api/delivery-patterns/${newPatternId}`);
                   } catch (e) {
                     console.error('新規パターン削除（Undo）に失敗:', e);
                   }
                   try {
-                    await axios.put(`/api/delivery-patterns/${editingPattern.id}`, {
+                    await apiClient.put(`/api/delivery-patterns/${editingPattern.id}`, {
                       product_id: editingPattern.product_id,
                       quantity: editingPattern.quantity,
                       unit_price: editingPattern.unit_price,
@@ -398,7 +398,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
             });
           } else {
             // 従来通りの更新（開始日が同日または前倒しの場合）
-            await axios.put(`/api/delivery-patterns/${editingPattern.id}`, dataToSend);
+            await apiClient.put(`/api/delivery-patterns/${editingPattern.id}`, dataToSend);
             if (onRecordUndo) {
               const prevEnd = editingPattern.end_date || null;
               const prevActive = editingPattern.is_active ? 1 : 0;
@@ -406,7 +406,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                 description: '配達パターン更新の取り消し',
                 revert: async () => {
                   try {
-                    await axios.put(`/api/delivery-patterns/${editingPattern.id}`, {
+                    await apiClient.put(`/api/delivery-patterns/${editingPattern.id}`, {
                       product_id: editingPattern.product_id,
                       quantity: editingPattern.quantity,
                       unit_price: editingPattern.unit_price,
@@ -429,13 +429,13 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
             });
           }
         } else {
-          const res = await axios.post('/api/delivery-patterns', dataToSend);
+          const res = await apiClient.post('/api/delivery-patterns', dataToSend);
           const createdId = res?.data?.id as number | undefined;
           if (createdId && onRecordUndo) {
             onRecordUndo({
               description: '配達パターン追加の取り消し',
               revert: async () => {
-                await axios.delete(`/api/delivery-patterns/${createdId}`);
+                await apiClient.delete(`/api/delivery-patterns/${createdId}`);
               },
             });
           }
@@ -472,7 +472,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
 
     try {
       const deleted = patterns.find(p => p.id === patternId);
-      await axios.delete(`/api/delivery-patterns/${patternId}`);
+      await apiClient.delete(`/api/delivery-patterns/${patternId}`);
       if (deleted && onRecordUndo) {
         const toDaysString = (val: any): string => {
           if (Array.isArray(val)) return JSON.stringify(val);
@@ -488,7 +488,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
           description: '配達パターン削除の取り消し',
           revert: async () => {
             try {
-              await axios.post('/api/delivery-patterns', {
+              await apiClient.post('/api/delivery-patterns', {
                 customer_id: deleted.customer_id,
                 product_id: deleted.product_id,
                 quantity: deleted.quantity,

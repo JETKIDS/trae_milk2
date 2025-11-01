@@ -381,11 +381,14 @@ router.get('/generate', async (req, res) => {
         const tail = '1' + '0'.repeat(17) + idPadded + ' '.repeat(6);
         return recordType + bank + bankNameOut + branch + branchNameOut + kind + acct + name + amount + tail;
       });
-      console.log(`[debits] header length(chars)=${headerLine.length}`);
-      console.log(`[debits] header sample='${headerLine}'`);
-      if (fixedLines.length > 0) {
-        console.log(`[debits] first detail length(chars)=${fixedLines[0].length}`);
-        console.log(`[debits] first detail sample='${fixedLines[0]}'`);
+      if (process.env.NODE_ENV !== 'production') {
+        // デバッグ出力（本番では抑止）
+        console.log(`[debits] header length(chars)=${headerLine.length}`);
+        console.log(`[debits] header sample='${headerLine}'`);
+        if (fixedLines.length > 0) {
+          console.log(`[debits] first detail length(chars)=${fixedLines[0].length}`);
+          console.log(`[debits] first detail sample='${fixedLines[0]}'`);
+        }
       }
       const text = [headerLine, ...fixedLines].join('\r\n') + '\r\n';
       const buf = iconv.encode(text, 'CP932');

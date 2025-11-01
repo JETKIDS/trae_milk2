@@ -1,4 +1,4 @@
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 
 const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || '/api');
 
@@ -35,7 +35,7 @@ export const deliveryService = {
   // 日別配達データを取得
   getDailyDeliveries: async (date: string): Promise<DailyDeliveryData> => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/delivery/daily/${date}`);
+      const response = await apiClient.get(`/delivery/daily/${date}`);
       return response.data;
     } catch (error) {
       console.error('配達データの取得に失敗しました:', error);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Grid, Card, CardContent, Box } from '@mui/material';
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 
 interface Stats {
   totalCustomers: number;
@@ -27,10 +27,10 @@ const Dashboard: React.FC = () => {
     const fetchStats = async (): Promise<void> => {
       try {
         const [customers, products, courses, staff] = await Promise.all([
-          axios.get('/api/customers'),
-          axios.get('/api/products'),
-          axios.get('/api/masters/courses'),
-          axios.get('/api/masters/staff'),
+          apiClient.get('/api/customers'),
+          apiClient.get('/api/products'),
+          apiClient.get('/api/masters/courses'),
+          apiClient.get('/api/masters/staff'),
         ]);
 
         setStats({
