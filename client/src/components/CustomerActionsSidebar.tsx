@@ -225,6 +225,12 @@ const saveMethodChange = async () => {
             <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>前月請求・当月入金</Typography>
             {canShowPrevInvoice ? (
               <>
+                {/* 月ペア表示：請求月 → 入金月 */}
+                <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+                  <Chip size="small" label={`請求: ${prevYear}年${prevMonth}月`} />
+                  <Typography variant="body2" sx={{ mx: 0.5 }}>→</Typography>
+                  <Chip size="small" color="primary" label={`入金: ${currentYear}年${currentMonth}月`} />
+                </Stack>
                 <Typography variant="body2" sx={{ mt: 1 }}>前月請求額（{prevYear}年{prevMonth}月）: ¥{(prevInvoiceAmount || 0).toLocaleString()}</Typography>
                 <Typography variant="body2" sx={{ mt: 1 }}>当月入金額（{currentYear}年{currentMonth}月）: ¥{(currentPaymentAmount || 0).toLocaleString()}</Typography>
                 <Box sx={{ mt: 1 }}>
@@ -251,9 +257,16 @@ const saveMethodChange = async () => {
                     <Button size="small" variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment?.(Number(manualAmount), 'manual', Number(prevYear), Number(prevMonth))}>入金保存</Button>
                   </Stack>
                 </Box>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  繰越額: ¥{(((prevInvoiceAmount || 0) - (currentPaymentAmount || 0)) || 0).toLocaleString()}
-                </Typography>
+                {(() => {
+                  const prevAmt = Number(prevInvoiceAmount || 0);
+                  const currPay = Number(currentPaymentAmount || 0);
+                  const carry = (prevAmt - currPay) || 0;
+                  return (
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      繰越額: ¥{carry.toLocaleString()}（前月請求 ¥{prevAmt.toLocaleString()} − 当月入金 ¥{currPay.toLocaleString()} = ¥{carry.toLocaleString()}）
+                    </Typography>
+                  );
+                })()}
               </>
             ) : (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>

@@ -843,18 +843,39 @@ router.post('/payments/batch', async (req, res) => {
   try {
     await ensureLedgerTables(db);
 
-    // 対象年月が月次確定済みの顧客のみ入金登録を許可する
-    const confirmedRows = await new Promise((resolve, reject) => {
-      db.all(
-        'SELECT customer_id FROM ar_invoices WHERE year = ? AND month = ?',
-        [y, m],
-        (err, rows) => {
-          if (err) return reject(err);
-          resolve(rows || []);
-        }
-      );
-    });
-    const confirmedSet = new Set(confirmedRows.map(r => Number(r.customer_id)));
+    // 入金登録の許可判定：
+    // - 集金(collection): 前月の請求が確定していれば登録可（当月確定は不要）
+    // - 引き落し(debit): 当月（入金月）の請求確定が必要
+    const prev = new Date(y, m - 1, 1);
+    prev.setMonth(prev.getMonth() - 1);
+    const py = prev.getFullYear();
+    const pm = prev.getMonth() + 1;
+
+    let confirmedRows;
+    if (methodStr === 'debit') {
+      confirmedRows = await new Promise((resolve, reject) => {
+        db.all(
+          'SELECT customer_id FROM ar_invoices WHERE year = ? AND month = ? AND status = "confirmed"',
+          [y, m],
+          (err, rows) => {
+            if (err) return reject(err);
+            resolve(rows || []);
+          }
+        );
+      });
+    } else {
+      confirmedRows = await new Promise((resolve, reject) => {
+        db.all(
+          'SELECT customer_id FROM ar_invoices WHERE year = ? AND month = ? AND status = "confirmed"',
+          [py, pm],
+          (err, rows) => {
+            if (err) return reject(err);
+            resolve(rows || []);
+          }
+        );
+      });
+    }
+    const confirmedSet = new Set((confirmedRows || []).map(r => Number(r.customer_id)));
 
     let success = 0;
     let failed = 0;

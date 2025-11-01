@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Checkbox, Container, FormControlLabel, Grid, MenuItem, Paper, Select, TextField, Typography, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Box, Button, Checkbox, Container, FormControlLabel, Grid, MenuItem, Paper, Select, TextField, Typography, ToggleButtonGroup, ToggleButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
 import { pad7 } from '../utils/id';
 
 interface Course { id: number; custom_id: string; course_name: string; }
@@ -32,13 +32,19 @@ export default function BulkCollection({ method = 'collection', readOnly = false
   const [invoiceAmounts, setInvoiceAmounts] = useState<Record<number, number>>({}); // 指定月請求額（満額）
   const [paidTotals, setPaidTotals] = useState<Record<number, number>>({}); // 指定月入金済み合計（金額）
   const [confirmedMap, setConfirmedMap] = useState<Record<number, boolean>>({});
-  const [commonAmount, setCommonAmount] = useState<number>(0);
   const [note, setNote] = useState<string>(method === 'debit' ? '引き落し一括登録' : '集金一括登録');
   const [registering, setRegistering] = useState(false);
   const [message, setMessage] = useState('');
   const [hideFullyPaid, setHideFullyPaid] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'perCourse' | 'allCourses'>(readOnly ? 'allCourses' : 'perCourse');
   const [filterMode, setFilterMode] = useState<'all' | 'collectionOnly' | 'debitOnly'>('all');
+
+  // 確認ダイアログ用の状態
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmEntries, setConfirmEntries] = useState<Array<{ customer_id: number; name: string; remaining: number; amount: number }>>([]);
+  const [confirmTotal, setConfirmTotal] = useState(0);
+  const [confirmMode, setConfirmMode] = useState<'auto' | 'manual'>('auto');
+  const [confirmAmountMap, setConfirmAmountMap] = useState<Record<number, number> | null>(null);
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -97,6 +103,12 @@ export default function BulkCollection({ method = 'collection', readOnly = false
       const co = courses.find(c => c.id === cid);
       const addCourseInfo = (list: Customer[]) => list.map(c => ({ ...c, course_name: co?.course_name, course_custom_id: co?.custom_id }));
       let rows: Customer[] = [];
+      // 対象（入金）月と前月（請求参照）を分離
+      const date = new Date(year, month - 1, 1);
+      const prevDate = new Date(date);
+      prevDate.setMonth(prevDate.getMonth() - 1);
+      const invYear = prevDate.getFullYear();
+      const invMonth = prevDate.getMonth() + 1;
       if (readOnly || method === 'both') {
         try {
           const respC = await fetchWithTimeout(`/api/customers/by-course/${cid}/collection`);
@@ -122,9 +134,11 @@ export default function BulkCollection({ method = 'collection', readOnly = false
       setCustomers(rows);
       setChecked({});
       setAmounts({});
-      const { invMap, confMap } = await fetchInvoicesAmountsMerged(cid, year, month);
+      // 請求額・確定フラグは前月を参照
+      const { invMap, confMap } = await fetchInvoicesAmountsMerged(cid, invYear, invMonth);
       setInvoiceAmounts(prev => ({ ...prev, ...invMap }));
       setConfirmedMap(prev => ({ ...prev, ...confMap }));
+      // 入金合計は当月（対象月）を参照
       const paidMap = await fetchPaymentsSumMap(cid, year, month);
       setPaidTotals(prev => ({ ...prev, ...paidMap }));
     } catch (e) {
@@ -137,6 +151,11 @@ export default function BulkCollection({ method = 'collection', readOnly = false
     const confAll: Record<number, boolean> = {};
     const paidAll: Record<number, number> = {};
     let allRows: Customer[] = [];
+    const date = new Date(year, month - 1, 1);
+    const prevDate = new Date(date);
+    prevDate.setMonth(prevDate.getMonth() - 1);
+    const invYear = prevDate.getFullYear();
+    const invMonth = prevDate.getMonth() + 1;
     for (const co of courses) {
       let rows: Customer[] = [];
       if (readOnly || method === 'both') {
@@ -162,9 +181,11 @@ export default function BulkCollection({ method = 'collection', readOnly = false
         }
       }
       allRows = allRows.concat(rows);
-      const { invMap, confMap } = await fetchInvoicesAmountsMerged(co.id, year, month);
+      // 前月（請求参照）を使用
+      const { invMap, confMap } = await fetchInvoicesAmountsMerged(co.id, invYear, invMonth);
       Object.assign(invAll, invMap);
       Object.assign(confAll, confMap);
+      // 当月（対象月）の入金合計
       const paidMap = await fetchPaymentsSumMap(co.id, year, month);
       Object.assign(paidAll, paidMap);
     }
@@ -178,9 +199,10 @@ export default function BulkCollection({ method = 'collection', readOnly = false
 
   const onChangeCourse = async (e: any) => {
     const v = e.target.value;
-    setCourseId(v);
-    if (v && typeof v === 'number') {
-      await loadCustomers(v);
+    const next = (v === '' || v === null || v === undefined) ? '' : Number(v);
+    setCourseId(next as any);
+    if (typeof next === 'number') {
+      await loadCustomers(next);
     }
   };
 
@@ -212,17 +234,6 @@ export default function BulkCollection({ method = 'collection', readOnly = false
     setChecked(next);
   };
 
-  const applyCommonAmount = () => {
-    if (!commonAmount || commonAmount <= 0) return;
-    const next: Record<number, number> = { ...amounts };
-    customers.forEach(c => {
-      if (checked[c.id]) {
-        const rem = remainingMap[c.id] || 0;
-        next[c.id] = Math.min(commonAmount, rem);
-      }
-    });
-    setAmounts(next);
-  };
 
   const remainingMap = useMemo(() => {
     const map: Record<number, number> = {};
@@ -275,7 +286,55 @@ export default function BulkCollection({ method = 'collection', readOnly = false
     }, 0);
   }, [customers, checked, amounts]);
 
-  const register = async () => {
+  // 確認ダイアログを開く
+  const openConfirm = (amountMap: Record<number, number>, mode: 'auto' | 'manual') => {
+    const entries = customers
+      .filter(c => checked[c.id] && confirmedMap[c.id])
+      .map(c => {
+        const remaining = remainingMap[c.id] || 0;
+        const amount = Math.min(Math.max(amountMap[c.id] || 0, 0), remaining);
+        return { customer_id: c.id, name: `${pad7(c.custom_id)} ${c.customer_name}`, remaining, amount };
+      })
+      .filter(e => e.amount > 0);
+    const total = entries.reduce((s, e) => s + e.amount, 0);
+    setConfirmEntries(entries);
+    setConfirmTotal(total);
+    setConfirmMode(mode);
+    setConfirmAmountMap(amountMap);
+    setConfirmOpen(true);
+  };
+
+  // 確認後に実行
+  const handleConfirmProceed = async () => {
+    const map = confirmAmountMap || {};
+    await registerWithAmounts(map);
+    setConfirmOpen(false);
+  };
+
+  // 自動入金：選択された顧客の残額を自動入力して入金処理を実行
+  const handleAutoPayment = async () => {
+    const checkedCustomers = customers.filter(c => checked[c.id] && confirmedMap[c.id] && (remainingMap[c.id] || 0) > 0);
+    if (checkedCustomers.length === 0) {
+      setMessage('選択された顧客がありません。確定済みで残額がある顧客を選択してください。');
+      return;
+    }
+
+    // 選択された顧客の残額を自動入力
+    const nextAmounts: Record<number, number> = {};
+    checkedCustomers.forEach(c => {
+      const rem = remainingMap[c.id] || 0;
+      if (rem > 0) {
+        nextAmounts[c.id] = rem;
+      }
+    });
+    setAmounts(nextAmounts);
+
+    // 自動入力後、確認ダイアログを表示
+    openConfirm(nextAmounts, 'auto');
+  };
+
+  // 入金処理（指定された金額マップを使用）
+  const registerWithAmounts = async (amountMap?: Record<number, number>) => {
     try {
       setRegistering(true);
       setMessage('');
@@ -283,7 +342,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
         .filter(c => checked[c.id] && confirmedMap[c.id])
         .map(c => {
           const rem = remainingMap[c.id] || 0;
-          const override = amounts[c.id] || 0;
+          const override = amountMap ? (amountMap[c.id] || 0) : (amounts[c.id] || 0);
           const planned = override > 0 ? Math.min(override, rem) : 0;
           return { customer_id: c.id, amount: planned, note };
         })
@@ -295,7 +354,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
       const resp = await fetchWithTimeout('/api/customers/payments/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year, month, entries: filtered, method }),
+        body: JSON.stringify({ year, month, entries, method }),
       });
       const json = await resp.json();
       if (!resp.ok) {
@@ -325,30 +384,71 @@ export default function BulkCollection({ method = 'collection', readOnly = false
     }
   };
 
+  // 通常の入金登録（手動入力金額）→ 確認ダイアログを表示
+  const register = async () => {
+    const map: Record<number, number> = {};
+    Object.keys(checked).forEach(k => {
+      const id = Number(k);
+      if (checked[id]) map[id] = amounts[id] || 0;
+    });
+    openConfirm(map, 'manual');
+  };
+
+  // 選択された顧客数と残額合計を計算
+  const selectedCustomersCount = useMemo(() => {
+    return customers.filter(c => checked[c.id] && confirmedMap[c.id] && (remainingMap[c.id] || 0) > 0).length;
+  }, [customers, checked, confirmedMap, remainingMap]);
+
+  const selectedRemainingTotal = useMemo(() => {
+    return customers
+      .filter(c => checked[c.id] && confirmedMap[c.id])
+      .reduce((sum, c) => sum + (remainingMap[c.id] || 0), 0);
+  }, [customers, checked, confirmedMap, remainingMap]);
+
   return (
     <Container maxWidth="lg" sx={{ mt: 3 }}>
-      <Typography variant="h5" gutterBottom>{readOnly ? '集金一覧表' : `コース別 一括入金（${method === 'debit' ? '引き落し' : '集金'}）`}</Typography>
+      <Typography variant="h5" gutterBottom>{readOnly ? '集金一覧表' : `一括入金（${method === 'debit' ? '引き落し' : '集金'}）`}</Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={3}>
-            <TextField label="対象年" type="number" value={year} onChange={(e) => setYear(parseInt(e.target.value || '0', 10))} fullWidth />
+          <Grid item xs={12} sm={4}>
+            <TextField 
+              label="対象年月" 
+              type="month" 
+              value={`${year}-${String(month).padStart(2, '0')}`}
+              onChange={(e) => {
+                const [y, m] = e.target.value.split('-').map(Number);
+                if (y && m) {
+                  setYear(y);
+                  setMonth(m);
+                }
+              }}
+              fullWidth 
+              InputLabelProps={{ shrink: true }}
+            />
           </Grid>
-          <Grid item xs={12} sm={3}>
-            <TextField label="対象月" type="number" value={month} onChange={(e) => setMonth(parseInt(e.target.value || '0', 10))} fullWidth />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            {readOnly ? (
+
+          {readOnly ? (
+            <Grid item xs={12} sm={6}>
               <ToggleButtonGroup exclusive value={viewMode} onChange={(_, v) => v && setViewMode(v)} size="small">
                 <ToggleButton value="allCourses">全コース</ToggleButton>
                 <ToggleButton value="perCourse">コース毎</ToggleButton>
               </ToggleButtonGroup>
-            ) : (
-              <Box />
-            )}
-          </Grid>
+            </Grid>
+          ) : (
+            viewMode === 'perCourse' && (
+              <Grid item xs={12} sm={8}>
+                <Select fullWidth displayEmpty value={courseId} onChange={onChangeCourse}>
+                  <MenuItem value=""><em>コースを選択…</em></MenuItem>
+                  {courses.map(co => (
+                    <MenuItem key={co.id} value={co.id}>{co.custom_id} {co.course_name}</MenuItem>
+                  ))}
+                </Select>
+              </Grid>
+            )
+          )}
 
-          {viewMode === 'perCourse' && (
+          {readOnly && viewMode === 'perCourse' && (
             <Grid item xs={12} sm={6}>
               <Select fullWidth displayEmpty value={courseId} onChange={onChangeCourse}>
                 <MenuItem value=""><em>コースを選択…</em></MenuItem>
@@ -360,28 +460,47 @@ export default function BulkCollection({ method = 'collection', readOnly = false
           )}
 
           <Grid item xs={12}>
-            <Box display="flex" gap={2} alignItems="center" justifyContent="flex-end">
+            <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
               {!readOnly && (
                 <>
-                  <FormControlLabel control={<Checkbox onChange={(e) => setAllChecked(e.target.checked)} />} label="全選択/解除" />
-                  <TextField label="一括金額" type="number" value={commonAmount} onChange={(e) => setCommonAmount(parseInt(e.target.value || '0', 10))} />
-                  <Button variant="outlined" onClick={applyCommonAmount}>一括金額を反映</Button>
+                  <FormControlLabel 
+                    control={<Checkbox onChange={(e) => setAllChecked(e.target.checked)} />} 
+                    label="全選択/解除" 
+                  />
+                  <FormControlLabel 
+                    control={<Checkbox checked={hideFullyPaid} onChange={(e) => setHideFullyPaid(e.target.checked)} />} 
+                    label="完全入金済みを隠す" 
+                  />
+                  <Box sx={{ ml: 'auto', display: 'flex', gap: 1, alignItems: 'center' }}>
+                    {selectedCustomersCount > 0 && (
+                      <Typography variant="body2" color="text.secondary">
+                        選択中: {selectedCustomersCount}件（残額合計: ￥{selectedRemainingTotal.toLocaleString()}）
+                      </Typography>
+                    )}
+                    <Button 
+                      variant="contained" 
+                      color="primary"
+                      onClick={handleAutoPayment} 
+                      disabled={registering || selectedCustomersCount === 0 || !courseId}
+                    >
+                      自動入金
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      onClick={register} 
+                      disabled={registering || (totalSelected === 0 && selectedRemainingTotal === 0) || !courseId}
+                    >
+                      手動入金登録
+                    </Button>
+                  </Box>
                 </>
               )}
-              <FormControlLabel control={<Checkbox checked={hideFullyPaid} onChange={(e) => setHideFullyPaid(e.target.checked)} />} label="完全入金済みを隠す" />
               {readOnly && (
                 <ToggleButtonGroup exclusive value={filterMode} onChange={(_, v) => v && setFilterMode(v)} size="small">
                   <ToggleButton value="all">表示: 全集金方法</ToggleButton>
                   <ToggleButton value="collectionOnly">表示: 集金のみ</ToggleButton>
                   <ToggleButton value="debitOnly">表示: 引き落しのみ</ToggleButton>
                 </ToggleButtonGroup>
-              )}
-              {!readOnly && (
-                <>
-                  <TextField label="メモ" value={note} onChange={(e) => setNote(e.target.value)} sx={{ minWidth: 240 }} />
-                  <Typography>選択合計（登録予定）: ￥{totalSelected.toLocaleString()}</Typography>
-                  <Button variant="contained" onClick={register} disabled={registering || !courseId}>一括入金登録</Button>
-                </>
               )}
             </Box>
           </Grid>
@@ -429,11 +548,21 @@ export default function BulkCollection({ method = 'collection', readOnly = false
                   ) : (
                     <>
                       <Grid item xs={12} sm={1}>
-                        <Checkbox
-                          checked={!!checked[c.id]}
-                          onChange={(e) => toggleCheck(c.id, e.target.checked)}
-                          disabled={(remainingMap[c.id] || 0) <= 0 || !confirmedMap[c.id]}
-                        />
+                        {(() => {
+                          const disabled = (remainingMap[c.id] || 0) <= 0 || !confirmedMap[c.id];
+                          const reason = !confirmedMap[c.id] ? '未確定のため選択不可' : ((remainingMap[c.id] || 0) <= 0 ? '残額がありません' : '');
+                          return (
+                            <Tooltip title={disabled ? reason : ''}>
+                              <span>
+                                <Checkbox
+                                  checked={!!checked[c.id]}
+                                  onChange={(e) => toggleCheck(c.id, e.target.checked)}
+                                  disabled={disabled}
+                                />
+                              </span>
+                            </Tooltip>
+                          );
+                        })()}
                       </Grid>
                       <Grid item xs={12} sm={3}>
                         <Typography variant="body2">{pad7(c.custom_id)} {c.customer_name}</Typography>
@@ -462,9 +591,10 @@ export default function BulkCollection({ method = 'collection', readOnly = false
                             const v = parseInt(e.target.value || '0', 10) || 0;
                             setAmounts(prev => ({ ...prev, [c.id]: v }));
                           }}
-                          inputProps={{ min: 0 }}
+                          inputProps={{ min: 0, max: remainingMap[c.id] || 0 }}
                           fullWidth
                           disabled={(remainingMap[c.id] || 0) <= 0 || !confirmedMap[c.id]}
+                          helperText={amounts[c.id] ? `残額: ￥${(remainingMap[c.id] || 0).toLocaleString()}` : ''}
                         />
                       </Grid>
                     </>
@@ -475,6 +605,45 @@ export default function BulkCollection({ method = 'collection', readOnly = false
           </Grid>
         )}
       </Paper>
+      {/* 確認ダイアログ */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>一括入金の確認（{confirmMode === 'auto' ? '自動入金' : '手動入金'}）</DialogTitle>
+        <DialogContent dividers>
+          {confirmEntries.length === 0 ? (
+            <Typography color="text.secondary">対象がありません。</Typography>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                対象件数: {confirmEntries.length} 件 / 合計金額: ￥{confirmTotal.toLocaleString()}
+              </Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>顧客</TableCell>
+                    <TableCell align="right">残額</TableCell>
+                    <TableCell align="right">入金額</TableCell>
+                    <TableCell align="right">差額</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {confirmEntries.map(row => (
+                    <TableRow key={row.customer_id}>
+                      <TableCell>{row.name}</TableCell>
+                      <TableCell align="right">￥{row.remaining.toLocaleString()}</TableCell>
+                      <TableCell align="right">￥{row.amount.toLocaleString()}</TableCell>
+                      <TableCell align="right">￥{(row.remaining - row.amount).toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>キャンセル</Button>
+          <Button variant="contained" onClick={handleConfirmProceed} disabled={confirmEntries.length === 0}>実行する</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
