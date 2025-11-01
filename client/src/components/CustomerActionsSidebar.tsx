@@ -188,11 +188,11 @@ const saveMethodChange = async () => {
   const canShowPrevInvoice = Boolean(prevMonthConfirmed && isNextMonth);
   // 保存対象は「前月（確定月）」に紐づくため、prevYear/prevMonth が必須
   // 集金は未確定でも保存可、引き落しは確定必須
+  // 支払い方式に依存せず、集金と同様の条件で保存を許可
   const canSave = manualAmount.trim() !== ''
     && Number(manualAmount) > 0
     && canShowPrevInvoice
-    && !!prevYear && !!prevMonth
-    && (invoiceConfirmed || effectiveMethod === 'collection');
+    && !!prevYear && !!prevMonth;
 
   return (
     <Box sx={{ position: 'sticky', top: 16 }}>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Button, Stack, Divider, Alert, ToggleButtonGroup, ToggleButton, TextField, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tabs, Tab } from '@mui/material';
 import BulkCollection from './BulkCollection';
+import PaymentDetails from './PaymentDetails';
 import InvoiceIssuance from './InvoiceIssuance';
 import MonthlyManagement from './MonthlyManagement';
 import CollectionList from './CollectionList';
@@ -11,7 +12,7 @@ import { pad7 } from '../utils/id';
 
 const BillingOperations: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'invoices' | 'monthly' | 'bulk' | 'debitData' | 'collectionList'>('invoices');
+  const [activeTab, setActiveTab] = useState<'invoices' | 'monthly' | 'bulk' | 'debitData' | 'collectionList' | 'payments'>('invoices');
   const [bulkMethod, setBulkMethod] = useState<'collection' | 'debit'>('collection');
   const [preview, setPreview] = useState<any | null>(null);
   const [parse, setParse] = useState<any | null>(null);
@@ -36,8 +37,8 @@ const BillingOperations: React.FC = () => {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'bulk' || tab === 'invoices' || tab === 'monthly' || tab === 'debitData' || tab === 'collectionList') {
-      setActiveTab(tab as 'invoices' | 'monthly' | 'bulk' | 'debitData' | 'collectionList');
+    if (tab === 'bulk' || tab === 'invoices' || tab === 'monthly' || tab === 'debitData' || tab === 'collectionList' || tab === 'payments') {
+      setActiveTab(tab as 'invoices' | 'monthly' | 'bulk' | 'debitData' | 'collectionList' | 'payments');
     }
     const method = searchParams.get('method');
     if (method === 'collection' || method === 'debit') {
@@ -45,7 +46,7 @@ const BillingOperations: React.FC = () => {
     }
   }, [searchParams]);
 
-  const handleChangeTab = (_e: React.SyntheticEvent, value: 'invoices' | 'monthly' | 'bulk' | 'debitData' | 'collectionList') => {
+  const handleChangeTab = (_e: React.SyntheticEvent, value: 'invoices' | 'monthly' | 'bulk' | 'debitData' | 'collectionList' | 'payments') => {
     setActiveTab(value);
     setSearchParams({ tab: value, ...(value === 'bulk' ? { method: bulkMethod } : {}) });
   };
@@ -198,6 +199,7 @@ const BillingOperations: React.FC = () => {
               <Tab label="集金一覧表" value="collectionList" />
               <Tab label="引き落しデータ作成" value="debitData" />
               <Tab label="一括入金" value="bulk" />
+              <Tab label="入金明細" value="payments" />
             </Tabs>
           </CardContent>
         </Card>
@@ -390,6 +392,14 @@ const BillingOperations: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'payments' && (
+          <Card>
+            <CardContent>
+              <PaymentDetails />
             </CardContent>
           </Card>
         )}

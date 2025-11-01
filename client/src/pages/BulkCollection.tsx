@@ -199,9 +199,16 @@ export default function BulkCollection({ method = 'collection', readOnly = false
 
   const onChangeCourse = async (e: any) => {
     const v = e.target.value;
+    if (v === '__ALL__') {
+      setViewMode('allCourses');
+      setCourseId('' as any);
+      await loadAllCoursesData();
+      return;
+    }
     const next = (v === '' || v === null || v === undefined) ? '' : Number(v);
     setCourseId(next as any);
     if (typeof next === 'number') {
+      setViewMode('perCourse');
       await loadCustomers(next);
     }
   };
@@ -439,6 +446,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
             viewMode === 'perCourse' && (
               <Grid item xs={12} sm={8}>
                 <Select fullWidth displayEmpty value={courseId} onChange={onChangeCourse}>
+                  <MenuItem value="__ALL__">全コース</MenuItem>
                   <MenuItem value=""><em>コースを選択…</em></MenuItem>
                   {courses.map(co => (
                     <MenuItem key={co.id} value={co.id}>{co.custom_id} {co.course_name}</MenuItem>
@@ -451,6 +459,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
           {readOnly && viewMode === 'perCourse' && (
             <Grid item xs={12} sm={6}>
               <Select fullWidth displayEmpty value={courseId} onChange={onChangeCourse}>
+                <MenuItem value="__ALL__">全コース</MenuItem>
                 <MenuItem value=""><em>コースを選択…</em></MenuItem>
                 {courses.map(co => (
                   <MenuItem key={co.id} value={co.id}>{co.custom_id} {co.course_name}</MenuItem>
@@ -481,14 +490,14 @@ export default function BulkCollection({ method = 'collection', readOnly = false
                       variant="contained" 
                       color="primary"
                       onClick={handleAutoPayment} 
-                      disabled={registering || selectedCustomersCount === 0 || !courseId}
+                      disabled={registering || selectedCustomersCount === 0 || (viewMode === 'perCourse' && !courseId)}
                     >
                       自動入金
                     </Button>
                     <Button 
                       variant="outlined" 
                       onClick={register} 
-                      disabled={registering || (totalSelected === 0 && selectedRemainingTotal === 0) || !courseId}
+                      disabled={registering || (totalSelected === 0 && selectedRemainingTotal === 0) || (viewMode === 'perCourse' && !courseId)}
                     >
                       手動入金登録
                     </Button>

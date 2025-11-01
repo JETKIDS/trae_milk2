@@ -1072,26 +1072,12 @@ const CustomerDetail: React.FC = () => {
         return;
       }
 
-      // 前月が未確定の場合のガード
-      // 集金（collection）は未確定でも保存可、引き落し（debit）は確定必須
-      const statusRes = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: prevY, month: prevM } });
-      const { confirmed } = statusRes.data || {};
-      if (!confirmed && billingMethod === 'debit') {
-        alert('対象の月の請求が未確定のため、引き落し入金はできません。先に「月次請求確定」を実行してください。');
-        return;
-      }
+      // 以前は引き落しのみ確定必須としていたが、集金と同様の扱いに統一（ガードを撤廃）
 
       // 入金は「当月」に計上する（履歴・当月入金額の表示と整合）
       const currentY = currentDate.year();
       const currentM = currentDate.month() + 1;
-      // 事前チェック：引き落し(debit)の場合のみ、当月の請求確定を要求
-      if (billingMethod === 'debit') {
-        const currentStatusRes = await axios.get(`/api/customers/${id}/invoices/status`, { params: { year: currentY, month: currentM } });
-        if (!currentStatusRes?.data?.confirmed) {
-          alert('引き落し入金は当月の請求確定が必要です。先に「月次請求確定」を実行してください。');
-          return;
-        }
-      }
+      // 以前の当月確定チェック（debitのみ）も撤廃し、方式に関わらず保存可能とする
       await axios.post(`/api/customers/${id}/payments`, {
         year: currentY,
         month: currentM,

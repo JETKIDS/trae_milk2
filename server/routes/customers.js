@@ -851,30 +851,17 @@ router.post('/payments/batch', async (req, res) => {
     const py = prev.getFullYear();
     const pm = prev.getMonth() + 1;
 
-    let confirmedRows;
-    if (methodStr === 'debit') {
-      confirmedRows = await new Promise((resolve, reject) => {
-        db.all(
-          'SELECT customer_id FROM ar_invoices WHERE year = ? AND month = ? AND status = "confirmed"',
-          [y, m],
-          (err, rows) => {
-            if (err) return reject(err);
-            resolve(rows || []);
-          }
-        );
-      });
-    } else {
-      confirmedRows = await new Promise((resolve, reject) => {
-        db.all(
-          'SELECT customer_id FROM ar_invoices WHERE year = ? AND month = ? AND status = "confirmed"',
-          [py, pm],
-          (err, rows) => {
-            if (err) return reject(err);
-            resolve(rows || []);
-          }
-        );
-      });
-    }
+    // 集金/引き落しに関わらず、前月（請求月）が確定済みであることを条件とする
+    const confirmedRows = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT customer_id FROM ar_invoices WHERE year = ? AND month = ? AND status = "confirmed"',
+        [py, pm],
+        (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        }
+      );
+    });
     const confirmedSet = new Set((confirmedRows || []).map(r => Number(r.customer_id)));
 
     let success = 0;
@@ -1689,24 +1676,7 @@ router.post('/:id/payments', async (req, res) => {
   try {
     await ensureLedgerTables(db);
 
-    // 対象年月が月次確定済みかをチェック（未確定の場合は入金登録を拒否）
-    const inv = await new Promise((resolve, reject) => {
-      db.get(
-        'SELECT status FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?',
-        [customerId, y, m],
-        (err, row) => {
-          if (err) return reject(err);
-          resolve(row || null);
-        }
-      );
-    });
-    // 集金（collection）の場合は未確定でも登録を許可、引き落し（debit）の場合は確定必須
-    const methodStr = String(method);
-    const isConfirmed = inv && String(inv.status) === 'confirmed';
-    if (methodStr === 'debit' && !isConfirmed) {
-      db.close();
-      return res.status(400).json({ error: '引き落し入金は指定年月の請求確定が必要です。先に月次確定を行ってください。' });
-    }
+    // 方式に依存した確定必須ガードは撤廃（collection/debit ともに登録可能）
 
     await new Promise((resolve, reject) => {
       const sql = `
