@@ -785,6 +785,108 @@ router.get('/by-course/:courseId/invoices-amounts', async (req, res) => {
   }
 });
 
+// コース内顧客の月次請求ステータス一覧（1リクエストで返却）
+router.get('/by-course/:courseId/invoices-status', async (req, res) => {
+  const db = getDB();
+  const courseId = req.params.courseId;
+  const { year, month } = req.query;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    await ensureLedgerTables(db);
+    const sql = `
+      SELECT c.id AS customer_id,
+             ai.amount AS amount,
+             ai.rounding_enabled AS rounding_enabled,
+             ai.status AS status
+      FROM customers c
+      LEFT JOIN ar_invoices ai
+        ON ai.customer_id = c.id AND ai.year = ? AND ai.month = ?
+      WHERE c.course_id = ?
+      ORDER BY c.delivery_order ASC, c.id ASC
+    `;
+    const rows = await new Promise((resolve, reject) => {
+      db.all(sql, [y, m, courseId], (err, r) => { if (err) return reject(err); resolve(r || []); });
+    });
+    db.close();
+    return res.json({ year: y, month: m, items: rows.map(r => ({
+      customer_id: r.customer_id,
+      confirmed: String(r.status || '') === 'confirmed',
+      amount: typeof r.amount === 'number' ? r.amount : null,
+      rounding_enabled: typeof r.rounding_enabled === 'number' ? r.rounding_enabled : null,
+    })) });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// コース内顧客の当月カレンダーを一括取得（2アップ一括プレビュー用）
+router.get('/by-course/:courseId/calendars', async (req, res) => {
+  const db = getDB();
+  const courseId = req.params.courseId;
+  const { year, month } = req.query;
+  if (!year || !month) {
+    db.close();
+    return res.status(400).json({ error: 'year と month を指定してください' });
+  }
+  const y = parseInt(String(year), 10);
+  const m = parseInt(String(month), 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+    db.close();
+    return res.status(400).json({ error: 'year/month の形式が不正です' });
+  }
+
+  try {
+    const customers = await new Promise((resolve, reject) => {
+      const q = `SELECT c.*, dc.course_name FROM customers c LEFT JOIN delivery_courses dc ON c.course_id = dc.id WHERE c.course_id = ? ORDER BY c.delivery_order ASC, c.id ASC`;
+      db.all(q, [courseId], (err, rows) => { if (err) return reject(err); resolve(rows || []); });
+    });
+
+    const results = [];
+    for (const c of customers) {
+      // 再利用: 個別カレンダー生成ロジック
+      const patterns = await new Promise((resolve, reject) => {
+        const pq = `
+          SELECT dp.*, p.product_name, p.unit, m.manufacturer_name
+          FROM delivery_patterns dp
+          JOIN products p ON dp.product_id = p.id
+          JOIN manufacturers m ON p.manufacturer_id = m.id
+          WHERE dp.customer_id = ? AND dp.is_active = 1
+        `;
+        db.all(pq, [c.id], (err, rows) => { if (err) return reject(err); resolve(rows || []); });
+      });
+      const temporary = await new Promise((resolve, reject) => {
+        const tq = `
+          SELECT 
+            tc.*, p.product_name, p.unit_price AS product_unit_price, p.unit, m.manufacturer_name
+          FROM temporary_changes tc
+          JOIN products p ON tc.product_id = p.id
+          JOIN manufacturers m ON p.manufacturer_id = m.id
+          WHERE tc.customer_id = ? AND strftime('%Y', tc.change_date) = ? AND strftime('%m', tc.change_date) = ?
+        `;
+        db.all(tq, [c.id, String(y), String(m).padStart(2,'0')], (err, rows) => { if (err) return reject(err); resolve(rows || []); });
+      });
+      const calendar = generateMonthlyCalendar(y, m, patterns, temporary);
+      results.push({ customer: c, customer_id: c.id, calendar, temporaryChanges: temporary, patterns });
+    }
+    db.close();
+    return res.json({ year: y, month: m, items: results });
+  } catch (e) {
+    db.close();
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // 指定月の入金合計（金額）をコース別でまとめて返却（重複登録防止のための参考値）
 router.get('/by-course/:courseId/payments-sum', async (req, res) => {
   const db = getDB();

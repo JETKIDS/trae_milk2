@@ -99,7 +99,11 @@ const InvoiceContent: React.FC<{
   month: string;
   company: CompanyInfo | null;
   productMasters: ProductMaster[];
-}> = ({ customerId, year, month, company, productMasters }) => {
+  preloadedCustomer?: Customer | null;
+  preloadedCalendar?: CalendarDay[];
+  preloadedPatterns?: DeliveryPattern[];
+  preloadedTemporaryChanges?: any[];
+}> = ({ customerId, year, month, company, productMasters, preloadedCustomer, preloadedCalendar, preloadedPatterns, preloadedTemporaryChanges }) => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
   const [patterns, setPatterns] = useState<DeliveryPattern[]>([]);
@@ -119,23 +123,43 @@ const InvoiceContent: React.FC<{
     const fetchData = async () => {
       setError(null);
       try {
-        const cus = apiClient.get(`/api/customers/${customerId}`);
-        const cal = apiClient.get(`/api/customers/${customerId}/calendar/${year}/${month}`);
-        const [customerRes, calendarRes] = await Promise.all([cus, cal]);
-        setCustomer(customerRes.data.customer);
-        setPatterns(customerRes.data.patterns || []);
-        const settings = customerRes.data.settings;
-        setRoundingEnabled(settings ? (settings.rounding_enabled === 1 || settings.rounding_enabled === true) : true);
-        setBillingMethod(settings && settings.billing_method === 'debit' ? 'debit' : 'collection');
-        setCalendar(calendarRes.data.calendar || []);
-        setTemporaryChanges(calendarRes.data.temporaryChanges || []);
+        // 事前取得があれば利用
+        if (preloadedCustomer) setCustomer(preloadedCustomer);
+        if (preloadedPatterns) setPatterns(preloadedPatterns);
+        if (preloadedCalendar) setCalendar(preloadedCalendar);
+        if (preloadedTemporaryChanges) setTemporaryChanges(preloadedTemporaryChanges);
+
+        // 設定（丸め/請求方法）は顧客詳細から取得（未提供の場合のみ）
+        if (!preloadedCustomer) {
+          const customerRes = await apiClient.get(`/api/customers/${customerId}`);
+          setCustomer(customerRes.data.customer);
+          setPatterns(customerRes.data.patterns || []);
+          const settings = customerRes.data.settings;
+          setRoundingEnabled(settings ? (settings.rounding_enabled === 1 || settings.rounding_enabled === true) : true);
+          setBillingMethod(settings && settings.billing_method === 'debit' ? 'debit' : 'collection');
+        } else {
+          // preloaded でも設定が必要なため顧客詳細は軽量に取得
+          try {
+            const customerRes = await apiClient.get(`/api/customers/${customerId}`);
+            const settings = customerRes.data.settings;
+            setRoundingEnabled(settings ? (settings.rounding_enabled === 1 || settings.rounding_enabled === true) : true);
+            setBillingMethod(settings && settings.billing_method === 'debit' ? 'debit' : 'collection');
+          } catch {}
+        }
+
+        // カレンダー未提供なら取得
+        if (!preloadedCalendar) {
+          const calendarRes = await apiClient.get(`/api/customers/${customerId}/calendar/${year}/${month}`);
+          setCalendar(calendarRes.data.calendar || []);
+          setTemporaryChanges(calendarRes.data.temporaryChanges || []);
+        }
       } catch (e: any) {
         console.error('請求書（バッチ）データ取得エラー', e);
         setError('請求データ取得に失敗しました');
       }
     };
     if (customerId && year && month) fetchData();
-  }, [customerId, year, month]);
+  }, [customerId, year, month, preloadedCustomer, preloadedCalendar, preloadedPatterns, preloadedTemporaryChanges]);
 
   const [arSummary, setArSummary] = useState<ArSummary | null>(null);
   useEffect(() => {
@@ -517,6 +541,7 @@ const InvoiceBatchPreview: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [autoPrinted, setAutoPrinted] = useState<boolean>(false);
   const [hasUnconfirmed, setHasUnconfirmed] = useState<boolean>(false);
+  const [bulkCalendars, setBulkCalendars] = useState<Record<number, { customer: Customer; calendar: CalendarDay[]; patterns: DeliveryPattern[]; temporaryChanges: any[] }>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -548,18 +573,30 @@ const InvoiceBatchPreview: React.FC = () => {
       try {
         if (!courseId) {
           setCustomers([]);
+          setBulkCalendars({});
           return;
         }
         const res = await apiClient.get(`/api/customers/by-course/${courseId}`);
         const list: Customer[] = res.data || [];
         setCustomers(list);
+
+        // 追加: バルクで当月カレンダーを取得
+        const calRes = await apiClient.get(`/api/customers/by-course/${courseId}/calendars`, { params: { year, month } });
+        const items: any[] = calRes.data?.items || [];
+        const map: Record<number, { customer: Customer; calendar: CalendarDay[]; patterns: DeliveryPattern[]; temporaryChanges: any[] }> = {};
+        items.forEach((it) => {
+          if (it && it.customer_id) {
+            map[it.customer_id] = { customer: it.customer, calendar: it.calendar || [], patterns: it.patterns || [], temporaryChanges: it.temporaryChanges || [] };
+          }
+        });
+        setBulkCalendars(map);
       } catch (e) {
         console.error('コース顧客取得エラー', e);
         setError('顧客一覧の取得に失敗しました');
       }
     };
     fetchCustomers();
-  }, [courseId]);
+  }, [courseId, year, month]);
 
   // 月次確定ステータス確認（コース内顧客）
   useEffect(() => {
@@ -652,13 +689,33 @@ const InvoiceBatchPreview: React.FC = () => {
             <div className="two-up">
               {/* 上段 */}
               {pair[0] ? (
-                <InvoiceContent customerId={pair[0].id} year={year} month={month} company={company} productMasters={productMasters} />
+                <InvoiceContent
+                  customerId={pair[0].id}
+                  year={year}
+                  month={month}
+                  company={company}
+                  productMasters={productMasters}
+                  preloadedCustomer={bulkCalendars[pair[0].id]?.customer}
+                  preloadedCalendar={bulkCalendars[pair[0].id]?.calendar}
+                  preloadedPatterns={bulkCalendars[pair[0].id]?.patterns}
+                  preloadedTemporaryChanges={bulkCalendars[pair[0].id]?.temporaryChanges}
+                />
               ) : (
                 <Box className="invoice-grid" />
               )}
               {/* 下段 */}
               {pair[1] ? (
-                <InvoiceContent customerId={pair[1].id} year={year} month={month} company={company} productMasters={productMasters} />
+                <InvoiceContent
+                  customerId={pair[1].id}
+                  year={year}
+                  month={month}
+                  company={company}
+                  productMasters={productMasters}
+                  preloadedCustomer={bulkCalendars[pair[1].id]?.customer}
+                  preloadedCalendar={bulkCalendars[pair[1].id]?.calendar}
+                  preloadedPatterns={bulkCalendars[pair[1].id]?.patterns}
+                  preloadedTemporaryChanges={bulkCalendars[pair[1].id]?.temporaryChanges}
+                />
               ) : (
                 <Box className="invoice-grid" />
               )}

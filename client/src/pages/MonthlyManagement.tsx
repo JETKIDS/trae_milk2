@@ -66,17 +66,9 @@ const MonthlyManagement: React.FC = () => {
   const fetchStatusForCourse = async (courseId: number, y: number, m: number) => {
     setLoadingStatus(true);
     try {
-      const customers: Customer[] = await (await apiClient.get(`/api/customers/by-course/${courseId}`)).data;
-      const rows: StatusRow[] = [];
-      for (const c of customers) {
-        try {
-          const resp = await apiClient.get(`/api/customers/${c.id}/invoices/status`, { params: { year: y, month: m } });
-          const data = resp.data;
-          rows.push({ customer_id: c.id, confirmed: !!data.confirmed, amount: data.amount });
-        } catch (e) {
-          rows.push({ customer_id: c.id, confirmed: false });
-        }
-      }
+      const resp = await apiClient.get(`/api/customers/by-course/${courseId}/invoices-status`, { params: { year: y, month: m } });
+      const items: Array<{ customer_id: number; confirmed: boolean; amount?: number | null }> = resp.data?.items || [];
+      const rows: StatusRow[] = items.map(it => ({ customer_id: it.customer_id, confirmed: !!it.confirmed, amount: typeof it.amount === 'number' ? it.amount : undefined }));
       setStatusRows(rows);
     } catch (e) {
       console.error('ステータス取得失敗', e);
