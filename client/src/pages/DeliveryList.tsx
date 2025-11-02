@@ -978,8 +978,7 @@ const PeriodDeliveryListTab: React.FC = () => {
                                         onClick={() => {
                                           // 共通関数で別ウインドウ表示
                                           // eslint-disable-next-line @typescript-eslint/no-var-requires
-                                          const { openCustomerStandalone } = require('../utils/window');
-                                          openCustomerStandalone(customerProduct.customer_id);
+                                          import('../utils/window').then(m => m.openCustomerStandalone(customerProduct.customer_id));
                                         }}
                                         style={{
                                           background: 'none',

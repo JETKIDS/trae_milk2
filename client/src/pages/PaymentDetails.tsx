@@ -4,6 +4,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import apiClient from '../utils/apiClient';
 import { pad7 } from '../utils/id';
 import { getPrevYearMonth, parseMonthInput } from '../utils/date';
+import { openCustomerStandalone } from '../utils/window';
 
 type MethodFilter = 'all' | 'collection' | 'debit';
 type ListType = 'paid' | 'unpaid';
@@ -220,10 +221,7 @@ export default function PaymentDetails() {
                 <TableCell>
                   <Box
                     component="button"
-                    onClick={() => {
-                      const { openCustomerStandalone } = require('../utils/window');
-                      openCustomerStandalone(r.id);
-                    }}
+                    onClick={() => openCustomerStandalone(r.id)}
                     style={{
                       background: 'none',
                       border: 'none',

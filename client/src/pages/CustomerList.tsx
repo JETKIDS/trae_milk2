@@ -16,6 +16,7 @@ import apiClient from '../utils/apiClient';
 import { FixedSizeList, ListOnItemsRenderedProps } from 'react-window';
 import CustomerForm from '../components/CustomerForm';
 import { pad7 } from '../utils/id';
+import { openCustomerStandalone } from '../utils/window';
 import { Customer } from '../types/customer';
 
 // 顧客タイプは共通定義を使用します
@@ -103,9 +104,6 @@ const CustomerList: React.FC = () => {
   };
 
   const handleViewCustomer = (customerId: number) => {
-    // 共通関数で別ウインドウ表示
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { openCustomerStandalone } = require('../utils/window');
     openCustomerStandalone(customerId);
   };
 
