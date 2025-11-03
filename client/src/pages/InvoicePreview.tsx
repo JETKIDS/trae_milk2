@@ -92,6 +92,7 @@ interface ProductCalendarData {
     prev_month: number;
     prev_invoice_amount: number;
     prev_payment_amount: number;
+    current_payment_amount: number;
     carryover_amount: number;
   }
 
@@ -698,8 +699,8 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
                       <div className="totals-cell label" style={{ gridColumn: 1, gridRow: 1 }}>前月請求額</div>
                       <div className="totals-cell value" style={{ gridColumn: 1, gridRow: 2 }}>{(arSummary?.prev_invoice_amount || 0).toLocaleString()}</div>
 
-                      <div className="totals-cell label" style={{ gridColumn: 2, gridRow: 1 }}>前月入金額</div>
-                      <div className="totals-cell value" style={{ gridColumn: 2, gridRow: 2 }}>{(arSummary?.prev_payment_amount || 0).toLocaleString()}</div>
+                      <div className="totals-cell label" style={{ gridColumn: 2, gridRow: 1 }}>当月入金額</div>
+                      <div className="totals-cell value" style={{ gridColumn: 2, gridRow: 2 }}>{(arSummary?.current_payment_amount || 0).toLocaleString()}</div>
 
                       <div className="totals-cell label" style={{ gridColumn: 3, gridRow: 1 }}>繰越額</div>
                       <div className="totals-cell value" style={{ gridColumn: 3, gridRow: 2 }}>{(arSummary?.carryover_amount || 0).toLocaleString()}</div>

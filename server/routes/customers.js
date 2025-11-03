@@ -1982,6 +1982,7 @@ router.get('/:id/ar-summary', async (req, res) => {
       prev_month: prevMonth,
       prev_invoice_amount: prevInvoiceAmount,
       prev_payment_amount: prevPaymentAmount,
+      current_payment_amount: currentPaymentAmount,
       carryover_amount: carryoverAmount,
     });
   } catch (e) {

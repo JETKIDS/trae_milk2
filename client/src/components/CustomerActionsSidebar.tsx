@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, TextField, Menu, MenuItem } from '@mui/material';
+import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, TextField, Menu, MenuItem, FormControlLabel, Checkbox } from '@mui/material';
 
 import { pad7 } from '../utils/id';
 
@@ -210,6 +210,24 @@ const saveMethodChange = async () => {
               </Box>
               <Box sx={{ mt: 1 }}>
                 {renderBillingMethodSelector()}
+              </Box>
+              <Box sx={{ mt: 1.5 }}>
+                {onToggleBillingRounding && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={billingRoundingEnabled ?? true}
+                        onChange={(e) => onToggleBillingRounding(e.target.checked)}
+                        size="small"
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" color="text.secondary">
+                        請求額の1円単位切り捨て
+                      </Typography>
+                    }
+                  />
+                )}
               </Box>
               <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
                 {customId !== undefined && <Chip label={`ID: ${pad7(customId)}`} size="small" variant="outlined" />}
