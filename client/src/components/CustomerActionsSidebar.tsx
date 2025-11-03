@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, TextField, Menu, MenuItem, FormControlLabel, Checkbox } from '@mui/material';
+import { Box, Card, CardContent, Typography, Button, Divider, Chip, Stack, TextField, Menu, MenuItem, FormControlLabel, Checkbox, Collapse } from '@mui/material';
+import { ExpandMore, ExpandLess } from '@mui/icons-material';
 
 import { pad7 } from '../utils/id';
 
@@ -95,6 +96,7 @@ const CustomerActionsSidebar: React.FC<Props> = ({
   const effectiveMethod: 'collection' | 'debit' = draftMethod || billingMethod || 'collection';
   const currentMethodLabel = (effectiveMethod === 'debit') ? '引き落し' : '集金';
   const [savingMethod, setSavingMethod] = React.useState<boolean>(false);
+  const [showBankInfo, setShowBankInfo] = React.useState<boolean>(false);
   
 
 const handleSelectMethod = (next: 'collection' | 'debit') => {
@@ -134,45 +136,59 @@ const saveMethodChange = async () => {
   );
 
   const renderBillingMethodSelector = () => (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Typography variant="body2" color="text.secondary">請求方法</Typography>
-      <Button variant="outlined" size="small" onClick={handleOpenMethodMenu}>
-        {currentMethodLabel}（変更）
-      </Button>
-      <Menu anchorEl={methodMenuAnchor} open={methodMenuOpen} onClose={handleCloseMethodMenu}>
-        <MenuItem onClick={() => handleSelectMethod('collection')}>集金</MenuItem>
-        <MenuItem onClick={() => handleSelectMethod('debit')}>引き落し</MenuItem>
-      </Menu>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <Typography variant="body2" color="text.secondary">請求方法</Typography>
+        <Button variant="outlined" size="small" onClick={handleOpenMethodMenu}>
+          {currentMethodLabel}（変更）
+        </Button>
+        <Menu anchorEl={methodMenuAnchor} open={methodMenuOpen} onClose={handleCloseMethodMenu}>
+          <MenuItem onClick={() => handleSelectMethod('collection')}>集金</MenuItem>
+          <MenuItem onClick={() => handleSelectMethod('debit')}>引き落し</MenuItem>
+        </Menu>
+      </Box>
       {draftMethod && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Chip label="未保存" color="warning" size="small" />
           <Button size="small" variant="contained" onClick={saveMethodChange} disabled={savingMethod}>保存</Button>
           <Button size="small" onClick={() => setDraftMethod(null)} disabled={savingMethod}>キャンセル</Button>
         </Box>
       )}
       {effectiveMethod === 'debit' && (
-        <Box sx={{ ml: 1 }}>
-          <Typography variant="caption" color="text.secondary">
+        <Box sx={{ ml: 1, mt: 1, maxWidth: '100%' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, wordBreak: 'break-word' }}>
             引き落しを利用する場合は口座情報の登録・確認が必要です。
-            {onOpenBankInfo && (
-              <Button size="small" sx={{ ml: 1 }} onClick={onOpenBankInfo}>口座登録・修正</Button>
-            )}
           </Typography>
-          {/* 登録済み口座情報の表示 */}
-          <Box sx={{ mt: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
-            <Typography variant="caption" color="text.secondary">登録口座情報</Typography>
-            {hasBankInfo ? (
-              <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                <Typography variant="body2">金融機関コード: {bankCode || '-'}</Typography>
-                <Typography variant="body2">支店コード: {branchCode || '-'}</Typography>
-                <Typography variant="body2">預金種別: {accountType === 1 ? '普通' : accountType === 2 ? '当座' : '-'}</Typography>
-                <Typography variant="body2">口座番号: {accountNumber || '-'}</Typography>
-                <Typography variant="body2">口座名義: {accountHolderKatakana || '-'}</Typography>
-              </Stack>
-            ) : (
-              <Typography variant="body2" color="text.secondary">未登録です。口座情報を登録してください。</Typography>
-            )}
-          </Box>
+          {onOpenBankInfo && (
+            <Button size="small" sx={{ mb: 1 }} onClick={onOpenBankInfo}>口座登録・修正</Button>
+          )}
+          {/* 登録済み口座情報の表示（折りたたみ可能） */}
+          {hasBankInfo && (
+            <Box sx={{ mt: 1 }}>
+              <Button
+                size="small"
+                onClick={() => setShowBankInfo(!showBankInfo)}
+                endIcon={showBankInfo ? <ExpandLess /> : <ExpandMore />}
+                sx={{ textTransform: 'none', minWidth: 'auto', p: 0.5 }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  口座情報を{showBankInfo ? '隠す' : '表示'}
+                </Typography>
+              </Button>
+              <Collapse in={showBankInfo}>
+                <Box sx={{ mt: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1, maxWidth: '100%', overflow: 'hidden' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>登録口座情報</Typography>
+                  <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                    <Typography variant="caption" sx={{ wordBreak: 'break-word' }}>金融機関コード: {bankCode || '-'}</Typography>
+                    <Typography variant="caption" sx={{ wordBreak: 'break-word' }}>支店コード: {branchCode || '-'}</Typography>
+                    <Typography variant="caption">預金種別: {accountType === 1 ? '普通' : accountType === 2 ? '当座' : '-'}</Typography>
+                    <Typography variant="caption" sx={{ wordBreak: 'break-word' }}>口座番号: {accountNumber || '-'}</Typography>
+                    <Typography variant="caption" sx={{ wordBreak: 'break-all', fontSize: '0.7rem' }}>口座名義: {accountHolderKatakana || '-'}</Typography>
+                  </Stack>
+                </Box>
+              </Collapse>
+            </Box>
+          )}
         </Box>
       )}
     </Box>
