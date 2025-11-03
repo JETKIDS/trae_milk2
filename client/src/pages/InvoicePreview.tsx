@@ -230,54 +230,9 @@ interface ProductMaster {
         el.media = 'print';
         document.head.appendChild(el);
       }
-      const margin = orientation === 'landscape' ? 'margin: 0 !important;' : '';
-      el.textContent = `
-        @page {
-          size: A4 ${orientation};
-          margin: 0 !important;
-          @top-left { content: none !important; }
-          @top-center { content: none !important; }
-          @top-right { content: none !important; }
-          @bottom-left { content: none !important; }
-          @bottom-center { content: none !important; }
-          @bottom-right { content: none !important; }
-        }
-        @media print {
-          * { margin-top: 0 !important; }
-          body { margin: 0 !important; padding: 0 !important; }
-          html { margin: 0 !important; padding: 0 !important; }
-          .print-root { 
-            margin: 0 !important; 
-            padding: 0 !important;
-            margin-top: 0 !important;
-            padding-top: 0 !important;
-          }
-          .print-root.MuiBox-root { 
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          .print-root > *:not(.print-page) { 
-            display: none !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            line-height: 0 !important;
-          }
-          .print-page:first-of-type,
-          .print-page:first-child { 
-            margin-top: 0 !important; 
-            padding-top: 0 !important;
-            page-break-before: avoid !important;
-          }
-          /* すべてのprint-pageのマージンを確実に0に */
-          .print-page { 
-            margin: 0 !important;
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
-            padding-top: 0 !important;
-          }
-        }
-      `;
+      // InvoiceBatchPreviewと同じ設定（余白を適切に設定して上下が切れないようにする）
+      const margin = orientation === 'landscape' ? 'margin: 6mm 7mm 6mm 8mm;' : '';
+      el.textContent = `@page { size: A4 ${orientation}; ${margin} }`;
     } catch (e) {
       // noop
     }
@@ -586,7 +541,12 @@ const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: M
                   {/* 右：御請求書（商品リストは削除） */}
                   <Box className="invoice-right">
                     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0 }}>
-                      <Typography className="big-title title">御請求書</Typography>
+                      <Typography 
+                        className={`big-title title ${billingMethod === 'debit' ? 'debit-title' : ''}`}
+                        sx={billingMethod === 'debit' ? { fontSize: '14px', lineHeight: 1.0 } : {}}
+                      >
+                        {billingMethod === 'debit' ? '口座引落のご案内' : '御請求書'}
+                      </Typography>
                     </Stack>
                     <Typography className="billing-month">{String(year).slice(2)}/{month}月分</Typography>
                     <Box className="thin-box customer-info" sx={{ p: 0, mb: 0 }}>

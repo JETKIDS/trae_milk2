@@ -385,7 +385,12 @@ const InvoiceContent: React.FC<{
       {/* 右：御請求書 */}
       <Box className="invoice-right">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0 }}>
-          <Typography className="big-title title">御請求書</Typography>
+          <Typography 
+            className={`big-title title ${billingMethod === 'debit' ? 'debit-title' : ''}`}
+            sx={billingMethod === 'debit' ? { fontSize: '14px', lineHeight: 1.0 } : {}}
+          >
+            {billingMethod === 'debit' ? '口座引落のご案内' : '御請求書'}
+          </Typography>
         </Stack>
         <Typography className="billing-month">{String(year).slice(2)}/{month}月分</Typography>
         <Box className="thin-box customer-info" sx={{ p: 0, mb: 0 }}>

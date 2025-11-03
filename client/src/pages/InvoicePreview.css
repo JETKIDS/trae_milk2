@@ -251,7 +251,7 @@
 .invoice-right .MuiTypography-root { margin: 0; }
 
 /* 顧客名がある部分の四角い枠を消して、右に100px + 10mm オフセット（ブラウザ表示で8pxさらに上へ） */
-.invoice-right .customer-info { border: none !important; margin-left: calc(100px + 10mm); margin-top: -20px; }
+.invoice-right .customer-info { border: none !important; margin-left: calc(100px + 10mm); margin-top: -10px; }
 
 /* 請求月を大きくして中央に配置 */
 .invoice-right .billing-month { text-align: center; font-size: 16px; font-weight: 700; line-height: 1.0; margin: 0; margin-top: -3px; }
@@ -259,9 +259,12 @@
 /* 印刷時も同様に適用 */
 @media print {
   .invoice-right .big-title { font-size: 18px; line-height: 1.0; }
+  /* 引き落しのタイトルが長い場合はフォントサイズを小さく */
+  .invoice-right .big-title.debit-title { font-size: 14px; line-height: 1.0; }
   /* 印刷ではpxよりmmの方が安定するため、位置調整はmm単位で指定 */
   /* 右端見切れ対策：顧客情報の右へのオフセットを5mm縮小（20mm→15mm） */
-  .invoice-right .customer-info { border: none !important; margin-left: 26mm !important; margin-top: -5mm !important; margin-bottom: 0 !important; padding-bottom: 0mm !important; }
+  /* 顧客名を下に下げるため、margin-topを調整 */
+  .invoice-right .customer-info { border: none !important; margin-left: 26mm !important; margin-top: 0mm !important; margin-bottom: 0 !important; padding-bottom: 0mm !important; }
   /* 右端に5mmの余白を追加して、コース名や会社情報の切れを防ぐ */
   .invoice-right { padding-right: 5mm !important; }
   /* ページの中央分割に合わせ、余分な内側余白を削除して位置合わせを厳密化 */
