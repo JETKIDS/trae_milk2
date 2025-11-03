@@ -145,6 +145,8 @@ router.get('/period', (req, res) => {
       dp.delivery_days,
       dp.daily_quantities,
       dp.quantity,
+      dp.start_date,
+      dp.end_date,
       c.custom_id,
       c.customer_name,
       c.address,
@@ -200,6 +202,14 @@ router.get('/period', (req, res) => {
       // 配達パターンをチェック
       rows.forEach(row => {
         try {
+          // その日付がこのパターンの有効期間内にあるかチェック
+          const patternStartDate = row.start_date;
+          const patternEndDate = row.end_date || '2099-12-31';
+          if (dateStr < patternStartDate || dateStr > patternEndDate) {
+            // この日付はこのパターンの有効期間外（解約後など）なのでスキップ
+            return;
+          }
+          
           const deliveryDays = JSON.parse(row.delivery_days || '[]');
           let quantity = 0;
           
@@ -334,7 +344,9 @@ router.get('/products/summary', (req, res) => {
       dp.unit_price,
       dp.delivery_days,
       dp.daily_quantities,
-      dp.quantity
+      dp.quantity,
+      dp.start_date,
+      dp.end_date
     FROM delivery_patterns dp
     JOIN customers c ON dp.customer_id = c.id
     JOIN products p ON dp.product_id = p.id
@@ -376,10 +388,19 @@ router.get('/products/summary', (req, res) => {
     
     // 期間内の各日付をループして正確な数量を計算
     for (let currentDate = new Date(startDateObj); currentDate <= endDateObj; currentDate.setDate(currentDate.getDate() + 1)) {
+      const dateStr = currentDate.toISOString().split('T')[0];
       const dayOfWeek = currentDate.getDay(); // 0=日曜, 1=月曜, ..., 6=土曜
       
       rows.forEach(row => {
         try {
+          // その日付がこのパターンの有効期間内にあるかチェック
+          const patternStartDate = row.start_date;
+          const patternEndDate = row.end_date || '2099-12-31';
+          if (dateStr < patternStartDate || dateStr > patternEndDate) {
+            // この日付はこのパターンの有効期間外（解約後など）なのでスキップ
+            return;
+          }
+          
           const deliveryDays = JSON.parse(row.delivery_days || '[]');
           let quantity = 0;
           
@@ -473,6 +494,8 @@ router.get('/products/summary-by-course', (req, res) => {
       dp.delivery_days,
       dp.daily_quantities,
       dp.quantity,
+      dp.start_date,
+      dp.end_date,
       c.course_id,
       co.course_name
     FROM delivery_patterns dp
@@ -511,10 +534,19 @@ router.get('/products/summary-by-course', (req, res) => {
     
     // 期間内の各日付をループして正確な数量を計算
     for (let currentDate = new Date(startDateObj); currentDate <= endDateObj; currentDate.setDate(currentDate.getDate() + 1)) {
+      const dateStr = currentDate.toISOString().split('T')[0];
       const dayOfWeek = currentDate.getDay(); // 0=日曜, 1=月曜, ..., 6=土曜
       
       rows.forEach(row => {
         try {
+          // その日付がこのパターンの有効期間内にあるかチェック
+          const patternStartDate = row.start_date;
+          const patternEndDate = row.end_date || '2099-12-31';
+          if (dateStr < patternStartDate || dateStr > patternEndDate) {
+            // この日付はこのパターンの有効期間外（解約後など）なのでスキップ
+            return;
+          }
+          
           const deliveryDays = JSON.parse(row.delivery_days || '[]');
           let quantity = 0;
           
