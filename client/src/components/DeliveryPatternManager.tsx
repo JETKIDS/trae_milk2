@@ -634,7 +634,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
           <DialogTitle>
             {editingPattern ? '配達パターン編集' : '配達パターン追加'}
           </DialogTitle>
-          <DialogContent>
+          <DialogContent sx={{ '& .MuiGrid-container': { marginTop: 0 } }}>
             {/* 配達モード切り替え（新規追加時のみ） */}
             {!editingPattern && (
               <Box sx={{ mb: 3 }}>
@@ -664,7 +664,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
               </Box>
             )}
 
-            <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid container spacing={1.5}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>メーカー</InputLabel>
@@ -715,10 +715,10 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                 />
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle1" gutterBottom sx={{ mt: 2, mb: 1 }}>
+                <Typography variant="subtitle1" gutterBottom sx={{ mt: 1, mb: 1 }}>
                   {isTemporaryMode ? '臨時配達設定' : '配達パターン設定'}
                 </Typography>
-                <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2 }}>
+                <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 1.5 }}>
                   {isTemporaryMode ? (
                     // 臨時配達モード
                     <Grid container spacing={2}>
@@ -752,48 +752,57 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                     </Grid>
                   ) : (
                     // 通常の配達パターンモード
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          各曜日の配達数量を入力してください（0の場合は配達なし）
-                        </Typography>
-                      </Grid>
-                      {dayNames.map((day, index) => (
-                        <Grid item xs={6} md={3} key={index}>
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="body2" gutterBottom>
-                              {day}曜日
-                            </Typography>
-                            <TextField
-                              size="small"
-                              type="number"
-                              value={formData.daily_quantities?.[index] || 0}
-                              onChange={(e) => {
-                                const value = Number(e.target.value);
-                                const newQuantities = { ...formData.daily_quantities };
-                                if (value > 0) {
-                                  newQuantities[index] = value;
-                                } else {
-                                  delete newQuantities[index];
-                                }
-                                
-                                // delivery_daysも自動更新
-                                const newDeliveryDays = Object.keys(newQuantities).map(Number);
-                                
-                                setFormData({ 
-                                  ...formData, 
-                                  daily_quantities: newQuantities,
-                                  delivery_days: newDeliveryDays,
-                                  quantity: Math.max(...Object.values(newQuantities), 0) // 最大値を設定（後方互換性）
-                                });
-                              }}
-                              inputProps={{ min: 0, max: 99 }}
-                              sx={{ width: '80px' }}
-                            />
-                          </Box>
-                        </Grid>
-                      ))}
-                    </Grid>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 1.5 }}>
+                        各曜日の配達数量を入力してください（0の場合は配達なし）
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 1.5 }}>
+                        {dayNames.map((day, index) => {
+                          const quantity = formData.daily_quantities?.[index] || 0;
+                          const hasValue = quantity > 0;
+                          return (
+                            <Box key={index} sx={{ textAlign: 'center', flex: '0 0 calc((100% - 6 * 12px) / 7)' }}>
+                              <Typography variant="body2" gutterBottom sx={{ mb: 0.5, fontSize: '0.75rem' }}>
+                                {day}曜日
+                              </Typography>
+                              <TextField
+                                size="small"
+                                type="number"
+                                value={quantity}
+                                onChange={(e) => {
+                                  const value = Number(e.target.value);
+                                  const newQuantities = { ...formData.daily_quantities };
+                                  if (value > 0) {
+                                    newQuantities[index] = value;
+                                  } else {
+                                    delete newQuantities[index];
+                                  }
+                                  
+                                  // delivery_daysも自動更新
+                                  const newDeliveryDays = Object.keys(newQuantities).map(Number);
+                                  
+                                  setFormData({ 
+                                    ...formData, 
+                                    daily_quantities: newQuantities,
+                                    delivery_days: newDeliveryDays,
+                                    quantity: Math.max(...Object.values(newQuantities), 0) // 最大値を設定（後方互換性）
+                                  });
+                                }}
+                                inputProps={{ min: 0, max: 99 }}
+                                sx={{ 
+                                  width: '100%', 
+                                  '& .MuiInputBase-root': { 
+                                    height: '32px',
+                                    backgroundColor: hasValue ? 'rgba(76, 175, 80, 0.15)' : 'transparent',
+                                    transition: 'background-color 0.2s ease'
+                                  }
+                                }}
+                              />
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Box>
                   )}
                 </Box>
               </Grid>
@@ -808,6 +817,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                       value={formData.start_date || ''}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                       InputLabelProps={{ shrink: true }}
+                      size="small"
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -818,6 +828,7 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
                       value={formData.end_date || ''}
                       onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                       InputLabelProps={{ shrink: true }}
+                      size="small"
                     />
                   </Grid>
                 </>

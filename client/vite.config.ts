@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      host: '0.0.0.0',
       port: 3000,
       proxy: {
         // VITE_API_BASE_URL が未設定のときのみ開発proxyを有効化
