@@ -18,6 +18,7 @@ const BillingOperations = lazy(() => import('./pages/BillingOperations'));
 const DebitImport = lazy(() => import('./pages/DebitImport'));
 const BulkCollection = lazy(() => import('./pages/BulkCollection'));
 const BulkUpdate = lazy(() => import('./pages/BulkUpdate'));
+const Analyses = lazy(() => import('./pages/Analyses'));
 const InvoicePreview = lazy(() => import('./pages/InvoicePreview'));
 const InvoiceBatchPreview = lazy(() => import('./pages/InvoiceBatchPreview'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -74,6 +75,7 @@ function App() {
                     <Route path="/products" element={<ProductList />} />
                     <Route path="/courses" element={<CourseList />} />
                     <Route path="/bulk-update" element={<BulkUpdate />} />
+                    <Route path="/analyses" element={<Analyses />} />
                     <Route path="/masters" element={<MasterManagement />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
