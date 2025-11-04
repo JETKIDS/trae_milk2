@@ -28,6 +28,7 @@ app.use('/api/courses', require('./routes/courses'));
 app.use('/api/delivery', require('./routes/delivery'));
 app.use('/api/delivery-patterns', require('./routes/deliveryPatterns'));
 app.use('/api/temporary-changes', require('./routes/temporaryChanges'));
+app.use('/api/bulk-update', require('./routes/bulkUpdate'));
 // 口座振替（全銀協）ファイルプレビュー
 app.use('/api/debits', require('./routes/debits'));
 

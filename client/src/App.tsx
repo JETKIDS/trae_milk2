@@ -17,6 +17,7 @@ const MasterManagement = lazy(() => import('./pages/MasterManagement'));
 const BillingOperations = lazy(() => import('./pages/BillingOperations'));
 const DebitImport = lazy(() => import('./pages/DebitImport'));
 const BulkCollection = lazy(() => import('./pages/BulkCollection'));
+const BulkUpdate = lazy(() => import('./pages/BulkUpdate'));
 const InvoicePreview = lazy(() => import('./pages/InvoicePreview'));
 const InvoiceBatchPreview = lazy(() => import('./pages/InvoiceBatchPreview'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -72,6 +73,7 @@ function App() {
                     <Route path="/monthly" element={<Navigate to="/billing?tab=monthly" replace />} />
                     <Route path="/products" element={<ProductList />} />
                     <Route path="/courses" element={<CourseList />} />
+                    <Route path="/bulk-update" element={<BulkUpdate />} />
                     <Route path="/masters" element={<MasterManagement />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

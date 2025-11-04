@@ -17,6 +17,8 @@ import {
   Settings as SettingsIcon,
   LocalShipping as DeliveryIcon,
   RequestQuote as BillingIcon,
+  Analytics as AnalyticsIcon,
+  Transform as TransformIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -34,6 +36,8 @@ const menuItems: MenuItem[] = [
   { text: '請求業務', icon: <BillingIcon />, path: '/billing' },
   { text: '商品管理', icon: <InventoryIcon />, path: '/products' },
   { text: 'コース管理', icon: <RouteIcon />, path: '/courses' },
+  { text: '各種分析リスト', icon: <AnalyticsIcon />, path: '/analyses' },
+  { text: '全体変更', icon: <TransformIcon />, path: '/bulk-update' },
   { text: 'マスタ管理', icon: <SettingsIcon />, path: '/masters' },
 ];
 

@@ -805,8 +805,10 @@ const CustomerDetail: React.FC = () => {
     if (!target) return;
     try {
       setUnitPriceChangeSaving(true);
-      const startDate = `${unitPriceChangeStartMonth}-01`;
-      const oldEndDate = moment(startDate).subtract(1, 'day').format('YYYY-MM-DD');
+      // 変更開始日は「指定月の1日」と「既存パターンの開始日」の遅い方を採用する
+      const requestedStartDate = `${unitPriceChangeStartMonth}-01`;
+      const newStartDate = moment.max(moment(requestedStartDate), moment(target.start_date)).format('YYYY-MM-DD');
+      const oldEndDate = moment(newStartDate).subtract(1, 'day').format('YYYY-MM-DD');
 
       // delivery_days と daily_quantities は型に応じて1回だけJSON化
       const deliveryDaysStr = Array.isArray(target.delivery_days)
@@ -830,7 +832,8 @@ const CustomerDetail: React.FC = () => {
         daily_quantities: dailyQuantitiesStr,
         start_date: target.start_date,
         end_date: oldEndDate,
-        is_active: 0,
+        // is_active は変更せず維持（終了日で期間を区切る）
+        is_active: target.is_active ? 1 : 0,
       });
 
       // 新単価の新パターンを開始月1日で作成（終了日は無期限: null）
@@ -841,7 +844,7 @@ const CustomerDetail: React.FC = () => {
         unit_price: unitPriceChangeNewPrice,
         delivery_days: deliveryDaysStr,
         daily_quantities: dailyQuantitiesStr,
-        start_date: startDate,
+        start_date: newStartDate,
         end_date: null,
         is_active: 1,
       });

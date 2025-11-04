@@ -1144,7 +1144,7 @@ function generateMonthlyCalendar(year, month, patterns, temporaryChanges = []) {
       products: []
     };
     
-    // 定期配達パターンの処理（同一商品の重複パターンが同日に存在する場合は、開始日の新しいものを優先）
+    // 定期配達パターンの処理（同一商品の重複パターンが同日に存在する場合は、対象日付に対して有効なパターンを選択）
     const validPatterns = patterns.filter(pattern => {
       if (pattern.start_date && moment(currentDateStr).isBefore(moment(pattern.start_date))) {
         return false; // 開始日前は除外
@@ -1155,16 +1155,53 @@ function generateMonthlyCalendar(year, month, patterns, temporaryChanges = []) {
       return true;
     });
 
-    const latestByProduct = new Map(); // product_id -> pattern（開始日が最も新しいもの）
+    // 同じ商品に対して複数のパターンがある場合、対象日付に対して最も適切なパターンを選択
+    // validPatterns には既に対象日付に対して有効なパターンのみが含まれている
+    // 同じ商品で複数のパターンがある場合、開始日が最も新しいものを優先
+    // ただし、既存パターンが対象日付に対して完全に有効（開始日 <= 対象日 <= 終了日）で、
+    // 新パターンが対象日付より後から開始する場合は既存パターンを優先
+    const bestPatternByProduct = new Map(); // product_id -> pattern
+    const currentDate = moment(currentDateStr);
+    
     validPatterns.forEach(p => {
       const key = p.product_id;
-      const existing = latestByProduct.get(key);
-      if (!existing || moment(p.start_date).isAfter(moment(existing.start_date))) {
-        latestByProduct.set(key, p);
+      const existing = bestPatternByProduct.get(key);
+      const pStart = moment(p.start_date);
+      const pEnd = p.end_date ? moment(p.end_date) : null;
+      
+      // validPatterns に含まれているので、このパターンは対象日付に対して有効
+      // ただし、より正確にチェック（start_date <= currentDate <= end_date）
+      const pIsValid = currentDate.isSameOrAfter(pStart, 'day') && 
+                       (!pEnd || currentDate.isSameOrBefore(pEnd, 'day'));
+      
+      if (!existing) {
+        if (pIsValid) {
+          bestPatternByProduct.set(key, p);
+        }
+      } else {
+        const existingStart = moment(existing.start_date);
+        const existingEnd = existing.end_date ? moment(existing.end_date) : null;
+        const existingIsValid = currentDate.isSameOrAfter(existingStart, 'day') && 
+                                (!existingEnd || currentDate.isSameOrBefore(existingEnd, 'day'));
+        
+        // 既存パターンが対象日付に対して完全に有効で、新パターンが対象日付より後から開始する場合は既存を優先
+        if (existingIsValid && pStart.isAfter(currentDate, 'day')) {
+          // 既存パターンを維持（前月表示時に、既存パターンが前月で有効で、新パターンが当月から開始する場合など）
+          return;
+        }
+        
+        // 両方とも対象日付に対して有効な場合、開始日が新しいものを優先
+        // 新パターンが対象日付に対して有効で、既存パターンより開始日が新しい場合は新パターンを優先
+        if (pIsValid) {
+          if (!existingIsValid || pStart.isAfter(existingStart, 'day')) {
+            bestPatternByProduct.set(key, p);
+          }
+        }
+        // 既存パターンが有効で新パターンが無効の場合は既存を維持（そのまま）
       }
     });
 
-    Array.from(latestByProduct.values()).forEach(pattern => {
+    Array.from(bestPatternByProduct.values()).forEach(pattern => {
       let quantity = 0;
 
       // daily_quantitiesがある場合はそれを使用（2重JSONにも対応）
