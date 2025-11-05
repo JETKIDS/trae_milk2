@@ -236,6 +236,82 @@ async function computeMonthlySalesAndProfit(db, year, month) {
   });
 }
 
+// 指定月内の一部期間のみ集計（rangeStart, rangeEnd は 'YYYY-MM-DD'）
+async function computeMonthlySalesAndProfitInRange(db, year, month, rangeStart, rangeEnd) {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT id FROM customers', [], async (err, customers) => {
+      if (err) return reject(err);
+
+      let totalSales = 0;
+      let totalGrossProfit = 0;
+
+      const mStart = moment(`${year}-${String(month).padStart(2, '0')}-01`).format('YYYY-MM-DD');
+      const mEnd = moment(mStart).endOf('month').format('YYYY-MM-DD');
+      const rs = rangeStart ? moment(rangeStart).format('YYYY-MM-DD') : mStart;
+      const re = rangeEnd ? moment(rangeEnd).format('YYYY-MM-DD') : mEnd;
+
+      for (const customer of customers) {
+        try {
+          const patternsQuery = `
+            SELECT dp.*, p.product_name, p.unit, p.purchase_price, m.manufacturer_name
+            FROM delivery_patterns dp
+            JOIN products p ON dp.product_id = p.id
+            LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
+            WHERE dp.customer_id = ? AND dp.is_active = 1
+          `;
+
+          const temporaryQuery = `
+            SELECT 
+              tc.*, 
+              p.product_name,
+              p.unit_price AS product_unit_price,
+              p.purchase_price,
+              p.unit,
+              m.manufacturer_name
+            FROM temporary_changes tc
+            JOIN products p ON tc.product_id = p.id
+            LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
+            WHERE tc.customer_id = ?
+              AND strftime('%Y', tc.change_date) = ?
+              AND strftime('%m', tc.change_date) = ?
+          `;
+
+          const patterns = await new Promise((res, rej) => {
+            db.all(patternsQuery, [customer.id], (pErr, rows) => {
+              if (pErr) return rej(pErr);
+              res(rows);
+            });
+          });
+
+          const temporaryChanges = await new Promise((res, rej) => {
+            db.all(temporaryQuery, [customer.id, String(year), String(month).padStart(2, '0')], (tErr, rows) => {
+              if (tErr) return rej(tErr);
+              res(rows);
+            });
+          });
+
+          const calendar = generateMonthlyCalendar(year, month, patterns, temporaryChanges);
+          const monthSales = calendar.reduce((sum, day) => {
+            if (day.date < rs || day.date > re) return sum;
+            return sum + day.products.reduce((s, p) => s + (p.amount || 0), 0);
+          }, 0);
+          const monthProfit = calendar.reduce((sum, day) => {
+            if (day.date < rs || day.date > re) return sum;
+            return sum + day.products.reduce((s, p) => s + (p.grossProfit || 0), 0);
+          }, 0);
+
+          totalSales += monthSales;
+          totalGrossProfit += monthProfit;
+        } catch (e) {
+          console.error(`顧客 ${customer.id} の計算エラー:`, e);
+        }
+      }
+
+      resolve({ sales: totalSales, grossProfit: totalGrossProfit });
+    });
+  });
+}
+
 // 任意期間の売上・粗利（合計/月ごと）
 router.get('/sales', async (req, res) => {
   const db = getDB();
@@ -252,22 +328,30 @@ router.get('/sales', async (req, res) => {
     const monthlyData = [];
     let totalSales = 0;
     let totalGrossProfit = 0;
+    let totalCost = 0;
     
     const current = start.clone().startOf('month');
     while (current.isSameOrBefore(end, 'month')) {
       const year = current.year();
       const month = current.month() + 1;
-      const result = await computeMonthlySalesAndProfit(db, year, month);
+      const monthStart = moment(current).startOf('month');
+      const monthEnd = moment(current).endOf('month');
+      const rs = moment.max(start, monthStart).format('YYYY-MM-DD');
+      const re = moment.min(end, monthEnd).format('YYYY-MM-DD');
+      const result = await computeMonthlySalesAndProfitInRange(db, year, month, rs, re);
+      const monthCost = Math.max(0, (result.sales || 0) - (result.grossProfit || 0));
       
       monthlyData.push({
         year,
         month,
         sales: result.sales,
+        cost: monthCost,
         grossProfit: result.grossProfit
       });
       
       totalSales += result.sales;
       totalGrossProfit += result.grossProfit;
+      totalCost += monthCost;
       
       current.add(1, 'month');
     }
@@ -350,7 +434,12 @@ router.get('/product-sales', async (req, res) => {
         });
         
         const calendar = generateMonthlyCalendar(year, month, patterns, temporaryChanges);
+        const monthStart = moment(current).startOf('month');
+        const monthEnd = moment(current).endOf('month');
+        const rs = moment.max(start, monthStart).format('YYYY-MM-DD');
+        const re = moment.min(end, monthEnd).format('YYYY-MM-DD');
         calendar.forEach(day => {
+          if (day.date < rs || day.date > re) return;
           day.products.forEach(product => {
             const key = product.productId || product.productName;
             if (!productMap.has(key)) {
@@ -358,12 +447,15 @@ router.get('/product-sales', async (req, res) => {
                 productId: product.productId || '',
                 productName: product.productName.replace(/（臨時）/g, ''),
                 sales: 0,
+                cost: 0,
                 grossProfit: 0,
                 quantity: 0
               });
             }
             const entry = productMap.get(key);
             entry.sales += product.amount || 0;
+            // 原価 = 仕入単価 × 数量（臨時も含む）
+            entry.cost += (product.purchasePrice || 0) * (product.quantity || 0);
             entry.grossProfit += product.grossProfit || 0;
             entry.quantity += product.quantity || 0;
           });
@@ -373,7 +465,12 @@ router.get('/product-sales', async (req, res) => {
       current.add(1, 'month');
     }
     
-    const result = Array.from(productMap.values()).sort((a, b) => b.sales - a.sales);
+    const result = Array.from(productMap.values())
+      .map(p => ({
+        ...p,
+        grossProfit: (p.sales || 0) - (p.cost || 0),
+      }))
+      .sort((a, b) => b.sales - a.sales);
     res.json(result);
   } catch (error) {
     console.error('商品別売上データ取得エラー:', error);
@@ -430,6 +527,7 @@ router.get('/course-sales', async (req, res) => {
             courseId,
             courseName,
             sales: 0,
+            cost: 0,
             grossProfit: 0,
             customerIds: new Set()
           });
@@ -472,14 +570,23 @@ router.get('/course-sales', async (req, res) => {
         });
         
         const calendar = generateMonthlyCalendar(year, month, patterns, temporaryChanges);
-        const monthSales = calendar.reduce((sum, day) => 
-          sum + day.products.reduce((s, p) => s + (p.amount || 0), 0), 0);
-        const monthProfit = calendar.reduce((sum, day) => 
-          sum + day.products.reduce((s, p) => s + (p.grossProfit || 0), 0), 0);
+        const monthStart = moment(current).startOf('month');
+        const monthEnd = moment(current).endOf('month');
+        const rs = moment.max(start, monthStart).format('YYYY-MM-DD');
+        const re = moment.min(end, monthEnd).format('YYYY-MM-DD');
+        const monthSales = calendar.reduce((sum, day) => {
+          if (day.date < rs || day.date > re) return sum;
+          return sum + day.products.reduce((s, p) => s + (p.amount || 0), 0);
+        }, 0);
+        const monthProfit = calendar.reduce((sum, day) => {
+          if (day.date < rs || day.date > re) return sum;
+          return sum + day.products.reduce((s, p) => s + (p.grossProfit || 0), 0);
+        }, 0);
         
         const entry = courseMap.get(courseId);
         entry.sales += monthSales;
         entry.grossProfit += monthProfit;
+        entry.cost += Math.max(0, (monthSales || 0) - (monthProfit || 0));
         entry.customerIds.add(customer.id);
       }
       
@@ -490,6 +597,7 @@ router.get('/course-sales', async (req, res) => {
       courseId: course.courseId,
       courseName: course.courseName,
       sales: course.sales,
+      cost: course.cost,
       grossProfit: course.grossProfit,
       customerCount: course.customerIds.size
     })).sort((a, b) => b.sales - a.sales);

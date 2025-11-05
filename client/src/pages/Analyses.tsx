@@ -51,6 +51,7 @@ interface SalesData {
     year: number;
     month: number;
     sales: number;
+    cost: number;
     grossProfit: number;
   }[];
 }
@@ -59,6 +60,7 @@ interface ProductSalesData {
   productId: string;
   productName: string;
   sales: number;
+  cost: number;
   grossProfit: number;
   quantity: number;
 }
@@ -67,6 +69,7 @@ interface CourseSalesData {
   courseId: number;
   courseName: string;
   sales: number;
+  cost: number;
   grossProfit: number;
   customerCount: number;
 }
@@ -300,6 +303,7 @@ const Analyses: React.FC = () => {
                       <TableRow>
                         <TableCell>年月</TableCell>
                         <TableCell align="right">売上</TableCell>
+                        <TableCell align="right">原価</TableCell>
                         <TableCell align="right">粗利</TableCell>
                         <TableCell align="right">粗利率</TableCell>
                       </TableRow>
@@ -309,10 +313,9 @@ const Analyses: React.FC = () => {
                         <TableRow key={`${month.year}-${month.month}`}>
                           <TableCell>{month.year}年{month.month}月</TableCell>
                           <TableCell align="right">{formatCurrency(month.sales)}</TableCell>
+                          <TableCell align="right">{formatCurrency(month.cost || Math.max(0, month.sales - month.grossProfit))}</TableCell>
                           <TableCell align="right">{formatCurrency(month.grossProfit)}</TableCell>
-                          <TableCell align="right">
-                            {month.sales > 0 ? ((month.grossProfit / month.sales) * 100).toFixed(1) : 0}%
-                          </TableCell>
+                          <TableCell align="right">{month.sales > 0 ? ((month.grossProfit / month.sales) * 100).toFixed(1) : 0}%</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -333,6 +336,7 @@ const Analyses: React.FC = () => {
                         <TableCell>商品名</TableCell>
                         <TableCell align="right">数量</TableCell>
                         <TableCell align="right">売上</TableCell>
+                        <TableCell align="right">原価</TableCell>
                         <TableCell align="right">粗利</TableCell>
                         <TableCell align="right">粗利率</TableCell>
                       </TableRow>
@@ -343,6 +347,7 @@ const Analyses: React.FC = () => {
                           <TableCell>{product.productName}</TableCell>
                           <TableCell align="right">{product.quantity}</TableCell>
                           <TableCell align="right">{formatCurrency(product.sales)}</TableCell>
+                          <TableCell align="right">{formatCurrency(product.cost ?? 0)}</TableCell>
                           <TableCell align="right">{formatCurrency(product.grossProfit)}</TableCell>
                           <TableCell align="right">
                             {product.sales > 0 ? ((product.grossProfit / product.sales) * 100).toFixed(1) : 0}%
@@ -367,6 +372,7 @@ const Analyses: React.FC = () => {
                         <TableCell>コース名</TableCell>
                         <TableCell align="right">顧客数</TableCell>
                         <TableCell align="right">売上</TableCell>
+                        <TableCell align="right">原価</TableCell>
                         <TableCell align="right">粗利</TableCell>
                         <TableCell align="right">粗利率</TableCell>
                         <TableCell align="right">顧客単価</TableCell>
@@ -378,10 +384,9 @@ const Analyses: React.FC = () => {
                           <TableCell>{course.courseName}</TableCell>
                           <TableCell align="right">{course.customerCount}</TableCell>
                           <TableCell align="right">{formatCurrency(course.sales)}</TableCell>
+                          <TableCell align="right">{formatCurrency(course.cost || Math.max(0, course.sales - course.grossProfit))}</TableCell>
                           <TableCell align="right">{formatCurrency(course.grossProfit)}</TableCell>
-                          <TableCell align="right">
-                            {course.sales > 0 ? ((course.grossProfit / course.sales) * 100).toFixed(1) : 0}%
-                          </TableCell>
+                          <TableCell align="right">{course.sales > 0 ? ((course.grossProfit / course.sales) * 100).toFixed(1) : 0}%</TableCell>
                           <TableCell align="right">
                             {course.customerCount > 0
                               ? formatCurrency(course.sales / course.customerCount)
