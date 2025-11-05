@@ -720,6 +720,11 @@ router.get('/kpi', async (req, res) => {
     const prevMonth = moment(`${year}-${String(monthNum).padStart(2, '0')}-01`).subtract(1, 'month');
     const prevYear = prevMonth.year();
     const prevMonthNum = prevMonth.month() + 1;
+    // 月初・月末（当月/前月）
+    const monthStart = `${year}-${String(monthNum).padStart(2, '0')}-01`;
+    const monthEnd = moment(monthStart).endOf('month').format('YYYY-MM-DD');
+    const prevMonthStart = `${prevYear}-${String(prevMonthNum).padStart(2, '0')}-01`;
+    const prevMonthEnd = moment(prevMonthStart).endOf('month').format('YYYY-MM-DD');
     
     // 当月の売上・粗利
     const currentSales = await computeMonthlySalesAndProfit(db, year, monthNum);
@@ -727,39 +732,31 @@ router.get('/kpi', async (req, res) => {
     // 前月の売上・粗利
     const prevSales = await computeMonthlySalesAndProfit(db, prevYear, prevMonthNum);
     
-    // 当月の顧客数（在籍）
+    // 当月の顧客数（在籍）: 当月中に配達商品（有効パターン）が存在する顧客数で定義
     const currentCustomers = await new Promise((resolve, reject) => {
       db.get(`
-        SELECT COUNT(*) as count
+        SELECT COUNT(DISTINCT c.id) AS count
         FROM customers c
-        WHERE c.contract_start_date <= ?
-          AND NOT EXISTS (
-            SELECT 1 FROM delivery_patterns dp
-            WHERE dp.customer_id = c.id
-              AND dp.is_active = 1
-              AND dp.end_date IS NOT NULL
-              AND dp.end_date < ?
-          )
-      `, [`${year}-${String(monthNum).padStart(2, '0')}-${String(new Date(year, monthNum, 0).getDate()).padStart(2, '0')}`, `${year}-${String(monthNum).padStart(2, '0')}-${String(new Date(year, monthNum, 0).getDate()).padStart(2, '0')}`], (err, row) => {
+        INNER JOIN delivery_patterns dp ON dp.customer_id = c.id
+        WHERE dp.is_active = 1
+          AND date(dp.start_date) <= date(?)
+          AND date(COALESCE(dp.end_date, '2099-12-31')) >= date(?)
+      `, [monthEnd, monthStart], (err, row) => {
         if (err) return reject(err);
         resolve(row?.count || 0);
       });
     });
     
-    // 前月の顧客数
+    // 前月の顧客数（在籍）
     const prevCustomers = await new Promise((resolve, reject) => {
       db.get(`
-        SELECT COUNT(*) as count
+        SELECT COUNT(DISTINCT c.id) AS count
         FROM customers c
-        WHERE c.contract_start_date <= ?
-          AND NOT EXISTS (
-            SELECT 1 FROM delivery_patterns dp
-            WHERE dp.customer_id = c.id
-              AND dp.is_active = 1
-              AND dp.end_date IS NOT NULL
-              AND dp.end_date < ?
-          )
-      `, [`${prevYear}-${String(prevMonthNum).padStart(2, '0')}-${String(new Date(prevYear, prevMonthNum, 0).getDate()).padStart(2, '0')}`, `${prevYear}-${String(prevMonthNum).padStart(2, '0')}-${String(new Date(prevYear, prevMonthNum, 0).getDate()).padStart(2, '0')}`], (err, row) => {
+        INNER JOIN delivery_patterns dp ON dp.customer_id = c.id
+        WHERE dp.is_active = 1
+          AND date(dp.start_date) <= date(?)
+          AND date(COALESCE(dp.end_date, '2099-12-31')) >= date(?)
+      `, [prevMonthEnd, prevMonthStart], (err, row) => {
         if (err) return reject(err);
         resolve(row?.count || 0);
       });
