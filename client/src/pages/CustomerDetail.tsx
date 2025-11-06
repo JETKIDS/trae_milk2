@@ -114,7 +114,7 @@ const CustomerDetail: React.FC = () => {
   // 表示中の年月
   const [currentDate, setCurrentDate] = useState(moment());
   // 当月請求の確定状態
-  const [invoiceConfirmed, setInvoiceConfirmed] = useState<boolean>(false);
+  const [invoiceConfirmed, setInvoiceConfirmed] = useState(false);
   // 追記: 確定日時
   const [invoiceConfirmedAt, setInvoiceConfirmedAt] = useState<string | null>(null);
   // 追記: 前月請求の確定状態（入金処理のガード用）
@@ -206,6 +206,57 @@ const CustomerDetail: React.FC = () => {
   const [openCancelProduct, setOpenCancelProduct] = useState<boolean>(false);
   const [openBillingRounding, setOpenBillingRounding] = useState<boolean>(false);
   const [openBankInfo, setOpenBankInfo] = useState<boolean>(false);
+
+  // 当月の有効な配達曜日ラベル（例: ㊋㊎）を計算
+  const getCurrentDeliveryDaysLabel = useCallback((): string => {
+    if (!patterns || patterns.length === 0) return '';
+    const monthStart = currentDate.clone().startOf('month');
+    const monthEnd = currentDate.clone().endOf('month');
+
+    const visible = patterns.filter(p =>
+      moment(p.start_date).isSameOrBefore(monthEnd, 'day') &&
+      (!p.end_date || moment(p.end_date).isSameOrAfter(monthStart, 'day'))
+    );
+
+    const hasDay: boolean[] = Array(7).fill(false); // 0=日,1=月,...6=土
+
+    const toArray = (val: any): number[] => {
+      if (Array.isArray(val)) return val as number[];
+      if (typeof val === 'string') {
+        try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+      }
+      return [];
+    };
+    const toDQ = (val: any): Record<number, number> => {
+      if (!val) return {} as Record<number, number>;
+      if (typeof val === 'string') {
+        try { const parsed = JSON.parse(val); return (parsed && typeof parsed === 'object') ? parsed : {}; } catch { return {}; }
+      }
+      return val as Record<number, number>;
+    };
+
+    visible.forEach(p => {
+      const dq = toDQ(p.daily_quantities);
+      const days = toArray(p.delivery_days);
+      // daily_quantities優先（>0 を配達ありと判定）
+      let flagged = false;
+      for (let d = 0; d < 7; d++) {
+        const q = (dq as any)[d];
+        if (typeof q === 'number' && q > 0) {
+          hasDay[d] = true; flagged = true;
+        }
+      }
+      if (!flagged) {
+        days.forEach(d => { if (d >= 0 && d <= 6) hasDay[d] = true; });
+      }
+    });
+
+    // 表示順は業務慣習に合わせて 月〜土→日（1,2,3,4,5,6,0）
+    const order = [1,2,3,4,5,6,0];
+    const circled = ['㊐','㊊','㊋','㊌','㊍','㊎','㊏'];
+    const label = order.filter(d => hasDay[d]).map(d => circled[d]).join('');
+    return label;
+  }, [patterns, currentDate]);
 
   // ===== データ取得関数 =====
   const fetchCustomerData = useCallback(async () => {
@@ -1573,6 +1624,7 @@ const CustomerDetail: React.FC = () => {
       <Grid item xs={12} md={3}>
         <CustomerActionsSidebar
           customerName={customer.customer_name}
+          deliveryDaysLabel={getCurrentDeliveryDaysLabel()}
           customId={customer.custom_id}
           courseName={customer.course_name}
           monthlyTotal={monthlyTotal}

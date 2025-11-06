@@ -71,6 +71,8 @@ const PeriodDeliveryListTab: React.FC = () => {
     const [cancelMap, setCancelMap] = useState<Map<string, Set<string>>>(new Map());
     // 解約した商品の商品名などを補完するためのパターンマップ
     const [patternsMap, setPatternsMap] = useState<Map<string, any>>(new Map());
+    // 顧客ごとの全パターン（曜日表示用に使用）
+    const [customerPatternsMap, setCustomerPatternsMap] = useState<Map<number, any[]>>(new Map());
     // 顧客の内部ID（customer_id）と7桁ID（custom_id）の対応表
     const [idToCustomIdMap, setIdToCustomIdMap] = useState<Map<number, string>>(new Map());
   // ローカルストレージから自動計算設定を読み込み（配達リストタブ用）
@@ -249,7 +251,15 @@ const PeriodDeliveryListTab: React.FC = () => {
         const key = `${p.customer_id}-${p.product_id}`;
         map.set(key, p);
       });
+      // 顧客別の全パターン
+      const byCustomer = new Map<number, any[]>();
+      patterns.forEach((p: any) => {
+        const arr = byCustomer.get(p.customer_id) || [];
+        arr.push(p);
+        byCustomer.set(p.customer_id, arr);
+      });
       setPatternsMap(map);
+      setCustomerPatternsMap(byCustomer);
       return { patterns, map };
     } catch (e) {
       console.warn('配達パターンデータの取得で予期せぬエラー:', e);
@@ -966,78 +976,130 @@ const PeriodDeliveryListTab: React.FC = () => {
                             // 同じ顧客の最初の商品かどうかを判定
                             const isFirstProductForCustomer = index === 0 || 
                               allCustomerProducts[index - 1].customer_id !== customerProduct.customer_id;
-                            
-                            return (
-                              <TableRow key={`${customerProduct.customer_id}-${customerProduct.product_id}`}>
-                                <TableCell>
-                                  {isFirstProductForCustomer ? (customerProduct.delivery_order || '-') : ''}
-                                </TableCell>
-                                <TableCell>
-                                  {isFirstProductForCustomer ? (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                      <Box
-                                        component="button"
-                                        onClick={() => {
-                                          // 共通関数で別ウインドウ表示
-                                          // eslint-disable-next-line @typescript-eslint/no-var-requires
-                                          import('../utils/window').then(m => m.openCustomerStandalone(customerProduct.customer_id));
-                                        }}
-                                        style={{
-                                          background: 'none',
-                                          border: 'none',
-                                          padding: 0,
-                                          margin: 0,
-                                          color: '#1976d2',
-                                          textDecoration: 'underline',
-                                          cursor: 'pointer'
-                                        }}
-                                      >
-                                        {pad7(customerProduct.custom_id)}
-                                      </Box>
-                                    </Box>
-                                  ) : ''}
-                                </TableCell>
-                                <TableCell sx={{ fontWeight: isSimpleDisplay ? 'bold' : 'normal' }}>
-                                  {isFirstProductForCustomer ? customerProduct.customer_name : ''}
-                                </TableCell>
-                                {!isSimpleDisplay && (
-                                  <TableCell>
-                                    {isFirstProductForCustomer ? customerProduct.address : ''}
-                                  </TableCell>
-                                )}
-                                {!isSimpleDisplay && (
-                                  <TableCell>
-                                    {isFirstProductForCustomer ? customerProduct.phone : ''}
-                                  </TableCell>
-                                )}
-                                <TableCell sx={{ fontWeight: isSimpleDisplay ? 'bold' : 'normal' }}>
-                                  {customerProduct.product_name}
-                                </TableCell>
-                                {allDates.map(date => {
-                                  const quantity = customerProduct.dateQuantities[date];
-                                  const skipped = isSkipped(date, customerProduct.customer_id, customerProduct.product_id);
-                                  const cancelled = isCancelled(date, customerProduct.customer_id, customerProduct.product_id);
-                                  return (
-                                    <TableCell key={date} align="center">
-                                      {skipped ? (
-                                        <Chip label="休" size="small" sx={{ bgcolor: '#ffebee', color: 'red', border: '1px solid #ffcdd2' }} />
-                                      ) : cancelled ? (
-                                        <Chip label="解" size="small" sx={{ bgcolor: '#fdecea', color: '#d32f2f', border: '1px solid #f8d7da' }} />
-                                      ) : quantity ? (
-                                        <Typography variant="body2" fontWeight="bold">
-                                          {quantity}
-                                        </Typography>
-                                      ) : (
-                                        <Typography variant="body2" color="text.disabled">
-                                          -
-                                        </Typography>
-                                      )}
-                                    </TableCell>
-                                  );
-                                })}
-                              </TableRow>
-                            );
-                          })}
+                            // 当該チャンク(allDates)における配達曜日ラベルを算出
+                            const getCustomerWeekdayLabel = (cid: number): string => {
+                              const hasDay: boolean[] = Array(7).fill(false); // 0=日..6=土
+                              const order = [1,2,3,4,5,6,0];
+                              const circled = ['㊐','㊊','㊋','㊌','㊍','㊎','㊏'];
+                              // 当月の範囲を使用（顧客詳細と同様の考え方）
+                              const now = new Date();
+                              const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                              const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                              const monthStartStr = `${monthStart.getFullYear()}-${String(monthStart.getMonth()+1).padStart(2,'0')}-${String(monthStart.getDate()).padStart(2,'0')}`;
+                              const monthEndStr = `${monthEnd.getFullYear()}-${String(monthEnd.getMonth()+1).padStart(2,'0')}-${String(monthEnd.getDate()).padStart(2,'0')}`;
+
+                              const pats = customerPatternsMap.get(cid) || [];
+                              pats.forEach((pat: any) => {
+                                const start = pat.start_date || '0000-01-01';
+                                const end = pat.end_date || '2099-12-31';
+                                // 当月とパターンが重なるか
+                                if (end < monthStartStr || start > monthEndStr) return;
+
+                                let flagged = false;
+                                try {
+                                  const dq = typeof pat.daily_quantities === 'string' ? JSON.parse(pat.daily_quantities) : (pat.daily_quantities || null);
+                                  if (dq && typeof dq === 'object') {
+                                    for (let d = 0; d < 7; d++) {
+                                      const q = (dq as any)[d] || 0;
+                                      if (q > 0) { hasDay[d] = true; flagged = true; }
+                                    }
+                                  }
+                                } catch {}
+
+                                if (!flagged) {
+                                  try {
+                                    const days = Array.isArray(pat.delivery_days) ? pat.delivery_days : JSON.parse(pat.delivery_days || '[]');
+                                    if (Array.isArray(days)) {
+                                      days.forEach((d: number) => { if (d >= 0 && d <= 6) hasDay[d] = true; });
+                                    }
+                                  } catch {}
+                                }
+                              });
+
+                              return order.filter(d => hasDay[d]).map(d => circled[d]).join('');
+                            };
+                             
+                             return (
+                               <TableRow key={`${customerProduct.customer_id}-${customerProduct.product_id}`}>
+                                 <TableCell>
+                                   {isFirstProductForCustomer ? (customerProduct.delivery_order || '-') : ''}
+                                 </TableCell>
+                                 <TableCell>
+                                   {isFirstProductForCustomer ? (
+                                     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                       <Box
+                                         component="button"
+                                         onClick={() => {
+                                           // 共通関数で別ウインドウ表示
+                                           // eslint-disable-next-line @typescript-eslint/no-var-requires
+                                           import('../utils/window').then(m => m.openCustomerStandalone(customerProduct.customer_id));
+                                         }}
+                                         style={{
+                                           background: 'none',
+                                           border: 'none',
+                                           padding: 0,
+                                           margin: 0,
+                                           color: '#1976d2',
+                                           textDecoration: 'underline',
+                                           cursor: 'pointer'
+                                         }}
+                                       >
+                                         {pad7(customerProduct.custom_id)}
+                                       </Box>
+                                     </Box>
+                                   ) : ''}
+                                 </TableCell>
+                                 <TableCell sx={{ fontWeight: isSimpleDisplay ? 'bold' : 'normal' }}>
+                                   {isFirstProductForCustomer ? (
+                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                       <span>{customerProduct.customer_name}</span>
+                                       {(() => {
+                                         const lbl = getCustomerWeekdayLabel(customerProduct.customer_id);
+                                         return lbl ? (
+                                           <Typography variant="caption" color="text.secondary">{lbl}</Typography>
+                                         ) : null;
+                                       })()}
+                                     </Box>
+                                   ) : ''}
+                                 </TableCell>
+                                 {!isSimpleDisplay && (
+                                   <TableCell>
+                                     {isFirstProductForCustomer ? customerProduct.address : ''}
+                                   </TableCell>
+                                 )}
+                                 {!isSimpleDisplay && (
+                                   <TableCell>
+                                     {isFirstProductForCustomer ? customerProduct.phone : ''}
+                                   </TableCell>
+                                 )}
+                                 <TableCell sx={{ fontWeight: isSimpleDisplay ? 'bold' : 'normal' }}>
+                                   {customerProduct.product_name}
+                                 </TableCell>
+                                 {allDates.map(date => {
+                                   const quantity = customerProduct.dateQuantities[date];
+                                   const skipped = isSkipped(date, customerProduct.customer_id, customerProduct.product_id);
+                                   const cancelled = isCancelled(date, customerProduct.customer_id, customerProduct.product_id);
+                                   return (
+                                     <TableCell key={date} align="center">
+                                       {skipped ? (
+                                         <Chip label="休" size="small" sx={{ bgcolor: '#ffebee', color: 'red', border: '1px solid #ffcdd2' }} />
+                                       ) : cancelled ? (
+                                         <Chip label="解" size="small" sx={{ bgcolor: '#fdecea', color: '#d32f2f', border: '1px solid #f8d7da' }} />
+                                       ) : quantity ? (
+                                         <Typography variant="body2" fontWeight="bold">
+                                           {quantity}
+                                         </Typography>
+                                       ) : (
+                                         <Typography variant="body2" color="text.disabled">
+                                           -
+                                         </Typography>
+                                       )}
+                                     </TableCell>
+                                   );
+                                 })}
+                               </TableRow>
+                             );
+                           })}
                         </TableBody>
                       </Table>
                     </TableContainer>
@@ -1182,12 +1244,22 @@ const ProductSummaryTab: React.FC = () => {
           }
         });
       }
+      // パターンマップを作成（customerId-productId をキー）
+      // 最新の情報で上書きする（商品名などを新パターンに合わせるため）
       const map = new Map<string, any>();
       patterns.forEach((p: any) => {
         const key = `${p.customer_id}-${p.product_id}`;
         map.set(key, p);
       });
+      // 顧客別の全パターン
+      const byCustomer = new Map<number, any[]>();
+      patterns.forEach((p: any) => {
+        const arr = byCustomer.get(p.customer_id) || [];
+        arr.push(p);
+        byCustomer.set(p.customer_id, arr);
+      });
       setPatternsMap(map);
+      setCustomerPatternsMap(byCustomer);
       return { patterns, map };
     } catch (e) {
       console.warn('配達パターンデータの取得で予期せぬエラー:', e);

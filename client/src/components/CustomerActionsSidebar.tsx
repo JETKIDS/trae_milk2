@@ -10,6 +10,8 @@ interface Props {
   customId?: string;
   courseName?: string;
   monthlyTotal?: number;
+  // 追加: 現在のお届け曜日ラベル（例: ㊊㊎）
+  deliveryDaysLabel?: string;
   // 表示月の確定ステータス
   invoiceConfirmed?: boolean;
   onConfirmInvoice?: () => Promise<void> | void;
@@ -49,6 +51,7 @@ interface Props {
 
 const CustomerActionsSidebar: React.FC<Props> = ({
   customerName,
+  deliveryDaysLabel,
   customId,
   courseName,
   monthlyTotal,
@@ -222,7 +225,14 @@ const saveMethodChange = async () => {
             <Box sx={{ mb: 1 }}>
               {/* 顧客名は1行固定（折り返し回避）、集金方法は1段下に表示 */}
               <Box>
-                <Typography variant="body1" fontWeight={600} noWrap>{customerName}</Typography>
+                <Typography variant="body1" fontWeight={600} noWrap>
+                  {customerName}
+                  {deliveryDaysLabel ? (
+                    <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>
+                      {deliveryDaysLabel}
+                    </Box>
+                  ) : null}
+                </Typography>
               </Box>
               <Box sx={{ mt: 1 }}>
                 {renderBillingMethodSelector()}
