@@ -32,6 +32,8 @@ import {
 } from '@mui/material';
 import { LocalShipping, Print, GetApp, ExpandMore, PictureAsPdf } from '@mui/icons-material';
 import { pad7 } from '../utils/id';
+import { chunkArray } from '../utils/array';
+import { computeDayTotalsForRows, computeGrandTotalQuantity, computeGrandTotalAmount } from '../utils/summary';
 
 interface Course { id: number; custom_id?: string; course_name: string; }
 
@@ -1914,7 +1916,6 @@ const ProductSummaryTab: React.FC = () => {
               const courseDateList = courseData.dateList;
               
               // 日付リストを7日ごとに分割（共通ユーティリティ）
-              const { chunkArray } = require('../utils/array');
               const dateChunks: string[][] = chunkArray(courseDateList, 7);
 
               return dateChunks.map((dateChunk, chunkIndex) => {
@@ -2020,7 +2021,6 @@ const ProductSummaryTab: React.FC = () => {
                     ))}
                     {/* 全体の合計行 */}
                     {(() => {
-                      const { computeDayTotalsForRows, computeGrandTotalQuantity, computeGrandTotalAmount } = require('../utils/summary');
                       const dayTotals = computeDayTotalsForRows(courseManufacturerGroupsFiltered.flatMap((g:any)=>g.rows), dateChunk);
                       const grandTotalQuantity = courseManufacturerGroupsFiltered.reduce((sum:any, g:any) => sum + g.subtotal_quantity, 0);
                       const grandTotalAmount = courseManufacturerGroupsFiltered.reduce((sum:any, g:any) => sum + g.subtotal_amount, 0);
@@ -2053,7 +2053,6 @@ const ProductSummaryTab: React.FC = () => {
                     ))}
                     {/* 合計行 */}
                     {(() => {
-                      const { computeDayTotalsForRows, computeGrandTotalQuantity, computeGrandTotalAmount } = require('../utils/summary');
                       const dayTotals = computeDayTotalsForRows(courseFilteredRows, dateChunk);
                       const grandTotalQuantity = computeGrandTotalQuantity(courseFilteredRows);
                       const grandTotalAmount = computeGrandTotalAmount(courseFilteredRows);
@@ -2081,7 +2080,6 @@ const ProductSummaryTab: React.FC = () => {
             // 通常表示（合算または単一コース）
             (() => {
               // 日付リストを7日ごとに分割（共通ユーティリティ）
-              const { chunkArray } = require('../utils/array');
               const dateChunks: string[][] = chunkArray(summaryDateList, 7);
 
               return dateChunks.map((dateChunk, chunkIndex) => {
