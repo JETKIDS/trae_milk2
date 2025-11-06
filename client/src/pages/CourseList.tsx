@@ -29,6 +29,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Checkbox,
 } from '@mui/material';
 import { 
   Add as AddIcon,
@@ -80,9 +81,11 @@ interface Customer {
 interface SortableCustomerProps {
   customer: Customer;
   index: number;
+  selected: boolean;
+  onToggle: (id: number) => void;
 }
 
-const SortableCustomer: React.FC<SortableCustomerProps> = ({ customer, index }) => {
+const SortableCustomer: React.FC<SortableCustomerProps> = ({ customer, index, selected, onToggle }) => {
   const {
     attributes,
     listeners,
@@ -105,7 +108,7 @@ const SortableCustomer: React.FC<SortableCustomerProps> = ({ customer, index }) 
       sx={{
         mb: 1,
         p: 2,
-        cursor: 'grab',
+        cursor: 'default',
         border: isDragging ? '2px dashed #1976d2' : '1px solid #e0e0e0',
         '&:hover': {
           backgroundColor: '#f9f9f9',
@@ -113,17 +116,21 @@ const SortableCustomer: React.FC<SortableCustomerProps> = ({ customer, index }) 
         },
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Checkbox size="small" sx={{ p: 0.5 }} checked={selected} onChange={() => onToggle(customer.id)} />
         <DragIndicatorIcon 
-          sx={{ color: '#666', cursor: 'grab' }} 
+          sx={{ color: '#666', cursor: 'move' }} 
           {...attributes} 
           {...listeners}
         />
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="body1" fontWeight="bold">
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 2, overflow: 'hidden' }}>
+          <Typography variant="caption" color="textSecondary" noWrap>
+            {customer.custom_id}
+          </Typography>
+          <Typography variant="body2" fontWeight="bold" noWrap>
             {customer.customer_name}
           </Typography>
-          <Typography variant="body2" color="textSecondary">
+          <Typography variant="caption" color="textSecondary" noWrap sx={{ flexShrink: 1 }}>
             {customer.address}
           </Typography>
         </Box>
@@ -265,13 +272,16 @@ const CourseList: React.FC = () => {
     if (!selectedCourseId) return;
 
     try {
-      await apiClient.put(`/api/customers/update-delivery-order`, {
-        courseId: selectedCourseId,
-        customers: customers.map((customer, index) => ({
+      await apiClient.put(`/api/customers/delivery-order/bulk`, {
+        updates: customers.map((customer, index) => ({
           id: customer.id,
           delivery_order: index + 1
         }))
       });
+
+      // 追加: 保存直後に最新順序を再取得
+      await fetchCustomers(selectedCourseId as number);
+      setSelectedCustomerIds([]);
 
       setSnackbar({
         open: true,
@@ -378,6 +388,33 @@ const CourseList: React.FC = () => {
   const openDeleteDialog = (course: Course) => {
     setSelectedCourse(course);
     setDeleteDialog(true);
+  };
+
+  // 追加: 選択状態と移動先コース
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
+  const [moveToCourseId, setMoveToCourseId] = useState<number | ''>('');
+
+  const toggleSelected = (id: number) => {
+    setSelectedCustomerIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleMoveCustomers = async () => {
+    if (!moveToCourseId || selectedCustomerIds.length === 0) return;
+    try {
+      await apiClient.put('/api/customers/move-course', {
+        customerIds: selectedCustomerIds,
+        newCourseId: moveToCourseId
+      });
+      // 現在選択中のコースの顧客を更新
+      if (selectedCourseId) {
+        await fetchCustomers(selectedCourseId as number);
+      }
+      setSelectedCustomerIds([]);
+      setSnackbar({ open: true, message: '顧客をコース移動しました', severity: 'success' });
+    } catch (e) {
+      console.error('顧客移動エラー:', e);
+      setSnackbar({ open: true, message: '顧客移動に失敗しました', severity: 'error' });
+    }
   };
 
   if (loading) {
@@ -548,6 +585,39 @@ const CourseList: React.FC = () => {
             </Grid>
           </Grid>
 
+          {/* 顧客移動 */}
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>移動先コース</InputLabel>
+                <Select
+                  value={moveToCourseId}
+                  label="移動先コース"
+                  onChange={(e) => setMoveToCourseId(e.target.value as number | '')}
+                >
+                  <MenuItem value="">
+                    <em>コースを選択してください</em>
+                  </MenuItem>
+                  {courses.map((course) => (
+                    <MenuItem key={course.id} value={course.id}>
+                      {course.course_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Button
+                variant="outlined"
+                onClick={handleMoveCustomers}
+                disabled={!moveToCourseId || selectedCustomerIds.length === 0}
+                fullWidth
+              >
+                選択した顧客をコース移動
+              </Button>
+            </Grid>
+          </Grid>
+
           {/* 顧客リスト */}
           {selectedCourseId && (
             <Card sx={{ mt: 3 }}>
@@ -574,6 +644,8 @@ const CourseList: React.FC = () => {
                             key={customer.id}
                             customer={customer}
                             index={index}
+                            selected={selectedCustomerIds.includes(customer.id)}
+                            onToggle={toggleSelected}
                           />
                         ))}
                         {customers.length === 0 && (

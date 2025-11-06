@@ -99,9 +99,9 @@ const SortableCustomer: React.FC<SortableCustomerProps> = ({ customer, index }) 
       ref={setNodeRef}
       style={style}
       sx={{
-        mb: 1,
-        p: 2,
-        cursor: 'grab',
+        mb: 0.5,
+        p: 1,
+        cursor: 'default',
         border: isDragging ? '2px dashed #1976d2' : '1px solid #e0e0e0',
         '&:hover': {
           backgroundColor: '#f9f9f9',
@@ -109,17 +109,17 @@ const SortableCustomer: React.FC<SortableCustomerProps> = ({ customer, index }) 
         },
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <DragIndicatorIcon 
-          sx={{ color: '#666', cursor: 'grab' }} 
+          sx={{ color: '#666', cursor: 'move' }} 
           {...attributes} 
           {...listeners}
         />
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="body1" fontWeight="bold">
-            {customer.customer_name}
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body2" fontWeight="bold" noWrap>
+            {customer.custom_id} {customer.customer_name}
           </Typography>
-          <Typography variant="body2" color="textSecondary">
+          <Typography variant="caption" color="textSecondary" noWrap>
             {customer.address}
           </Typography>
         </Box>
@@ -246,13 +246,15 @@ const CourseManagement: React.FC = () => {
     if (!selectedCourseId) return;
 
     try {
-      await apiClient.put(`/api/customers/update-delivery-order`, {
-        courseId: selectedCourseId,
-        customers: customers.map((customer, index) => ({
+      await apiClient.put(`/api/customers/delivery-order/bulk`, {
+        updates: customers.map((customer, index) => ({
           id: customer.id,
           delivery_order: index + 1
         }))
       });
+
+      // 追加: 保存直後に最新順序を再取得
+      fetchCustomers(selectedCourseId as number);
 
       setSnackbar({
         open: true,

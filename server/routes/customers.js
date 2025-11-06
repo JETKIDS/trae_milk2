@@ -2145,8 +2145,9 @@ router.put('/update-delivery-order', (req, res) => {
     // 各顧客の配達順序を更新
     const updatePromises = customers.map(customer => {
       return new Promise((resolve, reject) => {
-        const query = 'UPDATE customers SET delivery_order = ? WHERE id = ? AND course_id = ?';
-        db.run(query, [customer.delivery_order, customer.id, courseId], function(err) {
+        // course_id 条件を外し、IDベースで更新（コース移動直後でも反映されるように）
+        const query = 'UPDATE customers SET delivery_order = ? WHERE id = ?';
+        db.run(query, [customer.delivery_order, customer.id], function(err) {
           if (err) {
             reject(err);
           } else {
