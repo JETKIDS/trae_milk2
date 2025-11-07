@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const { initializeLedgerSchema } = require('./services/customerLedgerService');
 
 const app = express();
 const PORT = process.env.PORT || 9000;
@@ -54,6 +55,15 @@ app.use((err, req, res, next) => {
   const message = err.message || 'Internal Server Error';
   res.status(status).json({ error: message });
 });
+
+// 初期化処理（非同期）
+initializeLedgerSchema()
+  .then(() => {
+    console.log('✅ Ledger tables initialized');
+  })
+  .catch((err) => {
+    console.error('❌ Ledger tables initialization failed', err);
+  });
 
 // サーバー起動
 app.listen(PORT, () => {
