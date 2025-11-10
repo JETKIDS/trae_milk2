@@ -1052,8 +1052,17 @@ const CustomerDetail: React.FC = () => {
     : monthlyTotalRaw;
   const baseMonthlyTotal = Math.max(0, tmpBaseMonthlyTotal);
   // 繰越額 = 前月請求額 - 当月入金額（サーバーから取得、またはフォールバックで計算）
-  const carryoverFromPrev = (arSummary?.carryover_amount ?? ((arSummary?.prev_invoice_amount || 0) - (currentPaymentAmount || 0))) || 0;
-  const monthlyTotal = baseMonthlyTotal + carryoverFromPrev;
+  const prevInvoiceAmount = Number(arSummary?.prev_invoice_amount ?? 0);
+  const currentMonthPaymentAmount = Number(
+    typeof arSummary?.current_payment_amount === 'number'
+      ? arSummary.current_payment_amount
+      : currentPaymentAmount || 0
+  );
+  const carryoverDiffRaw = typeof arSummary?.carryover_amount === 'number'
+    ? arSummary.carryover_amount
+    : prevInvoiceAmount - currentMonthPaymentAmount;
+  const carryoverDiff = carryoverDiffRaw;
+  const monthlyTotal = Math.max(0, baseMonthlyTotal + carryoverDiff);
 
   // 設定保存ヘルパー
   const saveBillingSettings = async (method: 'collection' | 'debit', roundingEnabled: boolean) => {
@@ -1506,12 +1515,10 @@ const CustomerDetail: React.FC = () => {
                       <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'h5':'h4'} color="primary" fontWeight="bold">
                         ¥{monthlyTotal.toLocaleString()}
                       </Typography>
-                      {carryoverFromPrev !== 0 && (
-                        <Typography variant="body2" color="textSecondary">
-                          （繰越分 ¥{carryoverFromPrev.toLocaleString()} 含む）
-                        </Typography>
-                      )}
                     </Box>
+                    <Typography variant="body2" color="textSecondary">
+                      前月請求 ¥{prevInvoiceAmount.toLocaleString()} / 今月入金 ¥{currentMonthPaymentAmount.toLocaleString()} / 過不足 ¥{carryoverDiff.toLocaleString()}
+                    </Typography>
                     <Typography variant="body2" color="textSecondary" sx={{ mt: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1 }}>
                       {currentDate.format('YYYY年M月')}分
                     </Typography>

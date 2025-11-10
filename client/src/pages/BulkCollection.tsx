@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Checkbox, Container, FormControlLabel, Grid, MenuItem, Paper, Select, TextField, Typography, ToggleButtonGroup, ToggleButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
+import { Box, Button, Checkbox, CircularProgress, Container, FormControlLabel, Grid, MenuItem, Paper, Select, TextField, Typography, ToggleButtonGroup, ToggleButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
 import { pad7 } from '../utils/id';
 import { getPrevYearMonth } from '../utils/date';
 
@@ -25,6 +25,7 @@ async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit & {
 export default function BulkCollection({ method = 'collection', readOnly = false }: { method?: 'collection' | 'debit' | 'both'; readOnly?: boolean }) {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const { year: invoiceYear, month: invoiceMonth } = useMemo(() => getPrevYearMonth(year, month), [year, month]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseId, setCourseId] = useState<number | ''>('');
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -39,6 +40,8 @@ export default function BulkCollection({ method = 'collection', readOnly = false
   const [hideFullyPaid, setHideFullyPaid] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'perCourse' | 'allCourses'>(readOnly ? 'allCourses' : 'perCourse');
   const [filterMode, setFilterMode] = useState<'all' | 'collectionOnly' | 'debitOnly'>('all');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
 
   // 確認ダイアログ用の状態
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -101,11 +104,11 @@ export default function BulkCollection({ method = 'collection', readOnly = false
 
   const loadCustomers = async (cid: number) => {
     try {
+      setLoading(true);
       const co = courses.find(c => c.id === cid);
       const addCourseInfo = (list: Customer[]) => list.map(c => ({ ...c, course_name: co?.course_name, course_custom_id: co?.custom_id }));
       let rows: Customer[] = [];
       // 対象（入金）月と前月（請求参照）を分離
-      const { year: invYear, month: invMonth } = getPrevYearMonth(year, month);
       if (readOnly || method === 'both') {
         try {
           const respC = await fetchWithTimeout(`/api/customers/by-course/${cid}/collection`);
@@ -132,7 +135,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
       setChecked({});
       setAmounts({});
       // 請求額・確定フラグは前月を参照
-      const { invMap, confMap } = await fetchInvoicesAmountsMerged(cid, invYear, invMonth);
+      const { invMap, confMap } = await fetchInvoicesAmountsMerged(cid, invoiceYear, invoiceMonth);
       setInvoiceAmounts(prev => ({ ...prev, ...invMap }));
       setConfirmedMap(prev => ({ ...prev, ...confMap }));
       // 入金合計は当月（対象月）を参照
@@ -140,6 +143,9 @@ export default function BulkCollection({ method = 'collection', readOnly = false
       setPaidTotals(prev => ({ ...prev, ...paidMap }));
     } catch (e) {
       console.error('顧客・請求関連データ取得に失敗:', e);
+    } finally {
+      setLoading(false);
+      setLoaded(true);
     }
   };
 
@@ -148,7 +154,6 @@ export default function BulkCollection({ method = 'collection', readOnly = false
     const confAll: Record<number, boolean> = {};
     const paidAll: Record<number, number> = {};
     let allRows: Customer[] = [];
-    const { year: invYear, month: invMonth } = getPrevYearMonth(year, month);
     for (const co of courses) {
       let rows: Customer[] = [];
       if (readOnly || method === 'both') {
@@ -175,7 +180,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
       }
       allRows = allRows.concat(rows);
       // 前月（請求参照）を使用
-      const { invMap, confMap } = await fetchInvoicesAmountsMerged(co.id, invYear, invMonth);
+      const { invMap, confMap } = await fetchInvoicesAmountsMerged(co.id, invoiceYear, invoiceMonth);
       Object.assign(invAll, invMap);
       Object.assign(confAll, confMap);
       // 当月（対象月）の入金合計
@@ -188,41 +193,29 @@ export default function BulkCollection({ method = 'collection', readOnly = false
     setInvoiceAmounts(invAll);
     setConfirmedMap(confAll);
     setPaidTotals(paidAll);
+    setLoaded(true);
   };
 
-  const onChangeCourse = async (e: any) => {
+  const onChangeCourse = (e: any) => {
     const v = e.target.value;
     if (v === '__ALL__') {
       setViewMode('allCourses');
-      setCourseId('' as any);
-      await loadAllCoursesData();
+      setCourseId('__ALL__');
+      setLoaded(false);
       return;
     }
-    const next = (v === '' || v === null || v === undefined) ? '' : Number(v);
-    setCourseId(next as any);
-    if (typeof next === 'number') {
+    if (v === '' || v === null || v === undefined) {
+      setCourseId('');
+      setLoaded(false);
+      return;
+    }
+    const next = Number(v);
+    if (!Number.isNaN(next)) {
+      setCourseId(next);
       setViewMode('perCourse');
-      await loadCustomers(next);
+      setLoaded(false);
     }
   };
-
-  useEffect(() => {
-    if (viewMode === 'perCourse') {
-      if (typeof courseId === 'number') {
-        loadCustomers(courseId);
-      } else {
-        setCustomers([]);
-        setInvoiceAmounts({});
-        setPaidTotals({});
-        setConfirmedMap({});
-      }
-    } else {
-      if (courses.length > 0) {
-        loadAllCoursesData();
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, courseId, year, month, courses, method]);
 
   const toggleCheck = (id: number, value: boolean) => {
     setChecked(prev => ({ ...prev, [id]: value }));
@@ -405,6 +398,15 @@ export default function BulkCollection({ method = 'collection', readOnly = false
       .reduce((sum, c) => sum + (remainingMap[c.id] || 0), 0);
   }, [customers, checked, confirmedMap, remainingMap]);
 
+  const handleLoadData = async () => {
+    setLoaded(false);
+    if (viewMode === 'allCourses') {
+      await loadAllCoursesData();
+    } else if (typeof courseId === 'number') {
+      await loadCustomers(courseId);
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ mt: 3 }}>
       <Typography variant="h5" gutterBottom>{readOnly ? '集金一覧表' : `一括入金（${method === 'debit' ? '引き落し' : '集金'}）`}</Typography>
@@ -413,7 +415,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={4}>
             <TextField 
-              label="対象年月" 
+              label="対象年月（入金月）" 
               type="month" 
               value={`${year}-${String(month).padStart(2, '0')}`}
               onChange={(e) => {
@@ -426,31 +428,20 @@ export default function BulkCollection({ method = 'collection', readOnly = false
               fullWidth 
               InputLabelProps={{ shrink: true }}
             />
+            <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
+              請求参照: {invoiceYear}年{String(invoiceMonth).padStart(2, '0')}月（前月分）
+            </Typography>
           </Grid>
 
-          {readOnly ? (
-            <Grid item xs={12} sm={6}>
-              <ToggleButtonGroup exclusive value={viewMode} onChange={(_, v) => v && setViewMode(v)} size="small">
-                <ToggleButton value="allCourses">全コース</ToggleButton>
-                <ToggleButton value="perCourse">コース毎</ToggleButton>
-              </ToggleButtonGroup>
-            </Grid>
-          ) : (
-            viewMode === 'perCourse' && (
-              <Grid item xs={12} sm={8}>
-                <Select fullWidth displayEmpty value={courseId} onChange={onChangeCourse}>
-                  <MenuItem value="__ALL__">全コース</MenuItem>
-                  <MenuItem value=""><em>コースを選択…</em></MenuItem>
-                  {courses.map(co => (
-                    <MenuItem key={co.id} value={co.id}>{co.custom_id} {co.course_name}</MenuItem>
-                  ))}
-                </Select>
-              </Grid>
-            )
-          )}
+          <Grid item xs={12} sm={readOnly ? 6 : 8}>
+            <ToggleButtonGroup exclusive value={viewMode} onChange={(_, v) => v && (setViewMode(v), setLoaded(false))} size="small">
+              <ToggleButton value="allCourses">全コース</ToggleButton>
+              <ToggleButton value="perCourse">コース毎</ToggleButton>
+            </ToggleButtonGroup>
+          </Grid>
 
-          {readOnly && viewMode === 'perCourse' && (
-            <Grid item xs={12} sm={6}>
+          {viewMode === 'perCourse' && (
+            <Grid item xs={12} sm={8}>
               <Select fullWidth displayEmpty value={courseId} onChange={onChangeCourse}>
                 <MenuItem value="__ALL__">全コース</MenuItem>
                 <MenuItem value=""><em>コースを選択…</em></MenuItem>
@@ -460,6 +451,19 @@ export default function BulkCollection({ method = 'collection', readOnly = false
               </Select>
             </Grid>
           )}
+
+          <Grid item xs={12} sm={4}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button
+                variant="contained"
+                onClick={handleLoadData}
+                disabled={loading || (viewMode === 'perCourse' && typeof courseId !== 'number' && courseId !== '__ALL__')}
+              >
+                読み込み
+              </Button>
+              {loading && <CircularProgress size={28} />}
+            </Box>
+          </Grid>
 
           <Grid item xs={12}>
             <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
@@ -514,8 +518,16 @@ export default function BulkCollection({ method = 'collection', readOnly = false
       )}
 
       <Paper sx={{ p: 2 }}>
+        {loaded && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              請求対象: {invoiceYear}年{String(invoiceMonth).padStart(2, '0')}月分 ／ 入金対象: {year}年{String(month).padStart(2, '0')}月入金分
+            </Typography>
+          </Box>
+        )}
+
         {customersSorted.length === 0 ? (
-          <Typography color="text.secondary">{viewMode === 'perCourse' ? 'コースを選択すると一覧が表示されます。' : '全コースの一覧を表示します（対象条件に該当する顧客がいません）。'}</Typography>
+          <Typography color="text.secondary">{loaded ? (viewMode === 'perCourse' ? '該当する顧客がいません。' : '全コースで該当する顧客がいません。') : '対象年月とコースを選択し、読み込みボタンを押してください。'}</Typography>
         ) : (
           <Grid container spacing={1}>
             {customersSorted.map((c, idx) => (
@@ -576,7 +588,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
                       </Grid>
                       <Grid item xs={12} sm={2}>
                         <Typography variant="body2" sx={{ textAlign: 'right' }}>
-                          入金済: ￥{(paidTotals[c.id] || 0).toLocaleString()}
+                          入金済: ￥{(paidTotals[c.id] || 0).toLocaleString()}（{year}年{String(month).padStart(2, '0')}月入金分）
                         </Typography>
                       </Grid>
                       <Grid item xs={12} sm={2}>

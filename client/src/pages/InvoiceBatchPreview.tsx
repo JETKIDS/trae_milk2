@@ -215,13 +215,20 @@ const InvoiceContent: React.FC<{
     return amt;
   }, [monthlyTotalRaw, roundingEnabled]);
 
+  const prevInvoiceAmount = Number(arSummary?.prev_invoice_amount ?? 0);
+  const currentMonthPaymentAmount = Number(arSummary?.current_payment_amount ?? 0);
+  const carryoverAmount = typeof arSummary?.carryover_amount === 'number'
+    ? arSummary.carryover_amount
+    : prevInvoiceAmount - currentMonthPaymentAmount;
+
   const previousBalance = useMemo(() => {
-    return arSummary?.carryover_amount || 0;
-  }, [arSummary]);
+    return carryoverAmount;
+  }, [carryoverAmount]);
 
   const grandTotal = useMemo(() => {
-    return monthlyTotal + (arSummary?.carryover_amount || 0);
-  }, [monthlyTotal, arSummary]);
+    const total = monthlyTotal + carryoverAmount;
+    return total < 0 ? 0 : total;
+  }, [monthlyTotal, carryoverAmount]);
 
   const generateMonthDays = useCallback((): { firstHalf: MonthDay[]; secondHalf: MonthDay[] } => {
     const mm = String(month).padStart(2, '0');
@@ -346,10 +353,18 @@ const InvoiceContent: React.FC<{
                 </React.Fragment>
               ))}
             </Box>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline', mb: 1 }}>
-              <Typography className="small-text shrink-50">前回残高</Typography>
-              <Typography className="small-text shrink-50" sx={{ textAlign: 'right' }}>{previousBalance ? previousBalance.toLocaleString() : ''}</Typography>
-            </Box>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline', mb: 1 }}>
+                          <Typography className="small-text shrink-50">前月請求</Typography>
+                          <Typography className="small-text shrink-50" sx={{ textAlign: 'right' }}>{prevInvoiceAmount.toLocaleString()}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline', mb: 1 }}>
+                          <Typography className="small-text shrink-50">今月入金</Typography>
+                          <Typography className="small-text shrink-50" sx={{ textAlign: 'right' }}>{currentMonthPaymentAmount.toLocaleString()}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline', mb: 1 }}>
+                          <Typography className="small-text shrink-50">過不足</Typography>
+                          <Typography className="small-text shrink-50" sx={{ textAlign: 'right' }}>{previousBalance.toLocaleString()}</Typography>
+                        </Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px', alignItems: 'baseline' }}>
               <Typography className="small-text">請求額</Typography>
               <Typography className="deposit-total" sx={{ textAlign: 'right', fontWeight: 700, fontSize: 18 }}>￥{grandTotal.toLocaleString()}</Typography>
@@ -494,14 +509,14 @@ const InvoiceContent: React.FC<{
 
         {/* 合計金額欄 */}
         <Box className="thin-box totals-grid" sx={{ p: 0 }}>
-          <div className="totals-cell label" style={{ gridColumn: 1, gridRow: 1 }}>前月請求額</div>
-          <div className="totals-cell value" style={{ gridColumn: 1, gridRow: 2 }}>{(arSummary?.prev_invoice_amount || 0).toLocaleString()}</div>
+                      <div className="totals-cell label" style={{ gridColumn: 1, gridRow: 1 }}>前月請求額</div>
+                      <div className="totals-cell value" style={{ gridColumn: 1, gridRow: 2 }}>{prevInvoiceAmount.toLocaleString()}</div>
 
-          <div className="totals-cell label" style={{ gridColumn: 2, gridRow: 1 }}>当月入金額</div>
-          <div className="totals-cell value" style={{ gridColumn: 2, gridRow: 2 }}>{(arSummary?.current_payment_amount || 0).toLocaleString()}</div>
+                      <div className="totals-cell label" style={{ gridColumn: 2, gridRow: 1 }}>当月入金額</div>
+                      <div className="totals-cell value" style={{ gridColumn: 2, gridRow: 2 }}>{currentMonthPaymentAmount.toLocaleString()}</div>
 
-          <div className="totals-cell label" style={{ gridColumn: 3, gridRow: 1 }}>繰越額</div>
-          <div className="totals-cell value" style={{ gridColumn: 3, gridRow: 2 }}>{(arSummary?.carryover_amount || 0).toLocaleString()}</div>
+                      <div className="totals-cell label" style={{ gridColumn: 3, gridRow: 1 }}>繰越額</div>
+                      <div className="totals-cell value" style={{ gridColumn: 3, gridRow: 2 }}>{previousBalance.toLocaleString()}</div>
 
           <div className="totals-cell label" style={{ gridColumn: 4, gridRow: 1 }}>お買上額</div>
           <div className="totals-cell value" style={{ gridColumn: 4, gridRow: 2 }}>{monthlyTotalRaw.toLocaleString()}</div>

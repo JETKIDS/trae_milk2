@@ -162,7 +162,7 @@ const buildCarryoverAmount = async (db, customerId, year, month, roundingEnabled
 
   const prevInvoiceRow = await dbGet(
     db,
-    'SELECT amount FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?',
+    "SELECT amount FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ? AND status = 'confirmed'",
     [customerId, prevYear, prevMonth],
   );
 
@@ -181,7 +181,8 @@ const buildCarryoverAmount = async (db, customerId, year, month, roundingEnabled
   );
   const currentPayments = currentPaymentRow ? currentPaymentRow.total || 0 : 0;
 
-  return (prevInvoiceAmount || 0) - currentPayments;
+  const carryoverRaw = (prevInvoiceAmount || 0) - currentPayments;
+  return carryoverRaw;
 };
 
 const upsertInvoice = async (db, customerId, year, month, amount, roundingEnabled) => {
@@ -304,19 +305,23 @@ const getInvoiceStatus = async (customerId, year, month) => withDb(async (db) =>
   await ensureLedgerInitialized();
   const row = await dbGet(
     db,
-    'SELECT amount, rounding_enabled, confirmed_at FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?',
+    'SELECT amount, rounding_enabled, confirmed_at, status FROM ar_invoices WHERE customer_id = ? AND year = ? AND month = ?',
     [cid, y, m],
   );
 
-  if (row) {
-    return {
-      confirmed: true,
-      amount: row.amount,
-      rounding_enabled: row.rounding_enabled === 1,
-      confirmed_at: row.confirmed_at,
-    };
+  if (!row) {
+    return { confirmed: false };
   }
-  return { confirmed: false };
+
+  const status = String(row.status || '').toLowerCase();
+  const isConfirmed = status === 'confirmed';
+
+  return {
+    confirmed: isConfirmed,
+    amount: row.amount,
+    rounding_enabled: row.rounding_enabled === 1,
+    confirmed_at: row.confirmed_at,
+  };
 });
 
 const getCourseInvoiceAmounts = async (courseId, year, month, method) => withDb(async (db) => {
