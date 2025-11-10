@@ -1,15 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Fredoka', 'Rounded Mplus 1c', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  background-color: #F6FFF1;
+  color: #0C2600;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: 'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 * {
@@ -198,35 +199,8 @@ code {
   }
   
   /* テーブルの印刷最適化 */
-  .collection-list-table {
-    font-size: 12px !important;
-  }
-  
-  .collection-list-table th,
-  .collection-list-table td {
-    padding: 4px 8px !important;
-    border: 1px solid #000 !important;
-  }
-  
-  /* 配達リストの印刷最適化 */
-  .delivery-list-table {
+  .print-table-compact .MuiTableCell-root {
+    padding: 4px 6px !important;
     font-size: 11px !important;
-  }
-  
-  .delivery-list-table th,
-  .delivery-list-table td {
-    padding: 3px 6px !important;
-    border: 1px solid #000 !important;
-  }
-  
-  /* 商品合計表の印刷最適化 */
-  .product-summary-table {
-    font-size: 12px !important;
-  }
-  
-  .product-summary-table th,
-  .product-summary-table td {
-    padding: 4px 8px !important;
-    border: 1px solid #000 !important;
   }
 }

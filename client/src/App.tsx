@@ -26,15 +26,82 @@ import { CompanyProvider } from './contexts/CompanyContext';
 
 const theme = createTheme({
   palette: {
+    mode: 'light',
     primary: {
-      main: '#1976d2',
+      main: '#39FF14',
+      light: '#84FF6F',
+      dark: '#24B10C',
+      contrastText: '#0C2600',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#FFB5F2',
+      light: '#FFD5F8',
+      dark: '#E380C8',
+      contrastText: '#4B1E3A',
+    },
+    background: {
+      default: '#F6FFF1',
+      paper: '#FFFFFF',
     },
   },
+  shape: {
+    borderRadius: 10,
+  },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Fredoka", "Rounded Mplus 1c", "Helvetica", sans-serif',
+    button: {
+      fontWeight: 600,
+      textTransform: 'none',
+      letterSpacing: '0.015em',
+    },
+  },
+  components: {
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
+      styleOverrides: {
+        root: {
+          borderRadius: 14,
+          padding: '9px 18px',
+          transition: 'all 0.18s ease-in-out',
+          boxShadow: '0 3px 8px rgba(57, 255, 20, 0.22)',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 18px rgba(57, 255, 20, 0.35)',
+          },
+        },
+        containedPrimary: {
+          background: 'linear-gradient(135deg, #39FF14 0%, #72FF57 100%)',
+          '&:hover': {
+            background: 'linear-gradient(135deg, #31E20F 0%, #62F348 100%)',
+          },
+        },
+        outlinedPrimary: {
+          borderWidth: 2,
+          '&:hover': {
+            borderWidth: 2,
+            backgroundColor: 'rgba(57, 255, 20, 0.12)',
+          },
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          boxShadow: '0 6px 20px rgba(57, 255, 20, 0.18)',
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          borderRadius: 0,
+          background: 'linear-gradient(135deg, #39FF14 0%, #24B10C 100%)',
+        },
+      },
+    },
   },
 });
 
@@ -56,6 +123,8 @@ function App() {
                   p: 0,
                   pl: 0,
                   ml: isStandalone ? 0 : '240px',
+                  backgroundColor: theme.palette.background.default,
+                  minHeight: '100vh',
                 }}
               >
                 { !isStandalone && <Toolbar /> }
