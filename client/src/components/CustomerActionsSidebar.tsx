@@ -234,6 +234,25 @@ const saveMethodChange = async () => {
                   ) : null}
                 </Typography>
               </Box>
+              {/* 当月請求合計と確定ステータス */}
+              {typeof monthlyTotal === 'number' && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  当月請求予定合計: ¥{monthlyTotal.toLocaleString()}
+                </Typography>
+              )}
+              <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Chip
+                  size="small"
+                  label={invoiceConfirmed ? '確定済み' : '未確定'}
+                  color={invoiceConfirmed ? 'success' : 'default'}
+                  variant={invoiceConfirmed ? 'filled' : 'outlined'}
+                />
+                {invoiceConfirmedAt && (
+                  <Typography variant="caption" color="text.secondary">
+                    確定日時: {invoiceConfirmedAt}
+                  </Typography>
+                )}
+              </Stack>
               <Box sx={{ mt: 1 }}>
                 {renderBillingMethodSelector()}
               </Box>
@@ -321,8 +340,8 @@ const saveMethodChange = async () => {
           {/* 月次確定・取消 */}
           <Divider sx={{ my: 2 }} />
           <Stack direction="row" spacing={1}>
-            <Button variant="contained" color="primary" onClick={onConfirmInvoice}>月次請求確定</Button>
-            <Button variant="outlined" color="secondary" onClick={onUnconfirmInvoice}>取消</Button>
+            <Button variant="contained" color="primary" onClick={onConfirmInvoice} disabled={invoiceConfirmed}>月次請求確定</Button>
+            <Button variant="outlined" color="secondary" onClick={onUnconfirmInvoice} disabled={!invoiceConfirmed}>取消</Button>
           </Stack>
           {/* 履歴・編集 */}
           <Divider sx={{ my: 2 }} />

@@ -10,9 +10,18 @@ import CustomerActionsSidebar from '../components/CustomerActionsSidebar';
 import DeliveryPatternManager from '../components/DeliveryPatternManager';
 import TemporaryChangeManager from '../components/TemporaryChangeManager';
 // 追記: 入金履歴ダイアログと型
-import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
+  import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
+  import PaymentCollectionDialog from '../components/PaymentCollectionDialog';
+  import UnitPriceChangeDialog from '../components/UnitPriceChangeDialog';
+  import TemporaryQuantityChangeDialog from '../components/TemporaryQuantityChangeDialog';
+  import SuspendProductDialog from '../components/SuspendProductDialog';
+  import CancelProductDialog from '../components/CancelProductDialog';
+  import BillingRoundingDialog from '../components/BillingRoundingDialog';
 import { ArInvoiceStatus } from '../types/ledger';
 import BankAccountDialog from '../components/BankAccountDialog';
+import { CustomerHistoryPanel } from './customer/CustomerHistoryPanel';
+import CustomerCalendarPanel from './customer/CustomerCalendarPanel';
+import CustomerDetailPanel from './customer/CustomerDetailPanel';
 
 // 型定義補完（このファイルで参照されるが、別ページにのみ存在していたためローカルに定義）
 interface CalendarProduct {
@@ -172,8 +181,6 @@ const CustomerDetail: React.FC = () => {
   // セル編集ポップオーバー関連
   const [cellMenuAnchor, setCellMenuAnchor] = useState<HTMLElement | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ productName: string; date: string; quantity?: number } | null>(null);
-  const [openQuantityDialog, setOpenQuantityDialog] = useState<boolean>(false);
-  const [editQuantityValue, setEditQuantityValue] = useState<number | ''>('');
 
   // 休配/休配解除ダイアログ
   const [openSkipDialog, setOpenSkipDialog] = useState<boolean>(false);
@@ -485,6 +492,84 @@ const CustomerDetail: React.FC = () => {
     }
   };
 
+  // 新ダイアログ用: 指定日の翌日以降を解約（当日は含める）
+  const handleCancelFromDate = async (effectiveDate: string) => {
+    if (invoiceConfirmed) {
+      alert('この月は確定済みのため編集できません。');
+      return;
+    }
+    if (!selectedCell) return;
+    const productId = getProductIdByName(selectedCell.productName);
+    if (!productId) return;
+
+    // 指定日の有効なパターンを検索
+    const date = moment(effectiveDate);
+    const pattern = patterns.find(p =>
+      p.product_id === productId && p.is_active &&
+      date.isSameOrAfter(moment(p.start_date)) &&
+      (!p.end_date || date.isSameOrBefore(moment(p.end_date)))
+    );
+    if (!pattern || !pattern.id) {
+      alert('指定日に有効な定期パターンが見つかりません。');
+      return;
+    }
+
+    const toDaysString = (val: any): string => {
+      if (Array.isArray(val)) return JSON.stringify(val);
+      if (typeof val === 'string') return val;
+      return '[]';
+    };
+    const toDQString = (val: any): string | null => {
+      if (!val) return null;
+      if (typeof val === 'string') return val;
+      try { return JSON.stringify(val); } catch { return null; }
+    };
+
+    const prevEndDate = pattern.end_date;
+    const prevActive = pattern.is_active ? 1 : 0;
+    const endDateCandidate = moment(effectiveDate).subtract(1, 'day').format('YYYY-MM-DD');
+    const endDateToSend = moment(endDateCandidate).isSameOrAfter(moment(pattern.start_date), 'day')
+      ? endDateCandidate
+      : moment(pattern.start_date).format('YYYY-MM-DD');
+    const isActiveToSend = moment(endDateCandidate).isSameOrAfter(moment(pattern.start_date), 'day') ? 1 : 0;
+
+    try {
+      await apiClient.put(`/api/delivery-patterns/${pattern.id}`, {
+        product_id: pattern.product_id,
+        quantity: pattern.quantity,
+        unit_price: pattern.unit_price,
+        delivery_days: toDaysString(pattern.delivery_days),
+        daily_quantities: toDQString(pattern.daily_quantities),
+        start_date: pattern.start_date,
+        end_date: endDateToSend,
+        is_active: isActiveToSend,
+      });
+      pushUndo({
+        description: '解約を元に戻す',
+        revert: async () => {
+          if (!pattern.id) return;
+          await apiClient.put(`/api/delivery-patterns/${pattern.id}`, {
+            product_id: pattern.product_id,
+            quantity: pattern.quantity,
+            unit_price: pattern.unit_price,
+            delivery_days: toDaysString(pattern.delivery_days),
+            daily_quantities: toDQString(pattern.daily_quantities),
+            start_date: pattern.start_date,
+            end_date: prevEndDate || null,
+            is_active: prevActive,
+          });
+        },
+      });
+      await fetchCustomerData();
+      await fetchCalendarData();
+      setOpenCancelProduct(false);
+    } catch (error: any) {
+      console.error('解約処理に失敗しました:', error);
+      const serverMessage = error?.response?.data?.error || error?.response?.data?.message;
+      alert(serverMessage || '解約処理に失敗しました。時間をおいて再度お試しください。');
+    }
+  };
+
   // パターン変更：既存の「配達パターン設定」ダイアログを開く
   const handleOpenPatternChange = () => {
     if (invoiceConfirmed) {
@@ -628,14 +713,10 @@ const CustomerDetail: React.FC = () => {
       return;
     }
     if (!selectedCell) return;
-    setEditQuantityValue(selectedCell.quantity ?? 0);
-    setOpenQuantityDialog(true);
+    setOpenTemporaryQuantityChange(true);
   };
 
-  const closeChangeQuantity = () => {
-    setOpenQuantityDialog(false);
-    setEditQuantityValue('');
-  };
+  // 旧「本数変更」ダイアログのクローズ関数は不要
 
   // 臨時変更API呼び出し（modify/skip/add）
   const postTemporaryChange = async (
@@ -670,7 +751,6 @@ const CustomerDetail: React.FC = () => {
         });
       }
       closeCellMenu();
-      closeChangeQuantity();
       fetchCalendarData();
       return createdId;
     } catch (err) {
@@ -680,13 +760,17 @@ const CustomerDetail: React.FC = () => {
   };
 
   // 本数変更の保存（当日の数量を上書き）
-  const saveChangeQuantity = async () => {
+  // 旧「本数変更」ダイアログの保存関数は不要
+
+  // 新ダイアログ用: 一時的な本数変更の保存（当日の数量を上書き）
+  const saveChangeQuantityValue = async (quantity: number) => {
     if (invoiceConfirmed) {
       alert('この月は確定済みのため編集できません。');
       return;
     }
-    if (editQuantityValue === '' || Number(editQuantityValue) < 0) return;
-    await postTemporaryChange('modify', { product_id: null, quantity: Number(editQuantityValue) });
+    if (!selectedCell) return;
+    await postTemporaryChange('modify', { product_id: null, quantity });
+    setOpenTemporaryQuantityChange(false);
   };
 
   // 休配（当日0本に上書き）
@@ -759,6 +843,42 @@ const CustomerDetail: React.FC = () => {
               await apiClient.delete(`/api/temporary-changes/${tid}`);
             } catch (e) {
               console.error('休配（期間）取り消しの一部削除:', e);
+            }
+          }
+        },
+      });
+    }
+  };
+
+  // 新ダイアログ用: 休配（期間指定）を適用（開始日、終了日を直接受け取る）
+  const applySkipForPeriodWithRange = async (startDate: string, endDate?: string) => {
+    if (invoiceConfirmed) {
+      alert('この月は確定済みのため編集できません。');
+      return;
+    }
+    if (!selectedCell) return;
+    const productId = getProductIdByName(selectedCell.productName);
+    if (!productId) return;
+    const start = startDate;
+    const end = endDate || startDate;
+    const dates = enumerateDates(start, end);
+    const createdIds: number[] = [];
+    for (const ds of dates) {
+      if (isScheduledDeliveryDay(productId, ds)) {
+        const idCreated = await postTemporaryChange('skip', { product_id: productId, quantity: 0 }, ds, false);
+        if (idCreated) createdIds.push(idCreated);
+      }
+    }
+    await fetchCalendarData();
+    if (createdIds.length > 0) {
+      pushUndo({
+        description: '休配（期間指定）の取り消し',
+        revert: async () => {
+          for (const tid of createdIds) {
+            try {
+              await apiClient.delete(`/api/temporary-changes/${tid}`);
+            } catch (e) {
+              console.error('休配（期間指定）取り消しの一部削除:', e);
             }
           }
         },
@@ -1064,6 +1184,12 @@ const CustomerDetail: React.FC = () => {
   const carryoverDiff = carryoverDiffRaw;
   const monthlyTotal = Math.max(0, baseMonthlyTotal + carryoverDiff);
 
+  const handleOpenInvoicePreview = () => {
+    const y = currentDate.format('YYYY');
+    const m = currentDate.format('M');
+    navigate(`/invoice-preview/${id}?year=${y}&month=${m}`);
+  };
+
   // 設定保存ヘルパー
   const saveBillingSettings = async (method: 'collection' | 'debit', roundingEnabled: boolean) => {
     try {
@@ -1247,369 +1373,59 @@ const CustomerDetail: React.FC = () => {
       </Card>
 
       {/* 月次カレンダー */}
-      <Card>
-        <CardContent sx={{ p: new URLSearchParams(window.location.search).get('view')==='standalone'?1:undefined }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: new URLSearchParams(window.location.search).get('view')==='standalone'?1:2 }}>
-            <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle1':'h6'}>
-              配達カレンダー
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1 }}>
-              <IconButton onClick={handlePrevMonth} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
-                <ArrowBackIcon />
-              </IconButton>
-              <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle1':'h6'} sx={{ minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?110:120, textAlign: 'center' }}>
-                {currentDate.format('YYYY年M月')}
-              </Typography>
-              <IconButton onClick={handleNextMonth} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
-                <ArrowForwardIcon />
-              </IconButton>
-            </Box>
-          </Box>
+      {(() => {
+        const { firstHalf, secondHalf } = generateMonthDays();
+        const productCalendarData = generateProductCalendarData();
+        return (
+          <CustomerCalendarPanel
+            isStandalone={isStandalone}
+            dayNames={dayNames}
+            currentDate={currentDate}
+            firstHalfDays={firstHalf}
+            secondHalfDays={secondHalf}
+            productCalendarData={productCalendarData}
+            temporaryChanges={temporaryChanges}
+            patterns={patterns}
+            getProductIdByName={getProductIdByName}
+            handlePrevMonth={handlePrevMonth}
+            handleNextMonth={handleNextMonth}
+            onCellClick={handleCellClick}
+            invoiceConfirmed={invoiceConfirmed}
+            invoiceConfirmedAt={invoiceConfirmedAt}
+          />
+        );
+      })()}
 
-          {invoiceConfirmed && (
-            <Alert severity="info" sx={{ mb: new URLSearchParams(window.location.search).get('view')==='standalone'?1:2 }}>
-              この月は確定済みのため編集できません
-              {invoiceConfirmedAt ? `（${moment(invoiceConfirmedAt).format('YYYY/MM/DD HH:mm')} に確定）` : ''}
-            </Alert>
-          )}
-          
-          {/* 商品別カレンダー */}
-          {(() => {
-            const { firstHalf, secondHalf } = generateMonthDays();
-            
-            const renderCalendarTable = (days: MonthDay[], title: string) => (
-              <Box sx={{ mb: new URLSearchParams(window.location.search).get('view')==='standalone'?1:3 }}>
-                <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle2':'h6'} sx={{ mb: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1, color: '#666' }}>{title}</Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell 
-                           sx={{ 
-                             backgroundColor: '#f5f5f5',
-                             fontWeight: 'bold',
-                             width: new URLSearchParams(window.location.search).get('view')==='standalone'?220:250,
-                             minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?220:250
-                           }}
-                         >
-                           商品名
-                         </TableCell>
-                        {days.map((day) => (
-                          <TableCell 
-                            key={day.date}
-                            align="center" 
-                            sx={{ 
-                              backgroundColor: day.dayOfWeek === 0 ? '#ffe6e6' : 
-                                              day.dayOfWeek === 6 ? '#e6f3ff' : '#ffffff',
-                              fontWeight: 'bold',
-                              minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?28:30,
-                              maxWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?28:30,
-                              fontSize: new URLSearchParams(window.location.search).get('view')==='standalone'?'11px':'12px',
-                              padding: new URLSearchParams(window.location.search).get('view')==='standalone'?'2px':'4px'
-                            }}
-                          >
-                            <Box>
-                              <Typography variant="caption" display="block" sx={{ fontSize: '10px' }}>
-                                {day.day}
-                              </Typography>
-                              <Typography variant="caption" display="block" sx={{ fontSize: '9px' }}>
-                                {dayNames[day.dayOfWeek]}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {generateProductCalendarData().map((product, productIndex) => (
-                        <TableRow key={productIndex}>
-                          {/* 行全体の色分け判定（臨時商品） */}
-                          {(() => { return null; })()}
-                          {(() => {
-                            const isTemporaryProduct = /^（臨時）/.test(product.productName);
-                            const nameCellBg = isTemporaryProduct ? '#e8f5e9' : '#f5f5f5'; // 臨時商品は薄い緑
-                            return (
-                              <TableCell 
-                                 sx={{ 
-                                   backgroundColor: nameCellBg,
-                                   fontWeight: 'bold',
-                                   width: new URLSearchParams(window.location.search).get('view')==='standalone'?220:250,
-                                   minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?220:250,
-                                   height: new URLSearchParams(window.location.search).get('view')==='standalone'?34:40,
-                                   verticalAlign: 'middle',
-                                   padding: new URLSearchParams(window.location.search).get('view')==='standalone'?'4px 8px':'6px 12px'
-                                 }}
-                               >
-                                 <Typography 
-                                   variant="body2" 
-                                   sx={{ 
-                                     fontSize: new URLSearchParams(window.location.search).get('view')==='standalone'?'13px':'14px', 
-                                     fontWeight: 'bold',
-                                     whiteSpace: 'nowrap',
-                                     overflow: 'hidden',
-                                     textOverflow: 'ellipsis'
-                                   }}
-                                 >
-                                   {product.productName}
-                                 </Typography>
-                               </TableCell>
-                            );
-                          })()}
-                          {days.map((day) => {
-                            const isTemporaryProduct = /^（臨時）/.test(product.productName);
-                            const quantity = product.dailyQuantities[day.date];
-                            const pid = getProductIdByName(product.productName);
-                            const hasSkip = (() => {
-                              if (!pid || !temporaryChanges) return false;
-                              return temporaryChanges.some(tc => tc.change_type === 'skip' && tc.product_id === pid && tc.change_date === day.date);
-                            })();
-                            const hasModify = (() => {
-                              if (!pid || !temporaryChanges) return false;
-                              return temporaryChanges.some(tc => tc.change_type === 'modify' && tc.product_id === pid && tc.change_date === day.date);
-                            })();
-                            // 解約マーカー：前日が定期パターンの終了日（is_active=true）なら当日に赤い「解」を表示
-                            const hasCancel = (() => {
-                              if (!pid || !patterns) return false;
-                              // 「解」マーカーは、翌日に同一商品の別アクティブパターンが再開しない場合のみ表示（真の解約）
-                              const endsPrevDay = patterns.some(p =>
-                                p.product_id === pid && p.is_active && !!p.end_date &&
-                                moment(p.end_date).add(1, 'day').format('YYYY-MM-DD') === day.date
-                              );
-                              if (!endsPrevDay) return false;
-                              const restartsToday = patterns.some(p =>
-                                p.product_id === pid && p.is_active &&
-                                moment(p.start_date).format('YYYY-MM-DD') === day.date
-                              );
-                              return endsPrevDay && !restartsToday;
-                            })();
-                            const baseBgColor = day.isToday ? '#fff3e0' : (day.dayOfWeek === 0 ? '#ffe6e6' : (day.dayOfWeek === 6 ? '#e6f3ff' : '#ffffff'));
-                            let cellBgColor = (!hasSkip && hasModify) ? '#fffde7' : baseBgColor; // modify時は薄い黄色
-                            // 行全体を薄い緑に（臨時商品のとき）
-                            if (isTemporaryProduct) {
-                              cellBgColor = '#e8f5e9';
-                            }
-                            return (
-                              <TableCell 
-                                  key={day.date}
-                                  align="center"
-                                  sx={{ 
-                                    backgroundColor: cellBgColor,
-                                    border: day.isToday ? '2px solid #ff9800' : '1px solid #e0e0e0',
-                                    minWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?28:30,
-                                    maxWidth: new URLSearchParams(window.location.search).get('view')==='standalone'?28:30,
-                                    height: new URLSearchParams(window.location.search).get('view')==='standalone'?36:40,
-                                    padding: new URLSearchParams(window.location.search).get('view')==='standalone'?'2px':'2px',
-                                    cursor: 'pointer',
-                                    verticalAlign: 'middle'
-                                  }}
-                                  onClick={(e) => handleCellClick(e, product.productName, day.date, quantity)}
-                                >
-                                {hasSkip ? (
-                                  <Typography 
-                                    variant="body2" 
-                                    sx={{ fontSize: '14px', fontWeight: 'bold', color: '#1976d2' }}
-                                  >
-                                    休
-                                  </Typography>
-                                ) : hasCancel ? (
-                                  <Typography 
-                                    variant="body2" 
-                                    sx={{ fontSize: '14px', fontWeight: 'bold', color: '#d32f2f' }}
-                                  >
-                                    解
-                                  </Typography>
-                                ) : (
-                                  quantity && (
-                                    <Typography 
-                                      variant="body2" 
-                                      sx={{ fontSize: '14px', fontWeight: 'bold', color: '#000000' }}
-                                    >
-                                      {quantity}
-                                    </Typography>
-                                  )
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
-            );
+      {/* 月次集計／履歴パネル */}
+          <CustomerHistoryPanel
+            isStandalone={isStandalone}
+            monthlyQuantities={monthlyQuantities}
+            calendar={calendar}
+            productMapByName={productMapByName}
+            getTaxRateForProductName={getTaxRateForProductName}
+            monthlyTotal={monthlyTotal}
+            prevInvoiceAmount={prevInvoiceAmount}
+            currentMonthPaymentAmount={currentMonthPaymentAmount}
+            carryoverDiff={carryoverDiff}
+            currentDate={currentDate}
+            onOpenInvoicePreview={handleOpenInvoicePreview}
+            onConfirmInvoice={handleConfirmInvoice}
+            onOpenCollectionDialog={openCollectionDialog}
+            onOpenPaymentHistory={() => setOpenPaymentHistory(true)}
+            invoiceConfirmed={invoiceConfirmed}
+          />
 
-            return (
-              <Box>
-                {renderCalendarTable(firstHalf, '前半（1日〜15日）')}
-                {renderCalendarTable(secondHalf, '後半（16日〜月末）')}
-              </Box>
-            );
-          })()}
-
-          {/* 月次集計 */}
-          <Box sx={{ mt: new URLSearchParams(window.location.search).get('view')==='standalone'?2:3 }}>
-            <Grid container spacing={new URLSearchParams(window.location.search).get('view')==='standalone'?2:3}>
-              <Grid item xs={12} md={8}>
-                <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle1':'h6'} gutterBottom>月次集計</Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>商品名</TableCell>
-                        <TableCell align="right">数量</TableCell>
-                        <TableCell align="right">単価</TableCell>
-                        <TableCell align="right">金額</TableCell>
-                        <TableCell align="right">消費税額（内税）</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {Object.entries(monthlyQuantities).map(([productName, quantity]) => {
-                        // 月内の金額はカレンダーの各日の amount を積み上げて算出（単価変更にも正確に対応）
-                        let totalAmount = 0;
-                        let totalTax = 0;
-                        const priceSet = new Set<number>();
-                        calendar.forEach((day) => {
-                          day.products.forEach((p) => {
-                            if (p.productName === productName) {
-                              totalAmount += p.amount;
-                              priceSet.add(p.unitPrice);
-                              const rate = getTaxRateForProductName(p.productName);
-                              const pm = productMapByName[p.productName];
-                              const taxType = pm?.sales_tax_type || pm?.purchase_tax_type || 'standard';
-                              if (taxType === 'inclusive') {
-                                totalTax += p.amount * (rate / (1 + rate));
-                              } else {
-                                totalTax += p.amount * rate;
-                              }
-                            }
-                          });
-                        });
-
-                        // 表示用単価：月内で単価が1種類ならその値、複数ある場合は「複数」表示
-                        const unitPriceDisplay = priceSet.size === 1 ? Array.from(priceSet)[0] : null;
-
-                        return (
-                          <TableRow key={productName}>
-                            <TableCell>{productName}</TableCell>
-                            <TableCell align="right">{quantity}</TableCell>
-                            <TableCell align="right">
-                              {unitPriceDisplay !== null ? `¥${unitPriceDisplay.toLocaleString()}` : '複数'}
-                            </TableCell>
-                            <TableCell align="right">¥{totalAmount.toLocaleString()}</TableCell>
-                            <TableCell align="right">（{Math.round(totalTax).toLocaleString()}）</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Card sx={{ backgroundColor: '#e3f2fd' }}>
-                  <CardContent sx={{ p: new URLSearchParams(window.location.search).get('view')==='standalone'?1:undefined }}>
-                    <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'subtitle1':'h6'} gutterBottom>
-                      月次合計
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                      <Typography variant={new URLSearchParams(window.location.search).get('view')==='standalone'?'h5':'h4'} color="primary" fontWeight="bold">
-                        ¥{monthlyTotal.toLocaleString()}
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" color="textSecondary">
-                      前月請求 ¥{prevInvoiceAmount.toLocaleString()} / 今月入金 ¥{currentMonthPaymentAmount.toLocaleString()} / 過不足 ¥{carryoverDiff.toLocaleString()}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary" sx={{ mt: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1 }}>
-                      {currentDate.format('YYYY年M月')}分
-                    </Typography>
-                    <Box sx={{ mt: new URLSearchParams(window.location.search).get('view')==='standalone'?1:2, display: 'flex', gap: new URLSearchParams(window.location.search).get('view')==='standalone'?0.5:1 }}>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}
-                      onClick={() => {
-                        const y = currentDate.format('YYYY');
-                        const m = currentDate.format('M');
-                        navigate(`/invoice-preview/${id}?year=${y}&month=${m}`);
-                      }}
-                    >
-                      請求書プレビュー
-                    </Button>
-                    <Button sx={{ ml: 1 }} variant="outlined" color="primary" onClick={handleConfirmInvoice} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
-                      月次請求確定
-                    </Button>
-                    <Button sx={{ ml: 1 }} variant="outlined" color="secondary" onClick={openCollectionDialog} disabled={!invoiceConfirmed} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
-                       集金を登録
-                     </Button>
-                    {/* 追記: 入金履歴へのショートカット（サイドバー以外にも配置） */}
-                    <Button sx={{ ml: 1 }} variant="outlined" onClick={() => setOpenPaymentHistory(true)} size={new URLSearchParams(window.location.search).get('view')==='standalone'?'small':undefined}>
-                      入金履歴
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-          </Box>
-        </CardContent>
-      </Card>
-
-        {/* 配達パターン設定（当月に有効期間が重なるもののみ表示） */}
-        {(() => {
-          const monthStart = currentDate.clone().startOf('month');
-          const monthEnd = currentDate.clone().endOf('month');
-          const visiblePatterns = patterns.filter(p =>
-            moment(p.start_date).isSameOrBefore(monthEnd, 'day') &&
-            (!p.end_date || moment(p.end_date).isSameOrAfter(monthStart, 'day'))
-          );
-          // DeliveryPatternManager に渡す前に型・データを正規化
-          const toNumArray = (days: number[] | string): number[] => {
-            if (Array.isArray(days)) return days;
-            try {
-              const parsed = JSON.parse(days);
-              return Array.isArray(parsed) ? parsed : [];
-            } catch {
-              return [];
-            }
-          };
-          const toDQObject = (
-            dq: { [dayOfWeek: number]: number } | string | null | undefined
-          ): { [dayOfWeek: number]: number } | undefined => {
-            if (!dq) return undefined;
-            if (typeof dq === 'string') {
-              try {
-                const parsed = JSON.parse(dq);
-                return parsed && typeof parsed === 'object' ? parsed as { [dayOfWeek: number]: number } : undefined;
-              } catch {
-                return undefined;
-              }
-            }
-            return dq as { [dayOfWeek: number]: number };
-          };
-          const visiblePatternsForManager = visiblePatterns.map(p => ({
-            ...p,
-            delivery_days: toNumArray(p.delivery_days),
-            daily_quantities: toDQObject(p.daily_quantities),
-          }));
-          return (
-            <DeliveryPatternManager
-              ref={dpManagerRef}
-              customerId={Number(id)}
-              patterns={visiblePatternsForManager as any}
-              onPatternsChange={handlePatternsChange}
-              onTemporaryChangesUpdate={handleTemporaryChangesUpdate}
-              onRecordUndo={recordUndoFromChild}
-              readOnly={invoiceConfirmed}
-            />
-          );
-        })()}
-
-        {/* 臨時変更管理 */}
-        <TemporaryChangeManager
-          ref={tempChangeManagerRef}
+        {/* 詳細パネル（配達パターン・臨時変更 管理） */}
+        <CustomerDetailPanel
           customerId={Number(id)}
-          changes={temporaryChanges}
-          onChangesUpdate={handleTemporaryChangesUpdate}
+          currentDate={currentDate}
+          patterns={patterns}
+          temporaryChanges={temporaryChanges}
+          dpManagerRef={dpManagerRef}
+          tempChangeManagerRef={tempChangeManagerRef}
+          onPatternsChange={handlePatternsChange}
+          onTemporaryChangesUpdate={handleTemporaryChangesUpdate}
+          onRecordUndo={recordUndoFromChild}
           readOnly={invoiceConfirmed}
         />
 
@@ -1668,157 +1484,80 @@ const CustomerDetail: React.FC = () => {
       {/* 以下、各種ダイアログのプレースホルダー */}
       {/* 単価変更 */}
       <Grid item xs={12}>
-        <Dialog open={openUnitPriceChange} onClose={() => setOpenUnitPriceChange(false)} fullWidth maxWidth="sm">
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>単価変更</Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <FormControl fullWidth>
-                <InputLabel id="unit-price-change-product-label">対象商品</InputLabel>
-                <Select
-                  labelId="unit-price-change-product-label"
-                  label="対象商品"
-                  value={unitPriceChangeTargetId}
-                  onChange={(e) => setUnitPriceChangeTargetId(typeof e.target.value === 'number' ? e.target.value : Number(e.target.value))}
-                >
-                  {patterns.filter(p => p.is_active).map((p) => (
-                    <MenuItem key={p.id} value={p.id!}>
-                      {p.product_name}（{p.manufacturer_name}） / 現在単価: ¥{p.unit_price.toLocaleString()}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <TextField
-                label="変更後単価"
-                type="number"
-                inputProps={{ step: 1 }}
-                value={unitPriceChangeNewPrice}
-                onChange={(e) => setUnitPriceChangeNewPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                fullWidth
-                error={false}
-                helperText=""
-              />
-
-              <TextField
-                label="変更開始月"
-                type="month"
-                value={unitPriceChangeStartMonth}
-                onChange={(e) => setUnitPriceChangeStartMonth(e.target.value)}
-                fullWidth
-                helperText="この月の1日から新しい単価を適用します"
-              />
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button onClick={() => setOpenUnitPriceChange(false)}>閉じる</Button>
-              <Button
-                variant="contained"
-                disabled={unitPriceChangeSaving || unitPriceChangeTargetId === '' || unitPriceChangeNewPrice === '' || !unitPriceChangeStartMonth}
-                onClick={handleUnitPriceChangeSave}
-              >
-                {unitPriceChangeSaving ? '保存中...' : '保存'}
-              </Button>
-            </Box>
-          </Box>
-        </Dialog>
+        <UnitPriceChangeDialog
+          open={openUnitPriceChange}
+          onClose={() => setOpenUnitPriceChange(false)}
+          patterns={patterns}
+          unitPriceChangeTargetId={unitPriceChangeTargetId}
+          onChangeTargetId={(v) => setUnitPriceChangeTargetId(v)}
+          unitPriceChangeNewPrice={unitPriceChangeNewPrice}
+          onChangeNewPrice={(v) => setUnitPriceChangeNewPrice(v)}
+          unitPriceChangeStartMonth={unitPriceChangeStartMonth}
+          onChangeStartMonth={(v) => setUnitPriceChangeStartMonth(v)}
+          unitPriceChangeSaving={unitPriceChangeSaving}
+          onSave={handleUnitPriceChangeSave}
+        />
       </Grid>
 
       {/* 一時的な数量変更 */}
       <Grid item xs={12}>
-        <Dialog open={openTemporaryQuantityChange} onClose={() => setOpenTemporaryQuantityChange(false)} fullWidth maxWidth="sm">
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>一時的な数量変更</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              ここに対象商品の選択、適用日、数量の入力フォームを追加します。
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button onClick={() => setOpenTemporaryQuantityChange(false)}>閉じる</Button>
-              <Button variant="contained" disabled>保存（未実装）</Button>
-            </Box>
-          </Box>
-        </Dialog>
+        <TemporaryQuantityChangeDialog
+          open={openTemporaryQuantityChange}
+          onClose={() => setOpenTemporaryQuantityChange(false)}
+          invoiceConfirmed={invoiceConfirmed}
+          productName={selectedCell?.productName}
+          date={selectedCell?.date}
+          defaultQuantity={selectedCell?.quantity}
+          onSave={saveChangeQuantityValue}
+        />
       </Grid>
 
       {/* 商品の休止 */}
       <Grid item xs={12}>
-        <Dialog open={openSuspendProduct} onClose={() => setOpenSuspendProduct(false)} fullWidth maxWidth="sm">
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>商品の休止（期間指定）</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              ここに休止対象商品の選択、休止開始日・終了日の入力フォームを追加します。
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button onClick={() => setOpenSuspendProduct(false)}>閉じる</Button>
-              <Button variant="contained" disabled>保存（未実装）</Button>
-            </Box>
-          </Box>
-        </Dialog>
+        <SuspendProductDialog
+          open={openSuspendProduct}
+          onClose={() => setOpenSuspendProduct(false)}
+          invoiceConfirmed={invoiceConfirmed}
+          productName={selectedCell?.productName}
+          defaultStartDate={selectedCell?.date}
+          defaultEndDate={''}
+          onSave={(start, end) => applySkipForPeriodWithRange(start, end)}
+        />
       </Grid>
 
       {/* 商品の中止 */}
       <Grid item xs={12}>
-        <Dialog open={openCancelProduct} onClose={() => setOpenCancelProduct(false)} fullWidth maxWidth="sm">
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>商品の中止（契約終了）</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              ここに中止対象商品の選択、適用日の入力フォーム、理由の入力欄を追加します。
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button onClick={() => setOpenCancelProduct(false)}>閉じる</Button>
-              <Button variant="contained" color="error" disabled>中止を確定（未実装）</Button>
-            </Box>
-          </Box>
-        </Dialog>
+        <CancelProductDialog
+          open={openCancelProduct}
+          onClose={() => setOpenCancelProduct(false)}
+          invoiceConfirmed={invoiceConfirmed}
+          productName={selectedCell?.productName}
+          defaultEffectiveDate={selectedCell?.date}
+          onConfirm={handleCancelFromDate}
+        />
       </Grid>
 
       {/* 端数処理（1の位切り捨て） */}
       <Grid item xs={12}>
-        <Dialog open={openBillingRounding} onClose={() => setOpenBillingRounding(false)} fullWidth maxWidth="sm">
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>端数処理の設定</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              当月請求の端数処理を選択してください（例：1の位切り捨て）。
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button onClick={() => setOpenBillingRounding(false)}>閉じる</Button>
-              <Button variant="contained" disabled>保存（未実装）</Button>
-            </Box>
-          </Box>
-        </Dialog>
+        <BillingRoundingDialog
+          open={openBillingRounding}
+          onClose={() => setOpenBillingRounding(false)}
+        />
       </Grid>
 
       {/* 入金登録（集金） */}
       <Grid item xs={12}>
-        <Dialog open={openPaymentDialog} onClose={closeCollectionDialog} fullWidth maxWidth="md">
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>入金登録（集金）</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              当月の集金金額を入力して登録します。
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                label="金額"
-                type="text"
-                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                fullWidth
-                autoFocus
-              />
-              <TextField
-                label="メモ（任意）"
-                value={paymentNote}
-                onChange={(e) => setPaymentNote(e.target.value)}
-                fullWidth
-              />
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
-              <Button onClick={closeCollectionDialog} disabled={paymentSaving}>キャンセル</Button>
-               <Button variant="contained" onClick={saveCollection} disabled={!invoiceConfirmed || paymentSaving || paymentAmount === '' || Number(paymentAmount) <= 0}>
-                 {paymentSaving ? '保存中…' : '保存'}
-               </Button>
-            </Box>
-          </Box>
-        </Dialog>
+        <PaymentCollectionDialog
+          open={openPaymentDialog}
+          onClose={closeCollectionDialog}
+          invoiceConfirmed={invoiceConfirmed}
+          paymentAmount={paymentAmount}
+          paymentNote={paymentNote}
+          paymentSaving={paymentSaving}
+          onPaymentAmountChange={(v) => setPaymentAmount(v)}
+          onPaymentNoteChange={(v) => setPaymentNote(v)}
+          onSave={saveCollection}
+        />
       </Grid>
 
       {/* 入金履歴 */}
@@ -1976,30 +1715,7 @@ const CustomerDetail: React.FC = () => {
         </Box>
       </Dialog>
 
-      {/* 本数変更ダイアログ */}
-      <Dialog open={openQuantityDialog} onClose={closeChangeQuantity} fullWidth maxWidth="xs">
-        <Box sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>本数変更（当日）</Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            {selectedCell ? `${selectedCell.productName} / ${selectedCell.date}` : ''}
-          </Typography>
-          <TextField
-            label="本数"
-            type="number"
-            inputProps={{ min: 0, step: 1 }}
-            value={editQuantityValue}
-            onChange={(e) => setEditQuantityValue(e.target.value === '' ? '' : Number(e.target.value))}
-            fullWidth
-            autoFocus
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
-            <Button onClick={closeChangeQuantity}>キャンセル</Button>
-            <Button variant="contained" onClick={saveChangeQuantity} disabled={invoiceConfirmed || editQuantityValue === '' || Number(editQuantityValue) < 0}>
-              保存
-            </Button>
-          </Box>
-        </Box>
-      </Dialog>
+      
 
     </Grid>
   );

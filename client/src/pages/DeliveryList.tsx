@@ -34,6 +34,8 @@ import { LocalShipping, Print, GetApp, ExpandMore, PictureAsPdf } from '@mui/ico
 import { pad7 } from '../utils/id';
 import { chunkArray } from '../utils/array';
 import { computeDayTotalsForRows, computeGrandTotalQuantity, computeGrandTotalAmount } from '../utils/summary';
+import { getDayOfWeek } from './delivery/helpers';
+import { DeliveryFilters } from './delivery/DeliveryFilters';
 
 interface Course { id: number; custom_id?: string; course_name: string; }
 
@@ -41,12 +43,7 @@ const lazyExportToPdf = async () => (await import('../utils/pdfExport')).exportT
 
 
 
-// 日付から曜日を取得するヘルパー関数
-const getDayOfWeek = (dateString: string): string => {
-  const days = ['日', '月', '火', '水', '木', '金', '土'];
-  const date = new Date(dateString);
-  return days[date.getDay()];
-};
+// 週の表示ヘルパーは delivery/helpers に移動
 
 // 期間別・コース別配達リストタブのコンポーネント
 const PeriodDeliveryListTab: React.FC = () => {
@@ -123,11 +120,7 @@ const PeriodDeliveryListTab: React.FC = () => {
   // コース一覧を取得する関数
   const fetchCourses = useCallback(async () => {
     try {
-      const response = await fetch('/api/masters/courses');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      const { data } = await apiClient.get('masters/courses');
       setCourses(data);
     } catch (error: any) {
       console.error('コース一覧の取得エラー:', error);
@@ -196,7 +189,7 @@ const PeriodDeliveryListTab: React.FC = () => {
       if (customerIds.length === 0) return [];
       
       // バッチAPIを使用して一括取得
-      const response = await apiClient.get(`/api/temporary-changes/batch/period/${start}/${end}`, {
+      const response = await apiClient.get(`temporary-changes/batch/period/${start}/${end}`, {
         params: { customerIds: customerIds.join(',') }
       });
       
@@ -230,7 +223,7 @@ const PeriodDeliveryListTab: React.FC = () => {
       for (let i = 0; i < customerIds.length; i += batchSize) {
         const batch = customerIds.slice(i, i + batchSize);
         const requests = batch.map((cid) => (
-          apiClient.get(`/api/delivery-patterns/customer/${cid}`)
+          apiClient.get(`delivery-patterns/customer/${cid}`)
             .then((res) => Array.isArray(res.data) ? res.data.map((r: any) => ({ ...r, customer_id: typeof r.customer_id === 'number' ? r.customer_id : cid })) : [])
             .catch((err) => {
               console.warn(`顧客ID ${cid} の配達パターン取得に失敗しました`, err);
@@ -448,9 +441,8 @@ const PeriodDeliveryListTab: React.FC = () => {
 
       const getCourseNameForCustomerByApi = async (custId: number): Promise<string | null> => {
         try {
-          const res = await fetch(`/api/customers/${custId}`);
-          if (!res.ok) return null;
-          const json = await res.json();
+          const res = await apiClient.get(`customers/${custId}`);
+          const json = res.data;
           // /api/customers/:id は { customer: { course_name, ... }, patterns: [...] } の形で返却される
           const courseName = (json && json.customer && typeof json.customer.course_name === 'string')
             ? json.customer.course_name
@@ -1375,9 +1367,8 @@ const ProductSummaryTab: React.FC = () => {
 
       const getCourseNameForCustomerByApi = async (custId: number): Promise<string | null> => {
         try {
-          const res = await fetch(`/api/customers/${custId}`);
-          if (!res.ok) return null;
-          const json = await res.json();
+          const res = await apiClient.get(`customers/${custId}`);
+          const json = res.data;
           const courseName = (json && json.customer && typeof json.customer.course_name === 'string')
             ? json.customer.course_name
             : (typeof json?.course_name === 'string' ? json.course_name : null);
@@ -1845,124 +1836,32 @@ const ProductSummaryTab: React.FC = () => {
 
   return (
     <Box>
-      {/* 期間・コース選択 */}
-      <Card sx={{ mb: 3 }} className="print-header-hide">
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="開始日"
-                type="date"
-                value={startDate}
-                onChange={(e) => handleStartDateChange(e.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="日数"
-                type="number"
-                value={days}
-                onChange={(e) => handleDaysChange(parseInt(e.target.value) || 1)}
-                fullWidth
-                inputProps={{ min: 1, max: 31 }}
-                helperText="1〜31日"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>配達コース</InputLabel>
-                <Select
-                  value={selectedCourse}
-                  label="配達コース"
-                  onChange={(e) => handleCourseChange(e.target.value)}
-                >
-                  <MenuItem value="all">全コース（合計）</MenuItem>
-                  <MenuItem value="all-by-course">全コース（コース別）</MenuItem>
-                  {courses && courses.length > 0 ? courses.map((course: any) => (
-                    <MenuItem key={course.id} value={course.id?.toString() || ''}>
-                      {course.course_name || `コース${course.id}`}
-                    </MenuItem>
-                  )) : null}
-                </Select>
-              </FormControl>
-            </Grid>
-            {/* メーカー絞り込み */}
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>メーカー絞り込み</InputLabel>
-                <Select
-                  multiple
-                  value={selectedManufacturers}
-                  label="メーカー絞り込み"
-                  onChange={(e) => {
-                    const value = e.target.value as string[];
-                    setSelectedManufacturers(Array.isArray(value) ? value : []);
-                  }}
-                  renderValue={(selected) => {
-                    const arr = selected as string[];
-                    if (!arr || arr.length === 0) return '（全メーカー）';
-                    return arr.join(', ');
-                  }}
-                >
-                  {manufacturerOptions.map((name) => (
-                    <MenuItem key={name} value={name}>
-                      <Checkbox checked={selectedManufacturers.indexOf(name) > -1} />
-                      <span>{name}</span>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button variant="outlined" onClick={handleToday} size="small">今日</Button>
-                <Button variant="outlined" onClick={handleWeek} size="small">1週間</Button>
-                <Button variant="text" onClick={() => setSelectedManufacturers([])} size="small">絞り込みクリア</Button>
-              </Box>
-            </Grid>
-          </Grid>
-
-          {/* 出力ボタン */}
-          <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-            <Button
-              variant="contained"
-              onClick={fetchSummaryData}
-              disabled={loading || !startDate || days <= 0}
-              startIcon={loading ? <CircularProgress size={20} /> : undefined}
-            >
-              {loading ? '集計中...' : '集計'}
-            </Button>
-            <FormControlLabel
-              control={<Checkbox checked={autoFetch} onChange={(e) => setAutoFetch(e.target.checked)} size="small" />}
-              label="自動集計"
-              sx={{ ml: 1 }}
-            />
-            {/* メーカー別グループ化トグル */}
-            <FormControlLabel
-              control={<Checkbox checked={groupByManufacturer} onChange={(e) => { setGroupByManufacturer(e.target.checked); localStorage.setItem('productSummaryTab_groupByManufacturer', JSON.stringify(e.target.checked)); }} size="small" />}
-              label="メーカー別でグループ化"
-              sx={{ ml: 1 }}
-            />
-            {/* 総金額表示トグル */}
-            <FormControlLabel
-              control={<Checkbox checked={showTotalAmount} onChange={(e) => { setShowTotalAmount(e.target.checked); localStorage.setItem('productSummaryTab_showTotalAmount', JSON.stringify(e.target.checked)); }} size="small" />}
-              label="総金額を表示"
-              sx={{ ml: 1 }}
-            />
-            <Button variant="outlined" startIcon={<Print />} disabled={(!summaryRows || summaryRows.length === 0) && Object.keys(summaryByCourse).length === 0} onClick={() => window.print()}>
-              印刷
-            </Button>
-            <Button variant="outlined" startIcon={<GetApp />} disabled={(!summaryRows || summaryRows.length === 0) && Object.keys(summaryByCourse).length === 0} onClick={handleCsvExport}>
-              CSV出力
-            </Button>
-            <Button variant="outlined" startIcon={<PictureAsPdf />} disabled={(!summaryRows || summaryRows.length === 0) && Object.keys(summaryByCourse).length === 0} onClick={handleProductSummaryPdfExport}>
-              PDF出力
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
+      <DeliveryFilters
+        startDate={startDate}
+        days={days}
+        selectedCourse={selectedCourse}
+        courses={courses}
+        selectedManufacturers={selectedManufacturers}
+        manufacturerOptions={manufacturerOptions}
+        loading={loading}
+        autoFetch={autoFetch}
+        groupByManufacturer={groupByManufacturer}
+        showTotalAmount={showTotalAmount}
+        disableOutputs={(!summaryRows || summaryRows.length === 0) && Object.keys(summaryByCourse).length === 0}
+        onStartDateChange={handleStartDateChange}
+        onDaysChange={handleDaysChange}
+        onCourseChange={handleCourseChange}
+        onSelectedManufacturersChange={(vals) => setSelectedManufacturers(vals)}
+        onAutoFetchChange={(val) => setAutoFetch(val)}
+        onGroupByManufacturerChange={(val) => { setGroupByManufacturer(val); localStorage.setItem('productSummaryTab_groupByManufacturer', JSON.stringify(val)); }}
+        onShowTotalAmountChange={(val) => { setShowTotalAmount(val); localStorage.setItem('productSummaryTab_showTotalAmount', JSON.stringify(val)); }}
+        onToday={handleToday}
+        onWeek={handleWeek}
+        onFetchSummary={fetchSummaryData}
+        onPrint={() => window.print()}
+        onCsvExport={handleCsvExport}
+        onPdfExport={handleProductSummaryPdfExport}
+      />
 
       {/* ローディング・エラー */}
       {loading && (
