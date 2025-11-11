@@ -39,6 +39,7 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import apiClient from '../utils/apiClient';
+import { createTemporaryChange, updateTemporaryChange, deleteTemporaryChange } from '../services/temporaryChanges';
 
 interface Product {
   id: number;
@@ -264,14 +265,14 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
       const payload = { ...formData, unit_price: parsedUnitPrice ?? formData.unit_price ?? null };
 
       if (editingChange) {
-        await apiClient.put(`/api/temporary-changes/${editingChange.id}`, payload);
+        await updateTemporaryChange(editingChange.id!, payload as any);
         setSnackbar({
           open: true,
           message: '臨時変更を更新しました。',
           severity: 'success',
         });
       } else {
-        await apiClient.post('/api/temporary-changes', payload);
+        await createTemporaryChange(payload as any);
         setSnackbar({
           open: true,
           message: '臨時変更を追加しました。',
@@ -302,7 +303,7 @@ const TemporaryChangeManager = forwardRef<TemporaryChangeManagerHandle, Temporar
     }
 
     try {
-      await apiClient.delete(`/api/temporary-changes/${changeId}`);
+      await deleteTemporaryChange(changeId);
       setSnackbar({
         open: true,
         message: '臨時変更を削除しました。',

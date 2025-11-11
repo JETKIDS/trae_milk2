@@ -65,9 +65,11 @@ initializeLedgerSchema()
     console.error('❌ Ledger tables initialization failed', err);
   });
 
-// サーバー起動
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// サーバー起動（テスト環境ではポートを開かない）
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 
 module.exports = app;

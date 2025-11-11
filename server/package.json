@@ -7,7 +7,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "init-db": "node init.js",
-    "test": "jest"
+    "test": "jest --runInBand"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
@@ -21,7 +21,8 @@
   "devDependencies": {
     "jest": "^30.2.0",
     "nodemon": "^3.0.1",
-    "vitest": "^4.0.7"
+    "vitest": "^4.0.7",
+    "supertest": "^6.3.4"
   },
   "keywords": [
     "express",

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, Button, IconButton, Grid, Card, CardContent, Typography, Chip, Paper, Table, TableHead, TableRow, TableCell, TableBody, TextField, Dialog, Popover, FormControl, InputLabel, Select, MenuItem, TableContainer, Alert } from '@mui/material';
 import { Undo as UndoIcon, Edit as EditIcon, ArrowBack as ArrowBackIcon, ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import apiClient from '../utils/apiClient';
+import { createTemporaryChange, deleteTemporaryChange, listCustomerTemporaryChangesForPeriod } from '../services/temporaryChanges';
 import moment from 'moment';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProductMasters } from '../hooks/useProductMasters';
@@ -732,7 +733,7 @@ const CustomerDetail: React.FC = () => {
       return;
     }
     try {
-      const res = await apiClient.post('/api/temporary-changes', {
+      const createdId = await createTemporaryChange({
         customer_id: Number(id),
         change_date: overrideDate || selectedCell.date,
         change_type,
@@ -741,12 +742,11 @@ const CustomerDetail: React.FC = () => {
         unit_price: payload.unit_price ?? null,
         reason: null,
       });
-      const createdId: number | undefined = res?.data?.id;
       if (recordUndo && createdId) {
         pushUndo({
           description: '臨時変更の取り消し',
           revert: async () => {
-            await apiClient.delete(`/api/temporary-changes/${createdId}`);
+            await deleteTemporaryChange(createdId);
           },
         });
       }
@@ -876,7 +876,7 @@ const CustomerDetail: React.FC = () => {
         revert: async () => {
           for (const tid of createdIds) {
             try {
-              await apiClient.delete(`/api/temporary-changes/${tid}`);
+              await deleteTemporaryChange(tid);
             } catch (e) {
               console.error('休配（期間指定）取り消しの一部削除:', e);
             }
@@ -899,8 +899,7 @@ const CustomerDetail: React.FC = () => {
     if (!productId) return;
 
     try {
-      const res = await apiClient.get(`/api/temporary-changes/customer/${id}/period/${start}/${end}`);
-      const rows: TemporaryChange[] = res.data || [];
+      const rows = await listCustomerTemporaryChangesForPeriod(id!, start, end);
       const targets = rows.filter(tc => tc.change_type === 'skip' && tc.product_id === productId);
       // 削除前に復元用データを保持
       const restorePayloads = targets.map(t => ({
@@ -908,13 +907,13 @@ const CustomerDetail: React.FC = () => {
         change_date: t.change_date,
         change_type: t.change_type,
         product_id: t.product_id!,
-        quantity: t.quantity ?? 0,
+        quantity: (t.quantity === null || t.quantity === undefined) ? 0 : t.quantity,
         unit_price: t.unit_price ?? null,
         reason: t.reason ?? null,
       }));
       for (const t of targets) {
         if (t.id) {
-          await apiClient.delete(`/api/temporary-changes/${t.id}`);
+          await deleteTemporaryChange(t.id);
         }
       }
       setUnskipStartDate('');
@@ -927,7 +926,7 @@ const CustomerDetail: React.FC = () => {
           revert: async () => {
             for (const payload of restorePayloads) {
               try {
-                await apiClient.post('/api/temporary-changes', payload);
+                await createTemporaryChange(payload as any);
               } catch (e) {
                 console.error('休配解除の取り消し（再作成）に失敗:', e);
               }

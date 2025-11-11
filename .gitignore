@@ -114,3 +114,7 @@ logs/
 dist/
 build/
 node_modules
+
+# Archived projects and resources
+archive/
+archive/**

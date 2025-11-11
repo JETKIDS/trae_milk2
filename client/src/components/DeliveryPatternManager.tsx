@@ -40,6 +40,7 @@ import {
   CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
 import apiClient from '../utils/apiClient';
+import { createTemporaryChange, deleteTemporaryChange } from '../services/temporaryChanges';
 
 interface Product {
   id: number;
@@ -273,13 +274,12 @@ const DeliveryPatternManager = forwardRef<DeliveryPatternManagerHandle, Delivery
           reason: '臨時配達'
         };
 
-        const res = await apiClient.post('/api/temporary-changes', temporaryData);
-        const createdTempId = res?.data?.id as number | undefined;
+        const createdTempId = await createTemporaryChange(temporaryData as any);
         if (createdTempId && onRecordUndo) {
           onRecordUndo({
             description: '臨時配達の追加を元に戻す',
             revert: async () => {
-              await apiClient.delete(`/api/temporary-changes/${createdTempId}`);
+              await deleteTemporaryChange(createdTempId);
             },
           });
         }

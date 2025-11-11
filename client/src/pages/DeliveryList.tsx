@@ -1144,6 +1144,7 @@ const ProductSummaryTab: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [skipMap, setSkipMap] = useState<Map<string, Set<string>>>(new Map());
   const [patternsMap, setPatternsMap] = useState<Map<string, any>>(new Map());
+  const [customerPatternsMap, setCustomerPatternsMap] = useState<Map<number, any[]>>(new Map());
   const [summaryRows, setSummaryRows] = useState<any[]>([]);
   const [summaryDateList, setSummaryDateList] = useState<string[]>([]);
   const [summaryByCourse, setSummaryByCourse] = useState<Record<string, { rows: any[], dateList: string[] }>>({});
