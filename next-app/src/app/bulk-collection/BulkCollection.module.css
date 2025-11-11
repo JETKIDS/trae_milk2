@@ -1,0 +1,315 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.controlRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.controlRow label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.controlRow label span {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.controlRow input[type="month"],
+.controlRow select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.controlRow small {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.toggleGroup {
+  display: flex;
+  gap: 0.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.toggleGroup button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+
+.toggleGroup button:hover {
+  background: #f3f4f6;
+}
+
+.toggleGroup button.active {
+  background: #3b82f6;
+  color: white;
+}
+
+.primaryButton {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.primaryButton:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  padding: 0.5rem 1rem;
+  background: white;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.selectedInfo {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: auto;
+}
+
+.errorMessage {
+  padding: 0.75rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.successMessage {
+  padding: 0.75rem;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.customerList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.infoHeader {
+  padding: 0.75rem;
+  background: #f3f4f6;
+  border-radius: 0.375rem;
+}
+
+.infoHeader p {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.emptyMessage {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table thead {
+  background: #f9fafb;
+}
+
+.table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table td {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.courseHeaderRow {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.courseHeaderRow td {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.amountCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.table input[type="number"] {
+  width: 100%;
+  padding: 0.375rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.table input[type="number"]:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.dialogOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.dialog h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.dialogContent {
+  margin-bottom: 1.5rem;
+}
+
+.dialogContent p {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+}
+
+.confirmTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.confirmTable th,
+.confirmTable td {
+  padding: 0.5rem;
+  text-align: left;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.confirmTable th {
+  font-weight: 600;
+  background: #f9fafb;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.dialogActions button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+
+.dialogActions button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.dialogActions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+

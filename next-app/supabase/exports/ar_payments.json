@@ -1,0 +1,8012 @@
+[
+  {
+    "id": 1,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 9,
+    "amount": 10000,
+    "method": "collection",
+    "note": "現金集金",
+    "created_at": "2025-10-13 01:15:10"
+  },
+  {
+    "id": 2,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 10,
+    "amount": 10000,
+    "method": "collection",
+    "note": null,
+    "created_at": "2025-10-13 02:17:53"
+  },
+  {
+    "id": 3,
+    "customer_id": 34,
+    "year": 2025,
+    "month": 10,
+    "amount": 11790,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-14 01:13:27"
+  },
+  {
+    "id": 4,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 9,
+    "amount": 13500,
+    "method": "collection",
+    "note": "前月請求額に対する自動入金",
+    "created_at": "2025-10-14 01:54:27"
+  },
+  {
+    "id": 5,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 9,
+    "amount": 13500,
+    "method": "collection",
+    "note": "前月請求額に対する自動入金",
+    "created_at": "2025-10-14 01:54:58"
+  },
+  {
+    "id": 6,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 9,
+    "amount": 16200,
+    "method": "collection",
+    "note": "前月請求額に対する自動入金",
+    "created_at": "2025-10-14 01:55:50"
+  },
+  {
+    "id": 7,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 9,
+    "amount": -16200,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-14 04:04:25"
+  },
+  {
+    "id": 8,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 8,
+    "amount": 16200,
+    "method": "collection",
+    "note": "請求額に対する自動入金",
+    "created_at": "2025-10-14 04:04:45"
+  },
+  {
+    "id": 9,
+    "customer_id": 8,
+    "year": 2025,
+    "month": 10,
+    "amount": 22600,
+    "method": "collection",
+    "note": "請求額に対する自動入金",
+    "created_at": "2025-10-15 00:47:34"
+  },
+  {
+    "id": 10,
+    "customer_id": 44,
+    "year": 2025,
+    "month": 10,
+    "amount": 9090,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 11,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": 14400,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 12,
+    "customer_id": 46,
+    "year": 2025,
+    "month": 10,
+    "amount": 10260,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 13,
+    "customer_id": 47,
+    "year": 2025,
+    "month": 10,
+    "amount": 7200,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 14,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 10,
+    "amount": 15750,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 15,
+    "customer_id": 49,
+    "year": 2025,
+    "month": 10,
+    "amount": 18450,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 16,
+    "customer_id": 50,
+    "year": 2025,
+    "month": 10,
+    "amount": 3600,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 17,
+    "customer_id": 51,
+    "year": 2025,
+    "month": 10,
+    "amount": 7650,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 18,
+    "customer_id": 52,
+    "year": 2025,
+    "month": 10,
+    "amount": 24120,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 19,
+    "customer_id": 53,
+    "year": 2025,
+    "month": 10,
+    "amount": 19800,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 06:27:42"
+  },
+  {
+    "id": 20,
+    "customer_id": 44,
+    "year": 2025,
+    "month": 9,
+    "amount": 9090,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 21,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 9,
+    "amount": 14400,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 22,
+    "customer_id": 46,
+    "year": 2025,
+    "month": 9,
+    "amount": 10260,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 23,
+    "customer_id": 47,
+    "year": 2025,
+    "month": 9,
+    "amount": 7200,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 24,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 9,
+    "amount": 15750,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 25,
+    "customer_id": 49,
+    "year": 2025,
+    "month": 9,
+    "amount": 18450,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 26,
+    "customer_id": 50,
+    "year": 2025,
+    "month": 9,
+    "amount": 3600,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 27,
+    "customer_id": 51,
+    "year": 2025,
+    "month": 9,
+    "amount": 7650,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 28,
+    "customer_id": 52,
+    "year": 2025,
+    "month": 9,
+    "amount": 24120,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 29,
+    "customer_id": 53,
+    "year": 2025,
+    "month": 9,
+    "amount": 19800,
+    "method": "collection",
+    "note": "集金一括登録 前月相殺",
+    "created_at": "2025-10-17 06:35:16"
+  },
+  {
+    "id": 30,
+    "customer_id": 52,
+    "year": 2025,
+    "month": 9,
+    "amount": -24120,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-17 06:39:41"
+  },
+  {
+    "id": 31,
+    "customer_id": 44,
+    "year": 2025,
+    "month": 11,
+    "amount": 8080,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 32,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 11,
+    "amount": 12800,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 33,
+    "customer_id": 46,
+    "year": 2025,
+    "month": 11,
+    "amount": 9120,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 34,
+    "customer_id": 47,
+    "year": 2025,
+    "month": 11,
+    "amount": 6400,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 35,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 11,
+    "amount": 14000,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 36,
+    "customer_id": 49,
+    "year": 2025,
+    "month": 11,
+    "amount": 16400,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 37,
+    "customer_id": 50,
+    "year": 2025,
+    "month": 11,
+    "amount": 3200,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 38,
+    "customer_id": 51,
+    "year": 2025,
+    "month": 11,
+    "amount": 6800,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 39,
+    "customer_id": 52,
+    "year": 2025,
+    "month": 11,
+    "amount": 21440,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 40,
+    "customer_id": 53,
+    "year": 2025,
+    "month": 11,
+    "amount": 17600,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-17 07:09:42"
+  },
+  {
+    "id": 41,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 9,
+    "amount": -14400,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-17 07:11:37"
+  },
+  {
+    "id": 42,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": 14400,
+    "method": "collection",
+    "note": "請求額に対する自動入金",
+    "created_at": "2025-10-17 07:22:41"
+  },
+  {
+    "id": 43,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 9,
+    "amount": 14400,
+    "method": "collection",
+    "note": "請求額に対する自動入金",
+    "created_at": "2025-10-17 07:22:52"
+  },
+  {
+    "id": 44,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": -28800,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-17 07:23:07"
+  },
+  {
+    "id": 45,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 10,
+    "amount": -15750,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-17 07:24:10"
+  },
+  {
+    "id": 46,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 9,
+    "amount": -15750,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-17 07:24:31"
+  },
+  {
+    "id": 47,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 9,
+    "amount": 15750,
+    "method": "collection",
+    "note": "請求額に対する自動入金",
+    "created_at": "2025-10-17 07:24:49"
+  },
+  {
+    "id": 48,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": 14400,
+    "method": "collection",
+    "note": "請求額に対する自動入金",
+    "created_at": "2025-10-17 10:08:58"
+  },
+  {
+    "id": 49,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 1,
+    "amount": 18270,
+    "method": "collection",
+    "note": "請求額に対する自動入金",
+    "created_at": "2025-10-18 01:46:53"
+  },
+  {
+    "id": 50,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 2,
+    "amount": 16000,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-18 01:47:15"
+  },
+  {
+    "id": 51,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 11,
+    "amount": 21500,
+    "method": "collection",
+    "note": "請求額に対する自動入金",
+    "created_at": "2025-10-18 02:27:59"
+  },
+  {
+    "id": 52,
+    "customer_id": 35,
+    "year": 2025,
+    "month": 10,
+    "amount": 20250,
+    "method": "debit",
+    "note": "集金一括登録",
+    "created_at": "2025-10-18 03:26:37"
+  },
+  {
+    "id": 53,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 1,
+    "amount": 17010,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 54,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 1,
+    "amount": 21600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 55,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 1,
+    "amount": 13590,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 56,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 1,
+    "amount": 9540,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 57,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 1,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 58,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 1,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 59,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 1,
+    "amount": 29160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 60,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 1,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 61,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 1,
+    "amount": 19260,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 62,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 1,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 63,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 1,
+    "amount": 16200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 64,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 1,
+    "amount": 11160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 65,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 1,
+    "amount": 14040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 66,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 1,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 67,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 1,
+    "amount": 16650,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 68,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 1,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 69,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 1,
+    "amount": 12600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 70,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 1,
+    "amount": 18810,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 71,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 1,
+    "amount": 8550,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 72,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 1,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 73,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 1,
+    "amount": 12150,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 74,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 1,
+    "amount": 21420,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 75,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 1,
+    "amount": 9270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 76,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 1,
+    "amount": 10350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 77,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 1,
+    "amount": 15480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 78,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 1,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 79,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 1,
+    "amount": 6840,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 80,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 1,
+    "amount": 12960,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 81,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 2,
+    "amount": 15120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 82,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 2,
+    "amount": 19200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 83,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 2,
+    "amount": 240,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 84,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 2,
+    "amount": 12080,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 85,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 2,
+    "amount": 8480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 86,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 2,
+    "amount": 6400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 87,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 2,
+    "amount": 7680,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 88,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 2,
+    "amount": 25920,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 89,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 2,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 90,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 2,
+    "amount": 17120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 91,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 2,
+    "amount": 4800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 92,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 2,
+    "amount": 14400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 93,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 2,
+    "amount": 9920,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 94,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 2,
+    "amount": 12480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 95,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 2,
+    "amount": 7680,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 96,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 2,
+    "amount": 14800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 97,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 2,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 98,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 2,
+    "amount": 11200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 99,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 2,
+    "amount": 16720,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 100,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 2,
+    "amount": 7600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 101,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 2,
+    "amount": 13200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 102,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 2,
+    "amount": 10800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 103,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 2,
+    "amount": 19040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 104,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 2,
+    "amount": 8240,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 105,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 2,
+    "amount": 9200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 106,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 2,
+    "amount": 13760,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 107,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 2,
+    "amount": 17600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 108,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 2,
+    "amount": 6080,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 109,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 2,
+    "amount": 11520,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 110,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 3,
+    "amount": 17010,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 111,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 3,
+    "amount": 21600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 112,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 3,
+    "amount": 18270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 113,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 3,
+    "amount": 13590,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 114,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 3,
+    "amount": 9540,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 115,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 3,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 116,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 3,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 117,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 3,
+    "amount": 29160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 118,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 3,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 119,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 3,
+    "amount": 17120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 120,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 3,
+    "amount": 4800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 121,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 3,
+    "amount": 14400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 122,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 3,
+    "amount": 9920,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 123,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 3,
+    "amount": 12480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 124,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 3,
+    "amount": 7680,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 125,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 3,
+    "amount": 14800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 126,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 3,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 127,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 3,
+    "amount": 11200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 128,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 3,
+    "amount": 16720,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 129,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 3,
+    "amount": 8550,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 130,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 3,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 131,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 3,
+    "amount": 12150,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 132,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 3,
+    "amount": 21420,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 133,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 3,
+    "amount": 9270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 134,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 3,
+    "amount": 10350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 135,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 3,
+    "amount": 15480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 136,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 3,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 137,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 3,
+    "amount": 6840,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 138,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 3,
+    "amount": 12960,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:25"
+  },
+  {
+    "id": 139,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 4,
+    "amount": 15120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 140,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 4,
+    "amount": 19200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 141,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 4,
+    "amount": 16240,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 142,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 4,
+    "amount": 12080,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 143,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 4,
+    "amount": 8480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 144,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 4,
+    "amount": 6400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 145,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 4,
+    "amount": 7680,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 146,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 4,
+    "amount": 25920,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 147,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 4,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 148,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 4,
+    "amount": 19260,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 149,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 4,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 150,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 4,
+    "amount": 16200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 151,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 4,
+    "amount": 11160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 152,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 4,
+    "amount": 14040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 153,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 4,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 154,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 4,
+    "amount": 16650,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 155,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 4,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 156,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 4,
+    "amount": 12600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 157,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 4,
+    "amount": 18810,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 158,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 4,
+    "amount": 8550,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 159,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 4,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 160,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 4,
+    "amount": 12150,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 161,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 4,
+    "amount": 21420,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 162,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 4,
+    "amount": 9270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 163,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 4,
+    "amount": 10350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 164,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 4,
+    "amount": 15480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 165,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 4,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 166,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 4,
+    "amount": 6840,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 167,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 4,
+    "amount": 12960,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 168,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 5,
+    "amount": 17010,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 169,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 5,
+    "amount": 21600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 170,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 5,
+    "amount": 18270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 171,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 5,
+    "amount": 13590,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 172,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 5,
+    "amount": 9540,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 173,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 5,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 174,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 5,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 175,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 5,
+    "amount": 29160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 176,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 5,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 177,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 5,
+    "amount": 19260,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 178,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 5,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 179,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 5,
+    "amount": 16200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 180,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 5,
+    "amount": 11160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 181,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 5,
+    "amount": 14040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 182,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 5,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 183,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 5,
+    "amount": 16650,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 184,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 5,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 185,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 5,
+    "amount": 12600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 186,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 5,
+    "amount": 18810,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 187,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 5,
+    "amount": 8550,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 188,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 5,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 189,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 5,
+    "amount": 12150,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 190,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 5,
+    "amount": 21420,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 191,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 5,
+    "amount": 9270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 192,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 5,
+    "amount": 10350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 193,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 5,
+    "amount": 15480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 194,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 5,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 195,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 5,
+    "amount": 6840,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 196,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 5,
+    "amount": 12960,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 197,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 6,
+    "amount": 17010,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 198,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 6,
+    "amount": 21600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 199,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 6,
+    "amount": 18270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 200,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 6,
+    "amount": 13590,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 201,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 6,
+    "amount": 9540,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 202,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 6,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 203,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 6,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 204,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 6,
+    "amount": 29160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 205,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 6,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 206,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 6,
+    "amount": 17120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 207,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 6,
+    "amount": 4800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 208,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 6,
+    "amount": 14400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 209,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 6,
+    "amount": 9920,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 210,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 6,
+    "amount": 12480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 211,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 6,
+    "amount": 7680,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 212,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 6,
+    "amount": 14800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 213,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 6,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 214,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 6,
+    "amount": 11200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 215,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 6,
+    "amount": 16720,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 216,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 6,
+    "amount": 7600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 217,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 6,
+    "amount": 13200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 218,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 6,
+    "amount": 10800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 219,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 6,
+    "amount": 19040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 220,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 6,
+    "amount": 8240,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 221,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 6,
+    "amount": 9200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 222,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 6,
+    "amount": 13760,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 223,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 6,
+    "amount": 17600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 224,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 6,
+    "amount": 6080,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 225,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 6,
+    "amount": 11520,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:26"
+  },
+  {
+    "id": 226,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 7,
+    "amount": 17010,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 227,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 7,
+    "amount": 21600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 228,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 7,
+    "amount": 18270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 229,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 7,
+    "amount": 13590,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 230,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 7,
+    "amount": 9540,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 231,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 7,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 232,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 7,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 233,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 7,
+    "amount": 29160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 234,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 7,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 235,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 7,
+    "amount": 19260,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 236,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 7,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 237,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 7,
+    "amount": 16200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 238,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 7,
+    "amount": 11160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 239,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 7,
+    "amount": 14040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 240,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 7,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 241,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 7,
+    "amount": 16650,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 242,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 7,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 243,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 7,
+    "amount": 12600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 244,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 7,
+    "amount": 18810,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 245,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 7,
+    "amount": 8550,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 246,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 7,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 247,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 7,
+    "amount": 12150,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 248,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 7,
+    "amount": 21420,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 249,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 7,
+    "amount": 9270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 250,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 7,
+    "amount": 10350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 251,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 7,
+    "amount": 15480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 252,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 7,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 253,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 7,
+    "amount": 6840,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 254,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 7,
+    "amount": 12960,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 255,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 8,
+    "amount": 15120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 256,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 8,
+    "amount": 19200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 257,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 8,
+    "amount": 16240,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 258,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 8,
+    "amount": 12080,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 259,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 8,
+    "amount": 8480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 260,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 8,
+    "amount": 6400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 261,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 8,
+    "amount": 7680,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 262,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 8,
+    "amount": 25920,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 263,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 8,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 264,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 8,
+    "amount": 19260,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 265,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 8,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 266,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 8,
+    "amount": 11160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 267,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 8,
+    "amount": 14040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 268,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 8,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 269,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 8,
+    "amount": 16650,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 270,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 8,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 271,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 8,
+    "amount": 12600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 272,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 8,
+    "amount": 18810,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 273,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 8,
+    "amount": 8550,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 274,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 8,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 275,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 8,
+    "amount": 12150,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 276,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 8,
+    "amount": 21420,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 277,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 8,
+    "amount": 9270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 278,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 8,
+    "amount": 10350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 279,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 8,
+    "amount": 15480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 280,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 8,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 281,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 8,
+    "amount": 6840,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 282,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 8,
+    "amount": 12960,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 283,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 9,
+    "amount": 17010,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 284,
+    "customer_id": 34,
+    "year": 2025,
+    "month": 9,
+    "amount": 11790,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 285,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 9,
+    "amount": 21600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 286,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": 18270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 287,
+    "customer_id": 36,
+    "year": 2025,
+    "month": 9,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 288,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 9,
+    "amount": 13590,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 289,
+    "customer_id": 37,
+    "year": 2025,
+    "month": 9,
+    "amount": 14670,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 290,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 9,
+    "amount": 9540,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 291,
+    "customer_id": 39,
+    "year": 2025,
+    "month": 9,
+    "amount": 20250,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 292,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 9,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 293,
+    "customer_id": 40,
+    "year": 2025,
+    "month": 9,
+    "amount": 13950,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 294,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 9,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 295,
+    "customer_id": 41,
+    "year": 2025,
+    "month": 9,
+    "amount": 20700,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 296,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 9,
+    "amount": 29160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 297,
+    "customer_id": 42,
+    "year": 2025,
+    "month": 9,
+    "amount": 9000,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 298,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 9,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 299,
+    "customer_id": 43,
+    "year": 2025,
+    "month": 9,
+    "amount": 18000,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 300,
+    "customer_id": 35,
+    "year": 2025,
+    "month": 9,
+    "amount": 20250,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 301,
+    "customer_id": 38,
+    "year": 2025,
+    "month": 9,
+    "amount": 14580,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 302,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 9,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 303,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 9,
+    "amount": 16200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 304,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 9,
+    "amount": 11160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 305,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 9,
+    "amount": 14040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 306,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 9,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 307,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 9,
+    "amount": 16650,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 308,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 9,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 309,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 9,
+    "amount": 12600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 310,
+    "customer_id": 52,
+    "year": 2025,
+    "month": 9,
+    "amount": 24120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 311,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 9,
+    "amount": 18810,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 312,
+    "customer_id": 54,
+    "year": 2025,
+    "month": 9,
+    "amount": 7040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 313,
+    "customer_id": 55,
+    "year": 2025,
+    "month": 9,
+    "amount": 17200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 314,
+    "customer_id": 56,
+    "year": 2025,
+    "month": 9,
+    "amount": 13200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 315,
+    "customer_id": 57,
+    "year": 2025,
+    "month": 9,
+    "amount": 14400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 316,
+    "customer_id": 58,
+    "year": 2025,
+    "month": 9,
+    "amount": 10400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 317,
+    "customer_id": 59,
+    "year": 2025,
+    "month": 9,
+    "amount": 11120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 318,
+    "customer_id": 60,
+    "year": 2025,
+    "month": 9,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 319,
+    "customer_id": 61,
+    "year": 2025,
+    "month": 9,
+    "amount": 7600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 320,
+    "customer_id": 62,
+    "year": 2025,
+    "month": 9,
+    "amount": 4800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 321,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 9,
+    "amount": 15120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 322,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 9,
+    "amount": 7600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 323,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 9,
+    "amount": 13200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 324,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 9,
+    "amount": 10800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 325,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 9,
+    "amount": 19040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 326,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 9,
+    "amount": 8240,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 327,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 9,
+    "amount": 9200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 328,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 9,
+    "amount": 13760,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 329,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 9,
+    "amount": 17600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 330,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 9,
+    "amount": 6080,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 331,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 9,
+    "amount": 11520,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-19 15:49:27"
+  },
+  {
+    "id": 332,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 10,
+    "amount": 21570,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 333,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 10,
+    "amount": 11760,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 334,
+    "customer_id": 37,
+    "year": 2025,
+    "month": 10,
+    "amount": 14670,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 335,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 10,
+    "amount": 9540,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 336,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 10,
+    "amount": 9180,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 337,
+    "customer_id": 40,
+    "year": 2025,
+    "month": 10,
+    "amount": 13950,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 338,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 10,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 339,
+    "customer_id": 41,
+    "year": 2025,
+    "month": 10,
+    "amount": 20700,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 340,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 10,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 341,
+    "customer_id": 43,
+    "year": 2025,
+    "month": 10,
+    "amount": 18000,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 342,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 10,
+    "amount": 13800,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 343,
+    "customer_id": 36,
+    "year": 2025,
+    "month": 10,
+    "amount": 5400,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 344,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 10,
+    "amount": 12390,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 345,
+    "customer_id": 38,
+    "year": 2025,
+    "month": 10,
+    "amount": 14580,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 346,
+    "customer_id": 39,
+    "year": 2025,
+    "month": 10,
+    "amount": 20250,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 347,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 10,
+    "amount": 29160,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 348,
+    "customer_id": 42,
+    "year": 2025,
+    "month": 10,
+    "amount": 9000,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 349,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 10,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 350,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 10,
+    "amount": 11160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 351,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 10,
+    "amount": 14040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 352,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 10,
+    "amount": 16650,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 353,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 10,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 354,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 10,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 355,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 10,
+    "amount": 18810,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 356,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 10,
+    "amount": 21220,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 357,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 10,
+    "amount": 16200,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 358,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 10,
+    "amount": 12150,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 359,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 10,
+    "amount": 8640,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 360,
+    "customer_id": 55,
+    "year": 2025,
+    "month": 10,
+    "amount": 19350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 361,
+    "customer_id": 56,
+    "year": 2025,
+    "month": 10,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 362,
+    "customer_id": 58,
+    "year": 2025,
+    "month": 10,
+    "amount": 11700,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 363,
+    "customer_id": 59,
+    "year": 2025,
+    "month": 10,
+    "amount": 12510,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 364,
+    "customer_id": 61,
+    "year": 2025,
+    "month": 10,
+    "amount": 8550,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 365,
+    "customer_id": 62,
+    "year": 2025,
+    "month": 10,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 366,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 10,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 367,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 10,
+    "amount": 12150,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 368,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 10,
+    "amount": 9270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 369,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 10,
+    "amount": 10350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 370,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 10,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 371,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 10,
+    "amount": 6840,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 372,
+    "customer_id": 54,
+    "year": 2025,
+    "month": 10,
+    "amount": 7920,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 373,
+    "customer_id": 57,
+    "year": 2025,
+    "month": 10,
+    "amount": 16200,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 374,
+    "customer_id": 60,
+    "year": 2025,
+    "month": 10,
+    "amount": 18900,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 375,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 10,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 376,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 10,
+    "amount": 8550,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 377,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 10,
+    "amount": 19740,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 378,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 10,
+    "amount": 15480,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 379,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 10,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:15"
+  },
+  {
+    "id": 380,
+    "customer_id": 34,
+    "year": 2025,
+    "month": 11,
+    "amount": 10480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 381,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 11,
+    "amount": 19200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 382,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 11,
+    "amount": 32800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 383,
+    "customer_id": 37,
+    "year": 2025,
+    "month": 11,
+    "amount": 13040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 384,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 11,
+    "amount": 8480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 385,
+    "customer_id": 8,
+    "year": 2025,
+    "month": 11,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 386,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 11,
+    "amount": 6400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 387,
+    "customer_id": 40,
+    "year": 2025,
+    "month": 11,
+    "amount": 12400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 388,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 11,
+    "amount": 7680,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 389,
+    "customer_id": 41,
+    "year": 2025,
+    "month": 11,
+    "amount": 18400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 390,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 11,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 391,
+    "customer_id": 43,
+    "year": 2025,
+    "month": 11,
+    "amount": 16000,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 392,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 11,
+    "amount": 11520,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 393,
+    "customer_id": 35,
+    "year": 2025,
+    "month": 11,
+    "amount": 18000,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 394,
+    "customer_id": 36,
+    "year": 2025,
+    "month": 11,
+    "amount": 4800,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 395,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 11,
+    "amount": 7280,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 396,
+    "customer_id": 38,
+    "year": 2025,
+    "month": 11,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 397,
+    "customer_id": 39,
+    "year": 2025,
+    "month": 11,
+    "amount": 18000,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 398,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 11,
+    "amount": 25920,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 399,
+    "customer_id": 42,
+    "year": 2025,
+    "month": 11,
+    "amount": 8000,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 400,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 11,
+    "amount": 4800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 401,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 11,
+    "amount": 9920,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 402,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 11,
+    "amount": 12480,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 403,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 11,
+    "amount": 14800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 404,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 11,
+    "amount": 16800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 405,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 11,
+    "amount": 6400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 406,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 11,
+    "amount": 16720,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 407,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 11,
+    "amount": 14400,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 408,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 11,
+    "amount": 7680,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 409,
+    "customer_id": 55,
+    "year": 2025,
+    "month": 11,
+    "amount": 19350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 410,
+    "customer_id": 56,
+    "year": 2025,
+    "month": 11,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 411,
+    "customer_id": 58,
+    "year": 2025,
+    "month": 11,
+    "amount": 11700,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 412,
+    "customer_id": 59,
+    "year": 2025,
+    "month": 11,
+    "amount": 12510,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 413,
+    "customer_id": 61,
+    "year": 2025,
+    "month": 11,
+    "amount": 8550,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 414,
+    "customer_id": 62,
+    "year": 2025,
+    "month": 11,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 415,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 11,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 416,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 11,
+    "amount": 12150,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 417,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 11,
+    "amount": 9270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 418,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 11,
+    "amount": 10350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 419,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 11,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 420,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 11,
+    "amount": 6840,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 421,
+    "customer_id": 54,
+    "year": 2025,
+    "month": 11,
+    "amount": 7920,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 422,
+    "customer_id": 57,
+    "year": 2025,
+    "month": 11,
+    "amount": 16200,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 423,
+    "customer_id": 60,
+    "year": 2025,
+    "month": 11,
+    "amount": 18900,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 424,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 11,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 425,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 11,
+    "amount": 8550,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 426,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 11,
+    "amount": 18900,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 427,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 11,
+    "amount": 15480,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 428,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 11,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 429,
+    "customer_id": 34,
+    "year": 2025,
+    "month": 12,
+    "amount": 11790,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 430,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 12,
+    "amount": 21600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 431,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 12,
+    "amount": 36800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 432,
+    "customer_id": 37,
+    "year": 2025,
+    "month": 12,
+    "amount": 14670,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 433,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 12,
+    "amount": 9540,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 434,
+    "customer_id": 8,
+    "year": 2025,
+    "month": 12,
+    "amount": 18600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 435,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 12,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 436,
+    "customer_id": 40,
+    "year": 2025,
+    "month": 12,
+    "amount": 13950,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 437,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 12,
+    "amount": 8640,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 438,
+    "customer_id": 41,
+    "year": 2025,
+    "month": 12,
+    "amount": 20700,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 439,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 12,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 440,
+    "customer_id": 43,
+    "year": 2025,
+    "month": 12,
+    "amount": 18000,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 441,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 12,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 442,
+    "customer_id": 35,
+    "year": 2025,
+    "month": 12,
+    "amount": 20250,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 443,
+    "customer_id": 36,
+    "year": 2025,
+    "month": 12,
+    "amount": 5400,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 444,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 12,
+    "amount": 8190,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 445,
+    "customer_id": 38,
+    "year": 2025,
+    "month": 12,
+    "amount": 14580,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 446,
+    "customer_id": 39,
+    "year": 2025,
+    "month": 12,
+    "amount": 20250,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 447,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 12,
+    "amount": 29160,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 448,
+    "customer_id": 42,
+    "year": 2025,
+    "month": 12,
+    "amount": 9000,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 449,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 12,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 450,
+    "customer_id": 46,
+    "year": 2025,
+    "month": 12,
+    "amount": 10260,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 451,
+    "customer_id": 44,
+    "year": 2025,
+    "month": 12,
+    "amount": 9090,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 452,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 12,
+    "amount": 11160,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 453,
+    "customer_id": 47,
+    "year": 2025,
+    "month": 12,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 454,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 12,
+    "amount": 14040,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 455,
+    "customer_id": 49,
+    "year": 2025,
+    "month": 12,
+    "amount": 18450,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 456,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 12,
+    "amount": 16650,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 457,
+    "customer_id": 50,
+    "year": 2025,
+    "month": 12,
+    "amount": 3600,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 458,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 12,
+    "amount": 18900,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 459,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 12,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 460,
+    "customer_id": 52,
+    "year": 2025,
+    "month": 12,
+    "amount": 24120,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 461,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 12,
+    "amount": 18810,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 462,
+    "customer_id": 53,
+    "year": 2025,
+    "month": 12,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 463,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 12,
+    "amount": 22500,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 464,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 12,
+    "amount": 14400,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 465,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 12,
+    "amount": 16200,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 466,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 12,
+    "amount": 12150,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 467,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 12,
+    "amount": 8640,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 468,
+    "customer_id": 51,
+    "year": 2025,
+    "month": 12,
+    "amount": 7650,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 469,
+    "customer_id": 55,
+    "year": 2025,
+    "month": 12,
+    "amount": 19350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 470,
+    "customer_id": 56,
+    "year": 2025,
+    "month": 12,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 471,
+    "customer_id": 58,
+    "year": 2025,
+    "month": 12,
+    "amount": 11700,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 472,
+    "customer_id": 59,
+    "year": 2025,
+    "month": 12,
+    "amount": 12510,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 473,
+    "customer_id": 61,
+    "year": 2025,
+    "month": 12,
+    "amount": 8550,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 474,
+    "customer_id": 62,
+    "year": 2025,
+    "month": 12,
+    "amount": 5400,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 475,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 12,
+    "amount": 14850,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 476,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 12,
+    "amount": 12150,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 477,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 12,
+    "amount": 9270,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 478,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 12,
+    "amount": 10350,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 479,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 12,
+    "amount": 19800,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 480,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 12,
+    "amount": 6840,
+    "method": "collection",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 481,
+    "customer_id": 54,
+    "year": 2025,
+    "month": 12,
+    "amount": 7920,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 482,
+    "customer_id": 57,
+    "year": 2025,
+    "month": 12,
+    "amount": 16200,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 483,
+    "customer_id": 60,
+    "year": 2025,
+    "month": 12,
+    "amount": 18900,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 484,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 12,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 485,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 12,
+    "amount": 8550,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 486,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 12,
+    "amount": 18900,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 487,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 12,
+    "amount": 15480,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 488,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 12,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（未収金ゼロ化）",
+    "created_at": "2025-10-28 07:40:16"
+  },
+  {
+    "id": 489,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 9,
+    "amount": -15750,
+    "method": "collection",
+    "note": "取消: 47 (請求額に対する自動入金)",
+    "created_at": "2025-10-28 07:41:11"
+  },
+  {
+    "id": 490,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 9,
+    "amount": -15750,
+    "method": "collection",
+    "note": "取消: 46 (手動入金)",
+    "created_at": "2025-10-28 07:41:11"
+  },
+  {
+    "id": 491,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 9,
+    "amount": -15750,
+    "method": "collection",
+    "note": "取消: 24 (集金一括登録 前月相殺)",
+    "created_at": "2025-10-28 07:41:11"
+  },
+  {
+    "id": 492,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 9,
+    "amount": 12150,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:11"
+  },
+  {
+    "id": 493,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 11,
+    "amount": -14000,
+    "method": "collection",
+    "note": "取消: 35 (集金一括登録)",
+    "created_at": "2025-10-28 07:41:11"
+  },
+  {
+    "id": 494,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 11,
+    "amount": 10800,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:11"
+  },
+  {
+    "id": 495,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 9,
+    "amount": -15120,
+    "method": "collection",
+    "note": "取消: 321 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 496,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 9,
+    "amount": 11520,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 497,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 1,
+    "amount": -18270,
+    "method": "collection",
+    "note": "取消: 49 (請求額に対する自動入金)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 498,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 1,
+    "amount": 6120,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 499,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 2,
+    "amount": -240,
+    "method": "collection",
+    "note": "取消: 83 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 500,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 2,
+    "amount": -16000,
+    "method": "collection",
+    "note": "取消: 50 (手動入金)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 501,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 2,
+    "amount": 5440,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 502,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 3,
+    "amount": -18270,
+    "method": "collection",
+    "note": "取消: 112 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 503,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 3,
+    "amount": 6120,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 504,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 4,
+    "amount": -16240,
+    "method": "collection",
+    "note": "取消: 141 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 505,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 4,
+    "amount": 5440,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 506,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 5,
+    "amount": -18270,
+    "method": "collection",
+    "note": "取消: 170 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 507,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 5,
+    "amount": 6120,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 508,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 6,
+    "amount": -18270,
+    "method": "collection",
+    "note": "取消: 199 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 509,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 6,
+    "amount": 6120,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 510,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 7,
+    "amount": -18270,
+    "method": "collection",
+    "note": "取消: 228 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 511,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 7,
+    "amount": 6120,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 512,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 8,
+    "amount": -16240,
+    "method": "collection",
+    "note": "取消: 257 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 513,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 8,
+    "amount": 5440,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 514,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": -18270,
+    "method": "collection",
+    "note": "取消: 286 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 515,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": 6120,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:12"
+  },
+  {
+    "id": 516,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 1,
+    "amount": -12600,
+    "method": "collection",
+    "note": "取消: 69 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 517,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 1,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 518,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 2,
+    "amount": -11200,
+    "method": "collection",
+    "note": "取消: 98 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 519,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 2,
+    "amount": 6400,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 520,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 3,
+    "amount": -11200,
+    "method": "collection",
+    "note": "取消: 127 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 521,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 3,
+    "amount": 6400,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 522,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 4,
+    "amount": -12600,
+    "method": "collection",
+    "note": "取消: 156 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 523,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 4,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 524,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 5,
+    "amount": -12600,
+    "method": "collection",
+    "note": "取消: 185 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 525,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 5,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 526,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 6,
+    "amount": -11200,
+    "method": "collection",
+    "note": "取消: 214 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 527,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 6,
+    "amount": 6400,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 528,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 7,
+    "amount": -12600,
+    "method": "collection",
+    "note": "取消: 243 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 529,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 7,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 530,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 8,
+    "amount": -12600,
+    "method": "collection",
+    "note": "取消: 271 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 531,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 8,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 532,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 9,
+    "amount": -12600,
+    "method": "collection",
+    "note": "取消: 309 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 533,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 9,
+    "amount": 7200,
+    "method": "collection",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:13"
+  },
+  {
+    "id": 534,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 9,
+    "amount": -13500,
+    "method": "collection",
+    "note": "取消: 5 (前月請求額に対する自動入金)",
+    "created_at": "2025-10-28 07:41:14"
+  },
+  {
+    "id": 535,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 9,
+    "amount": -13500,
+    "method": "collection",
+    "note": "取消: 4 (前月請求額に対する自動入金)",
+    "created_at": "2025-10-28 07:41:14"
+  },
+  {
+    "id": 536,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 9,
+    "amount": -10000,
+    "method": "collection",
+    "note": "取消: 1 (現金集金)",
+    "created_at": "2025-10-28 07:41:14"
+  },
+  {
+    "id": 537,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 9,
+    "amount": 19260,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:14"
+  },
+  {
+    "id": 538,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 1,
+    "amount": -17010,
+    "method": "collection",
+    "note": "取消: 53 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 539,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 1,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 540,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 2,
+    "amount": -15120,
+    "method": "collection",
+    "note": "取消: 81 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 541,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 2,
+    "amount": 11520,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 542,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 3,
+    "amount": -17010,
+    "method": "collection",
+    "note": "取消: 110 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 543,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 3,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 544,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 4,
+    "amount": -15120,
+    "method": "collection",
+    "note": "取消: 139 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 545,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 4,
+    "amount": 11520,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 546,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 5,
+    "amount": -17010,
+    "method": "collection",
+    "note": "取消: 168 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 547,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 5,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 548,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 6,
+    "amount": -17010,
+    "method": "collection",
+    "note": "取消: 197 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 549,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 6,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 550,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 7,
+    "amount": -17010,
+    "method": "collection",
+    "note": "取消: 226 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 551,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 7,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 552,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 8,
+    "amount": -15120,
+    "method": "collection",
+    "note": "取消: 255 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 553,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 8,
+    "amount": 11520,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 554,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 9,
+    "amount": -17010,
+    "method": "collection",
+    "note": "取消: 283 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 555,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 9,
+    "amount": 12960,
+    "method": "debit",
+    "note": "自動調整（過入金正規化）",
+    "created_at": "2025-10-28 07:41:15"
+  },
+  {
+    "id": 556,
+    "customer_id": 41,
+    "year": 2025,
+    "month": 10,
+    "amount": -20700,
+    "method": "collection",
+    "note": "取消: 339 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 557,
+    "customer_id": 41,
+    "year": 2025,
+    "month": 11,
+    "amount": -18400,
+    "method": "collection",
+    "note": "取消: 389 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 558,
+    "customer_id": 41,
+    "year": 2025,
+    "month": 12,
+    "amount": -20700,
+    "method": "collection",
+    "note": "取消: 438 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 559,
+    "customer_id": 51,
+    "year": 2025,
+    "month": 10,
+    "amount": -7650,
+    "method": "collection",
+    "note": "取消: 17 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 560,
+    "customer_id": 51,
+    "year": 2025,
+    "month": 11,
+    "amount": -6800,
+    "method": "collection",
+    "note": "取消: 38 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 561,
+    "customer_id": 51,
+    "year": 2025,
+    "month": 12,
+    "amount": -7650,
+    "method": "debit",
+    "note": "取消: 468 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 562,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 10,
+    "amount": -19740,
+    "method": "debit",
+    "note": "取消: 377 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 563,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 11,
+    "amount": -18900,
+    "method": "debit",
+    "note": "取消: 426 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 564,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 12,
+    "amount": -18900,
+    "method": "debit",
+    "note": "取消: 486 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 565,
+    "customer_id": 56,
+    "year": 2025,
+    "month": 10,
+    "amount": -14850,
+    "method": "collection",
+    "note": "取消: 361 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 566,
+    "customer_id": 56,
+    "year": 2025,
+    "month": 11,
+    "amount": -14850,
+    "method": "collection",
+    "note": "取消: 410 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 567,
+    "customer_id": 56,
+    "year": 2025,
+    "month": 12,
+    "amount": -14850,
+    "method": "collection",
+    "note": "取消: 470 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 568,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 10,
+    "amount": -14850,
+    "method": "collection",
+    "note": "取消: 366 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 569,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 11,
+    "amount": -14850,
+    "method": "collection",
+    "note": "取消: 415 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 570,
+    "customer_id": 25,
+    "year": 2025,
+    "month": 12,
+    "amount": -14850,
+    "method": "collection",
+    "note": "取消: 475 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 571,
+    "customer_id": 38,
+    "year": 2025,
+    "month": 10,
+    "amount": -14580,
+    "method": "debit",
+    "note": "取消: 345 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 572,
+    "customer_id": 38,
+    "year": 2025,
+    "month": 11,
+    "amount": -12960,
+    "method": "debit",
+    "note": "取消: 396 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 573,
+    "customer_id": 38,
+    "year": 2025,
+    "month": 12,
+    "amount": -14580,
+    "method": "debit",
+    "note": "取消: 445 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 574,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 10,
+    "amount": -9270,
+    "method": "collection",
+    "note": "取消: 368 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 575,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 11,
+    "amount": -9270,
+    "method": "collection",
+    "note": "取消: 417 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 576,
+    "customer_id": 28,
+    "year": 2025,
+    "month": 12,
+    "amount": -9270,
+    "method": "collection",
+    "note": "取消: 477 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 577,
+    "customer_id": 8,
+    "year": 2025,
+    "month": 10,
+    "amount": -22600,
+    "method": "collection",
+    "note": "取消: 9 (請求額に対する自動入金)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 578,
+    "customer_id": 8,
+    "year": 2025,
+    "month": 11,
+    "amount": -16800,
+    "method": "collection",
+    "note": "取消: 385 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 579,
+    "customer_id": 8,
+    "year": 2025,
+    "month": 12,
+    "amount": -18600,
+    "method": "collection",
+    "note": "取消: 434 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 580,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 10,
+    "amount": -8640,
+    "method": "debit",
+    "note": "取消: 359 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 581,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 11,
+    "amount": -7680,
+    "method": "debit",
+    "note": "取消: 408 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 582,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 12,
+    "amount": -8640,
+    "method": "debit",
+    "note": "取消: 467 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 583,
+    "customer_id": 35,
+    "year": 2025,
+    "month": 10,
+    "amount": -20250,
+    "method": "debit",
+    "note": "取消: 52 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 584,
+    "customer_id": 35,
+    "year": 2025,
+    "month": 11,
+    "amount": -18000,
+    "method": "debit",
+    "note": "取消: 393 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 585,
+    "customer_id": 35,
+    "year": 2025,
+    "month": 12,
+    "amount": -20250,
+    "method": "debit",
+    "note": "取消: 442 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 586,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 10,
+    "amount": -12960,
+    "method": "debit",
+    "note": "取消: 379 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 587,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 11,
+    "amount": -12960,
+    "method": "debit",
+    "note": "取消: 428 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 588,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 12,
+    "amount": -12960,
+    "method": "debit",
+    "note": "取消: 488 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 589,
+    "customer_id": 59,
+    "year": 2025,
+    "month": 10,
+    "amount": -12510,
+    "method": "collection",
+    "note": "取消: 363 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 590,
+    "customer_id": 59,
+    "year": 2025,
+    "month": 11,
+    "amount": -12510,
+    "method": "collection",
+    "note": "取消: 412 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 591,
+    "customer_id": 59,
+    "year": 2025,
+    "month": 12,
+    "amount": -12510,
+    "method": "collection",
+    "note": "取消: 472 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 592,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 10,
+    "amount": -29160,
+    "method": "debit",
+    "note": "取消: 347 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 593,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 11,
+    "amount": -25920,
+    "method": "debit",
+    "note": "取消: 398 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:21"
+  },
+  {
+    "id": 594,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 12,
+    "amount": -29160,
+    "method": "debit",
+    "note": "取消: 447 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 595,
+    "customer_id": 53,
+    "year": 2025,
+    "month": 10,
+    "amount": -19800,
+    "method": "collection",
+    "note": "取消: 19 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 596,
+    "customer_id": 53,
+    "year": 2025,
+    "month": 11,
+    "amount": -17600,
+    "method": "collection",
+    "note": "取消: 40 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 597,
+    "customer_id": 53,
+    "year": 2025,
+    "month": 12,
+    "amount": -19800,
+    "method": "collection",
+    "note": "取消: 462 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 598,
+    "customer_id": 57,
+    "year": 2025,
+    "month": 10,
+    "amount": -16200,
+    "method": "debit",
+    "note": "取消: 373 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 599,
+    "customer_id": 57,
+    "year": 2025,
+    "month": 11,
+    "amount": -16200,
+    "method": "debit",
+    "note": "取消: 422 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 600,
+    "customer_id": 57,
+    "year": 2025,
+    "month": 12,
+    "amount": -16200,
+    "method": "debit",
+    "note": "取消: 482 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 601,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 10,
+    "amount": -18900,
+    "method": "collection",
+    "note": "取消: 353 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 602,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 11,
+    "amount": -16800,
+    "method": "collection",
+    "note": "取消: 404 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 603,
+    "customer_id": 20,
+    "year": 2025,
+    "month": 12,
+    "amount": -18900,
+    "method": "collection",
+    "note": "取消: 458 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 604,
+    "customer_id": 60,
+    "year": 2025,
+    "month": 10,
+    "amount": -18900,
+    "method": "debit",
+    "note": "取消: 374 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 605,
+    "customer_id": 60,
+    "year": 2025,
+    "month": 11,
+    "amount": -18900,
+    "method": "debit",
+    "note": "取消: 423 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 606,
+    "customer_id": 60,
+    "year": 2025,
+    "month": 12,
+    "amount": -18900,
+    "method": "debit",
+    "note": "取消: 483 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 607,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 10,
+    "amount": -12150,
+    "method": "debit",
+    "note": "取消: 358 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 608,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 10,
+    "amount": -15750,
+    "method": "collection",
+    "note": "取消: 14 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 609,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 11,
+    "amount": -10800,
+    "method": "debit",
+    "note": "取消: 494 (自動調整（過入金正規化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 610,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 11,
+    "amount": -14000,
+    "method": "collection",
+    "note": "取消: 35 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 611,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 12,
+    "amount": -12150,
+    "method": "debit",
+    "note": "取消: 466 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 612,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 10,
+    "amount": -8640,
+    "method": "collection",
+    "note": "取消: 338 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 613,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 11,
+    "amount": -7680,
+    "method": "collection",
+    "note": "取消: 388 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 614,
+    "customer_id": 11,
+    "year": 2025,
+    "month": 12,
+    "amount": -8640,
+    "method": "collection",
+    "note": "取消: 437 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 615,
+    "customer_id": 34,
+    "year": 2025,
+    "month": 10,
+    "amount": -11790,
+    "method": "collection",
+    "note": "取消: 3 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 616,
+    "customer_id": 34,
+    "year": 2025,
+    "month": 11,
+    "amount": -10480,
+    "method": "collection",
+    "note": "取消: 380 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 617,
+    "customer_id": 34,
+    "year": 2025,
+    "month": 12,
+    "amount": -11790,
+    "method": "collection",
+    "note": "取消: 429 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 618,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 10,
+    "amount": -16650,
+    "method": "collection",
+    "note": "取消: 352 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 619,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 11,
+    "amount": -14800,
+    "method": "collection",
+    "note": "取消: 403 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 620,
+    "customer_id": 19,
+    "year": 2025,
+    "month": 12,
+    "amount": -16650,
+    "method": "collection",
+    "note": "取消: 456 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 621,
+    "customer_id": 61,
+    "year": 2025,
+    "month": 10,
+    "amount": -8550,
+    "method": "collection",
+    "note": "取消: 364 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 622,
+    "customer_id": 61,
+    "year": 2025,
+    "month": 11,
+    "amount": -8550,
+    "method": "collection",
+    "note": "取消: 413 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 623,
+    "customer_id": 61,
+    "year": 2025,
+    "month": 12,
+    "amount": -8550,
+    "method": "collection",
+    "note": "取消: 473 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 624,
+    "customer_id": 62,
+    "year": 2025,
+    "month": 10,
+    "amount": -5400,
+    "method": "collection",
+    "note": "取消: 365 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 625,
+    "customer_id": 62,
+    "year": 2025,
+    "month": 11,
+    "amount": -5400,
+    "method": "collection",
+    "note": "取消: 414 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 626,
+    "customer_id": 62,
+    "year": 2025,
+    "month": 12,
+    "amount": -5400,
+    "method": "collection",
+    "note": "取消: 474 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 627,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 10,
+    "amount": -12960,
+    "method": "debit",
+    "note": "取消: 375 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 628,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 11,
+    "amount": -12960,
+    "method": "debit",
+    "note": "取消: 424 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 629,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 12,
+    "amount": -12960,
+    "method": "debit",
+    "note": "取消: 484 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 630,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 10,
+    "amount": -16200,
+    "method": "debit",
+    "note": "取消: 357 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 631,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 11,
+    "amount": -14400,
+    "method": "debit",
+    "note": "取消: 407 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 632,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 12,
+    "amount": -16200,
+    "method": "debit",
+    "note": "取消: 465 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 633,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 10,
+    "amount": -11760,
+    "method": "collection",
+    "note": "取消: 333 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 634,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 11,
+    "amount": -32800,
+    "method": "collection",
+    "note": "取消: 382 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 635,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 12,
+    "amount": -36800,
+    "method": "collection",
+    "note": "取消: 431 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 636,
+    "customer_id": 42,
+    "year": 2025,
+    "month": 10,
+    "amount": -9000,
+    "method": "debit",
+    "note": "取消: 348 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 637,
+    "customer_id": 42,
+    "year": 2025,
+    "month": 11,
+    "amount": -8000,
+    "method": "debit",
+    "note": "取消: 399 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 638,
+    "customer_id": 42,
+    "year": 2025,
+    "month": 12,
+    "amount": -9000,
+    "method": "debit",
+    "note": "取消: 448 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 639,
+    "customer_id": 55,
+    "year": 2025,
+    "month": 10,
+    "amount": -19350,
+    "method": "collection",
+    "note": "取消: 360 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 640,
+    "customer_id": 55,
+    "year": 2025,
+    "month": 11,
+    "amount": -19350,
+    "method": "collection",
+    "note": "取消: 409 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 641,
+    "customer_id": 55,
+    "year": 2025,
+    "month": 12,
+    "amount": -19350,
+    "method": "collection",
+    "note": "取消: 469 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 642,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 10,
+    "amount": -7200,
+    "method": "collection",
+    "note": "取消: 354 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 643,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 11,
+    "amount": -6400,
+    "method": "collection",
+    "note": "取消: 405 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 644,
+    "customer_id": 22,
+    "year": 2025,
+    "month": 12,
+    "amount": -7200,
+    "method": "collection",
+    "note": "取消: 459 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 645,
+    "customer_id": 49,
+    "year": 2025,
+    "month": 10,
+    "amount": -18450,
+    "method": "collection",
+    "note": "取消: 15 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 646,
+    "customer_id": 49,
+    "year": 2025,
+    "month": 11,
+    "amount": -16400,
+    "method": "collection",
+    "note": "取消: 36 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 647,
+    "customer_id": 49,
+    "year": 2025,
+    "month": 12,
+    "amount": -18450,
+    "method": "collection",
+    "note": "取消: 455 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 648,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 10,
+    "amount": -21570,
+    "method": "collection",
+    "note": "取消: 332 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 649,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 11,
+    "amount": -19200,
+    "method": "collection",
+    "note": "取消: 381 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 650,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 12,
+    "amount": -21600,
+    "method": "collection",
+    "note": "取消: 430 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 651,
+    "customer_id": 54,
+    "year": 2025,
+    "month": 10,
+    "amount": -7920,
+    "method": "debit",
+    "note": "取消: 372 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 652,
+    "customer_id": 54,
+    "year": 2025,
+    "month": 11,
+    "amount": -7920,
+    "method": "debit",
+    "note": "取消: 421 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 653,
+    "customer_id": 54,
+    "year": 2025,
+    "month": 12,
+    "amount": -7920,
+    "method": "debit",
+    "note": "取消: 481 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 654,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 10,
+    "amount": -12390,
+    "method": "debit",
+    "note": "取消: 344 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 655,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 11,
+    "amount": -7280,
+    "method": "debit",
+    "note": "取消: 395 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 656,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 12,
+    "amount": -8190,
+    "method": "debit",
+    "note": "取消: 444 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 657,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 10,
+    "amount": -9540,
+    "method": "collection",
+    "note": "取消: 335 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 658,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 11,
+    "amount": -8480,
+    "method": "collection",
+    "note": "取消: 384 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 659,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 12,
+    "amount": -9540,
+    "method": "collection",
+    "note": "取消: 433 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 660,
+    "customer_id": 58,
+    "year": 2025,
+    "month": 10,
+    "amount": -11700,
+    "method": "collection",
+    "note": "取消: 362 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 661,
+    "customer_id": 58,
+    "year": 2025,
+    "month": 11,
+    "amount": -11700,
+    "method": "collection",
+    "note": "取消: 411 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 662,
+    "customer_id": 58,
+    "year": 2025,
+    "month": 12,
+    "amount": -11700,
+    "method": "collection",
+    "note": "取消: 471 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:22"
+  },
+  {
+    "id": 663,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 10,
+    "amount": -15480,
+    "method": "debit",
+    "note": "取消: 378 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 664,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 11,
+    "amount": -15480,
+    "method": "debit",
+    "note": "取消: 427 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 665,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 12,
+    "amount": -15480,
+    "method": "debit",
+    "note": "取消: 487 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 666,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 10,
+    "amount": -9180,
+    "method": "collection",
+    "note": "取消: 336 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 667,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 11,
+    "amount": -6400,
+    "method": "collection",
+    "note": "取消: 386 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 668,
+    "customer_id": 10,
+    "year": 2025,
+    "month": 12,
+    "amount": -7200,
+    "method": "collection",
+    "note": "取消: 435 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 669,
+    "customer_id": 40,
+    "year": 2025,
+    "month": 10,
+    "amount": -13950,
+    "method": "collection",
+    "note": "取消: 337 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 670,
+    "customer_id": 40,
+    "year": 2025,
+    "month": 11,
+    "amount": -12400,
+    "method": "collection",
+    "note": "取消: 387 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 671,
+    "customer_id": 40,
+    "year": 2025,
+    "month": 12,
+    "amount": -13950,
+    "method": "collection",
+    "note": "取消: 436 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 672,
+    "customer_id": 43,
+    "year": 2025,
+    "month": 10,
+    "amount": -18000,
+    "method": "collection",
+    "note": "取消: 341 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 673,
+    "customer_id": 43,
+    "year": 2025,
+    "month": 11,
+    "amount": -16000,
+    "method": "collection",
+    "note": "取消: 391 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 674,
+    "customer_id": 43,
+    "year": 2025,
+    "month": 12,
+    "amount": -18000,
+    "method": "collection",
+    "note": "取消: 440 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 675,
+    "customer_id": 47,
+    "year": 2025,
+    "month": 10,
+    "amount": -7200,
+    "method": "collection",
+    "note": "取消: 13 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 676,
+    "customer_id": 47,
+    "year": 2025,
+    "month": 11,
+    "amount": -6400,
+    "method": "collection",
+    "note": "取消: 34 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 677,
+    "customer_id": 47,
+    "year": 2025,
+    "month": 12,
+    "amount": -7200,
+    "method": "collection",
+    "note": "取消: 453 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 678,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 10,
+    "amount": -12150,
+    "method": "collection",
+    "note": "取消: 367 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 679,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 11,
+    "amount": -12150,
+    "method": "collection",
+    "note": "取消: 416 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 680,
+    "customer_id": 26,
+    "year": 2025,
+    "month": 12,
+    "amount": -12150,
+    "method": "collection",
+    "note": "取消: 476 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 681,
+    "customer_id": 36,
+    "year": 2025,
+    "month": 10,
+    "amount": -5400,
+    "method": "debit",
+    "note": "取消: 343 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 682,
+    "customer_id": 36,
+    "year": 2025,
+    "month": 11,
+    "amount": -4800,
+    "method": "debit",
+    "note": "取消: 394 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 683,
+    "customer_id": 36,
+    "year": 2025,
+    "month": 12,
+    "amount": -5400,
+    "method": "debit",
+    "note": "取消: 443 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 684,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 10,
+    "amount": -21220,
+    "method": "debit",
+    "note": "取消: 356 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 685,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 10,
+    "amount": -10000,
+    "method": "collection",
+    "note": "取消: 2",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 686,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 11,
+    "amount": -21500,
+    "method": "collection",
+    "note": "取消: 51 (請求額に対する自動入金)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 687,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 12,
+    "amount": -22500,
+    "method": "debit",
+    "note": "取消: 463 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 688,
+    "customer_id": 44,
+    "year": 2025,
+    "month": 10,
+    "amount": -9090,
+    "method": "collection",
+    "note": "取消: 10 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 689,
+    "customer_id": 44,
+    "year": 2025,
+    "month": 11,
+    "amount": -8080,
+    "method": "collection",
+    "note": "取消: 31 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 690,
+    "customer_id": 44,
+    "year": 2025,
+    "month": 12,
+    "amount": -9090,
+    "method": "collection",
+    "note": "取消: 451 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 691,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": -14400,
+    "method": "collection",
+    "note": "取消: 48 (請求額に対する自動入金)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 692,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": -14400,
+    "method": "collection",
+    "note": "取消: 42 (請求額に対する自動入金)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 693,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": -14400,
+    "method": "collection",
+    "note": "取消: 11 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 694,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 11,
+    "amount": -12800,
+    "method": "collection",
+    "note": "取消: 32 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 695,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 12,
+    "amount": -14400,
+    "method": "debit",
+    "note": "取消: 464 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 696,
+    "customer_id": 46,
+    "year": 2025,
+    "month": 10,
+    "amount": -10260,
+    "method": "collection",
+    "note": "取消: 12 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 697,
+    "customer_id": 46,
+    "year": 2025,
+    "month": 11,
+    "amount": -9120,
+    "method": "collection",
+    "note": "取消: 33 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 698,
+    "customer_id": 46,
+    "year": 2025,
+    "month": 12,
+    "amount": -10260,
+    "method": "collection",
+    "note": "取消: 450 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 699,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 10,
+    "amount": -6840,
+    "method": "collection",
+    "note": "取消: 371 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 700,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 11,
+    "amount": -6840,
+    "method": "collection",
+    "note": "取消: 420 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 701,
+    "customer_id": 32,
+    "year": 2025,
+    "month": 12,
+    "amount": -6840,
+    "method": "collection",
+    "note": "取消: 480 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 702,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 10,
+    "amount": -19800,
+    "method": "collection",
+    "note": "取消: 370 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 703,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 11,
+    "amount": -19800,
+    "method": "collection",
+    "note": "取消: 419 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 704,
+    "customer_id": 31,
+    "year": 2025,
+    "month": 12,
+    "amount": -19800,
+    "method": "collection",
+    "note": "取消: 479 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 705,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 10,
+    "amount": -14040,
+    "method": "collection",
+    "note": "取消: 351 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 706,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 11,
+    "amount": -12480,
+    "method": "collection",
+    "note": "取消: 402 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 707,
+    "customer_id": 17,
+    "year": 2025,
+    "month": 12,
+    "amount": -14040,
+    "method": "collection",
+    "note": "取消: 454 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 708,
+    "customer_id": 50,
+    "year": 2025,
+    "month": 10,
+    "amount": -3600,
+    "method": "collection",
+    "note": "取消: 16 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 709,
+    "customer_id": 50,
+    "year": 2025,
+    "month": 11,
+    "amount": -3200,
+    "method": "collection",
+    "note": "取消: 37 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 710,
+    "customer_id": 50,
+    "year": 2025,
+    "month": 12,
+    "amount": -3600,
+    "method": "collection",
+    "note": "取消: 457 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 711,
+    "customer_id": 37,
+    "year": 2025,
+    "month": 10,
+    "amount": -14670,
+    "method": "collection",
+    "note": "取消: 334 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 712,
+    "customer_id": 37,
+    "year": 2025,
+    "month": 11,
+    "amount": -13040,
+    "method": "collection",
+    "note": "取消: 383 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 713,
+    "customer_id": 37,
+    "year": 2025,
+    "month": 12,
+    "amount": -14670,
+    "method": "collection",
+    "note": "取消: 432 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 714,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 10,
+    "amount": -8550,
+    "method": "debit",
+    "note": "取消: 376 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 715,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 11,
+    "amount": -8550,
+    "method": "debit",
+    "note": "取消: 425 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 716,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 12,
+    "amount": -8550,
+    "method": "debit",
+    "note": "取消: 485 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 717,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 10,
+    "amount": -11160,
+    "method": "collection",
+    "note": "取消: 350 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 718,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 11,
+    "amount": -9920,
+    "method": "collection",
+    "note": "取消: 401 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 719,
+    "customer_id": 16,
+    "year": 2025,
+    "month": 12,
+    "amount": -11160,
+    "method": "collection",
+    "note": "取消: 452 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 720,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 10,
+    "amount": -18810,
+    "method": "collection",
+    "note": "取消: 355 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 721,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 11,
+    "amount": -16720,
+    "method": "collection",
+    "note": "取消: 406 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 722,
+    "customer_id": 23,
+    "year": 2025,
+    "month": 12,
+    "amount": -18810,
+    "method": "collection",
+    "note": "取消: 461 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 723,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 10,
+    "amount": -10350,
+    "method": "collection",
+    "note": "取消: 369 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 724,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 11,
+    "amount": -10350,
+    "method": "collection",
+    "note": "取消: 418 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 725,
+    "customer_id": 29,
+    "year": 2025,
+    "month": 12,
+    "amount": -10350,
+    "method": "collection",
+    "note": "取消: 478 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 726,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 10,
+    "amount": -5400,
+    "method": "collection",
+    "note": "取消: 349 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 727,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 11,
+    "amount": -4800,
+    "method": "collection",
+    "note": "取消: 400 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 728,
+    "customer_id": 14,
+    "year": 2025,
+    "month": 12,
+    "amount": -5400,
+    "method": "collection",
+    "note": "取消: 449 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 729,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 10,
+    "amount": -13800,
+    "method": "debit",
+    "note": "取消: 342 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 730,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 11,
+    "amount": -11520,
+    "method": "debit",
+    "note": "取消: 392 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 731,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 12,
+    "amount": -12960,
+    "method": "debit",
+    "note": "取消: 441 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 732,
+    "customer_id": 52,
+    "year": 2025,
+    "month": 10,
+    "amount": -24120,
+    "method": "collection",
+    "note": "取消: 18 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:23"
+  },
+  {
+    "id": 733,
+    "customer_id": 52,
+    "year": 2025,
+    "month": 11,
+    "amount": -21440,
+    "method": "collection",
+    "note": "取消: 39 (集金一括登録)",
+    "created_at": "2025-10-28 16:10:24"
+  },
+  {
+    "id": 734,
+    "customer_id": 52,
+    "year": 2025,
+    "month": 12,
+    "amount": -24120,
+    "method": "collection",
+    "note": "取消: 460 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:24"
+  },
+  {
+    "id": 735,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 10,
+    "amount": -18900,
+    "method": "collection",
+    "note": "取消: 340 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:24"
+  },
+  {
+    "id": 736,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 11,
+    "amount": -16800,
+    "method": "collection",
+    "note": "取消: 390 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:24"
+  },
+  {
+    "id": 737,
+    "customer_id": 13,
+    "year": 2025,
+    "month": 12,
+    "amount": -18900,
+    "method": "collection",
+    "note": "取消: 439 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:24"
+  },
+  {
+    "id": 738,
+    "customer_id": 39,
+    "year": 2025,
+    "month": 10,
+    "amount": -20250,
+    "method": "debit",
+    "note": "取消: 346 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:24"
+  },
+  {
+    "id": 739,
+    "customer_id": 39,
+    "year": 2025,
+    "month": 11,
+    "amount": -18000,
+    "method": "debit",
+    "note": "取消: 397 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:24"
+  },
+  {
+    "id": 740,
+    "customer_id": 39,
+    "year": 2025,
+    "month": 12,
+    "amount": -20250,
+    "method": "debit",
+    "note": "取消: 446 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-28 16:10:24"
+  },
+  {
+    "id": 741,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": 6120,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-29 00:32:54"
+  },
+  {
+    "id": 742,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": 6120,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-29 00:45:21"
+  },
+  {
+    "id": 743,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": 6120,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-29 00:51:17"
+  },
+  {
+    "id": 744,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 10,
+    "amount": 21600,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-29 01:12:40"
+  },
+  {
+    "id": 745,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 10,
+    "amount": 21600,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-29 01:13:10"
+  },
+  {
+    "id": 746,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 10,
+    "amount": -21600,
+    "method": "collection",
+    "note": "取消: 745 (手動入金)",
+    "created_at": "2025-10-29 01:20:42"
+  },
+  {
+    "id": 747,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 10,
+    "amount": -21600,
+    "method": "collection",
+    "note": "取消: 744 (手動入金)",
+    "created_at": "2025-10-29 01:20:47"
+  },
+  {
+    "id": 748,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 10,
+    "amount": 6100,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-29 01:27:59"
+  },
+  {
+    "id": 749,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 10,
+    "amount": -6100,
+    "method": "collection",
+    "note": "取消: 748 (手動入金)",
+    "created_at": "2025-10-29 01:28:48"
+  },
+  {
+    "id": 750,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": -6120,
+    "method": "collection",
+    "note": "取消: 743 (手動入金)",
+    "created_at": "2025-10-29 01:57:27"
+  },
+  {
+    "id": 751,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": -6120,
+    "method": "collection",
+    "note": "取消: 742 (手動入金)",
+    "created_at": "2025-10-29 01:57:30"
+  },
+  {
+    "id": 752,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": -6120,
+    "method": "collection",
+    "note": "取消: 741 (手動入金)",
+    "created_at": "2025-10-29 01:57:34"
+  },
+  {
+    "id": 753,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": -6120,
+    "method": "collection",
+    "note": "取消: 515 (自動調整（過入金正規化）)",
+    "created_at": "2025-10-29 01:57:49"
+  },
+  {
+    "id": 754,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 10,
+    "amount": 6120,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-29 02:16:08"
+  },
+  {
+    "id": 755,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 10,
+    "amount": -6120,
+    "method": "collection",
+    "note": "取消: 754 (手動入金)",
+    "created_at": "2025-10-30 00:53:42"
+  },
+  {
+    "id": 756,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 10,
+    "amount": 10000,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-30 03:50:07"
+  },
+  {
+    "id": 757,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 11,
+    "amount": 43170,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-30 15:46:01"
+  },
+  {
+    "id": 758,
+    "customer_id": 5,
+    "year": 2025,
+    "month": 11,
+    "amount": -43170,
+    "method": "collection",
+    "note": "取消: 757 (手動入金)",
+    "created_at": "2025-10-30 15:46:34"
+  },
+  {
+    "id": 759,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 9,
+    "amount": -9540,
+    "method": "collection",
+    "note": "取消: 290 (自動調整（未収金ゼロ化）)",
+    "created_at": "2025-10-30 16:14:59"
+  },
+  {
+    "id": 760,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 9,
+    "amount": 8480,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-10-30 16:15:04"
+  },
+  {
+    "id": 761,
+    "customer_id": 4,
+    "year": 2025,
+    "month": 9,
+    "amount": 6120,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-31 09:20:19"
+  },
+  {
+    "id": 762,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 9,
+    "amount": -8480,
+    "method": "collection",
+    "note": "取消: 760 (手動入金)",
+    "created_at": "2025-10-31 09:21:50"
+  },
+  {
+    "id": 763,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 9,
+    "amount": 9540,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-10-31 09:22:33"
+  },
+  {
+    "id": 764,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 9,
+    "amount": -9540,
+    "method": "collection",
+    "note": "取消: 763 (集金一括登録)",
+    "created_at": "2025-11-01 01:27:45"
+  },
+  {
+    "id": 765,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 9,
+    "amount": 8480,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-11-01 01:27:51"
+  },
+  {
+    "id": 766,
+    "customer_id": 7,
+    "year": 2025,
+    "month": 10,
+    "amount": 9540,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-11-01 01:51:57"
+  },
+  {
+    "id": 767,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": -28800,
+    "method": "collection",
+    "note": "取消: 44 (手動入金)",
+    "created_at": "2025-11-01 02:09:41"
+  },
+  {
+    "id": 768,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": 57600,
+    "method": "debit",
+    "note": "手動入金",
+    "created_at": "2025-11-01 02:39:26"
+  },
+  {
+    "id": 769,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 10,
+    "amount": 15750,
+    "method": "debit",
+    "note": "手動入金",
+    "created_at": "2025-11-01 02:39:58"
+  },
+  {
+    "id": 770,
+    "customer_id": 9,
+    "year": 2025,
+    "month": 10,
+    "amount": 12960,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 771,
+    "customer_id": 35,
+    "year": 2025,
+    "month": 10,
+    "amount": 20250,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 772,
+    "customer_id": 36,
+    "year": 2025,
+    "month": 10,
+    "amount": 5400,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 773,
+    "customer_id": 6,
+    "year": 2025,
+    "month": 10,
+    "amount": 13590,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 774,
+    "customer_id": 38,
+    "year": 2025,
+    "month": 10,
+    "amount": 14580,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 775,
+    "customer_id": 39,
+    "year": 2025,
+    "month": 10,
+    "amount": 20250,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 776,
+    "customer_id": 12,
+    "year": 2025,
+    "month": 10,
+    "amount": 29160,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 777,
+    "customer_id": 42,
+    "year": 2025,
+    "month": 10,
+    "amount": 9000,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 778,
+    "customer_id": 21,
+    "year": 2025,
+    "month": 10,
+    "amount": 19260,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 779,
+    "customer_id": 45,
+    "year": 2025,
+    "month": 10,
+    "amount": 14400,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 780,
+    "customer_id": 15,
+    "year": 2025,
+    "month": 10,
+    "amount": 16200,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 781,
+    "customer_id": 48,
+    "year": 2025,
+    "month": 10,
+    "amount": 12150,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 782,
+    "customer_id": 18,
+    "year": 2025,
+    "month": 10,
+    "amount": 8640,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 783,
+    "customer_id": 51,
+    "year": 2025,
+    "month": 10,
+    "amount": 7650,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 784,
+    "customer_id": 54,
+    "year": 2025,
+    "month": 10,
+    "amount": 7040,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 785,
+    "customer_id": 57,
+    "year": 2025,
+    "month": 10,
+    "amount": 14400,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 786,
+    "customer_id": 60,
+    "year": 2025,
+    "month": 10,
+    "amount": 16800,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 787,
+    "customer_id": 63,
+    "year": 2025,
+    "month": 10,
+    "amount": 11520,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 788,
+    "customer_id": 24,
+    "year": 2025,
+    "month": 10,
+    "amount": 7600,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 789,
+    "customer_id": 27,
+    "year": 2025,
+    "month": 10,
+    "amount": 19040,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 790,
+    "customer_id": 30,
+    "year": 2025,
+    "month": 10,
+    "amount": 13760,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 791,
+    "customer_id": 33,
+    "year": 2025,
+    "month": 10,
+    "amount": 11520,
+    "method": "debit",
+    "note": "引き落し一括登録",
+    "created_at": "2025-11-01 02:43:55"
+  },
+  {
+    "id": 792,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": 4130,
+    "method": "collection",
+    "note": "集金一括登録",
+    "created_at": "2025-11-03 01:56:54"
+  },
+  {
+    "id": 793,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": -4130,
+    "method": "collection",
+    "note": "取消: 792 (集金一括登録)",
+    "created_at": "2025-11-03 02:03:35"
+  },
+  {
+    "id": 794,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": 1000,
+    "method": "collection",
+    "note": "手動入金",
+    "created_at": "2025-11-03 02:03:50"
+  },
+  {
+    "id": 795,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": -1000,
+    "method": "collection",
+    "note": "取消: 794 (手動入金)",
+    "created_at": "2025-11-03 02:04:30"
+  },
+  {
+    "id": 796,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": 4130,
+    "method": "debit",
+    "note": "手動入金",
+    "created_at": "2025-11-07 04:14:45"
+  },
+  {
+    "id": 797,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": -4130,
+    "method": "debit",
+    "note": "取消: 796 (手動入金)",
+    "created_at": "2025-11-07 04:15:23"
+  },
+  {
+    "id": 798,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": 4130,
+    "method": "debit",
+    "note": "手動入金",
+    "created_at": "2025-11-07 04:20:54"
+  },
+  {
+    "id": 799,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": -4130,
+    "method": "debit",
+    "note": "取消: 798 (手動入金)",
+    "created_at": "2025-11-07 04:21:29"
+  },
+  {
+    "id": 800,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": 4130,
+    "method": "debit",
+    "note": "手動入金",
+    "created_at": "2025-11-07 04:40:28"
+  },
+  {
+    "id": 801,
+    "customer_id": 64,
+    "year": 2025,
+    "month": 11,
+    "amount": -4130,
+    "method": "debit",
+    "note": "取消: 800 (手動入金)",
+    "created_at": "2025-11-07 05:36:08"
+  }
+]

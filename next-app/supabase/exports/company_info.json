@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1,
+    "company_name": "ニコニコ牛乳",
+    "postal_code": "123-4567",
+    "address": "三重県亀山市野村4-4-26　103号",
+    "phone": "0595-97-3059",
+    "fax": "0595-98-4800",
+    "email": "info@example.com",
+    "representative": "水野　文明",
+    "business_hours": "9:00-18:00",
+    "established_date": "2024-04-01",
+    "capital": "1,000万円",
+    "business_description": "牛乳・乳製品の宅配サービス業",
+    "created_at": "2025-10-02 01:15:15",
+    "updated_at": "2025-11-02 06:01:40",
+    "company_name_kana_half": "ﾆｺﾆｺｷﾞｭｳﾆｭｳ"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "institution_name": "ニコス",
+    "bank_code_7": "9900000",
+    "bank_name": "ﾆｺｽ",
+    "branch_name": "ﾆｺｽ",
+    "agent_name_half": "ﾆｺﾆｺｷﾞｭｳﾆｭｳ",
+    "agent_code": "7124275501",
+    "header_leading_digit": "1911",
+    "created_at": "2025-10-22 08:28:32",
+    "updated_at": "2025-10-22 10:10:32"
+  },
+  {
+    "id": 2,
+    "institution_name": "三十三",
+    "bank_code_7": "0154315",
+    "bank_name": "ｻﾝｼﾞｭｳｻﾝ",
+    "branch_name": "ｶﾒﾔﾏ",
+    "agent_name_half": "ﾆｺﾆｺｷﾞｭｳﾆｭｳ",
+    "agent_code": "123456789",
+    "header_leading_digit": "1911",
+    "created_at": "2025-10-22 10:12:16",
+    "updated_at": "2025-10-22 10:12:16"
+  }
+]

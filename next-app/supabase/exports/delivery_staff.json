@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "staff_name": "田中 一郎",
+    "phone": "076-123-4567",
+    "email": null,
+    "course_id": 1,
+    "created_at": "2025-09-28 02:03:31"
+  },
+  {
+    "id": 2,
+    "staff_name": "佐藤 花子",
+    "phone": "076-234-5678",
+    "email": null,
+    "course_id": 2,
+    "created_at": "2025-09-28 02:03:31"
+  },
+  {
+    "id": 3,
+    "staff_name": "鈴木 太郎",
+    "phone": "076-345-6789",
+    "email": null,
+    "course_id": 3,
+    "created_at": "2025-09-28 02:03:31"
+  }
+]

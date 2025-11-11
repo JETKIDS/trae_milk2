@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "manufacturer_name": "森永乳業",
+    "contact_info": "連絡先: 0120-369-744",
+    "created_at": "2025-09-28 02:03:31"
+  },
+  {
+    "id": 2,
+    "manufacturer_name": "明治",
+    "contact_info": "連絡先: 0120-598-369",
+    "created_at": "2025-09-28 02:03:31"
+  },
+  {
+    "id": 3,
+    "manufacturer_name": "雪印メグミルク",
+    "contact_info": "連絡先: 0120-301-369",
+    "created_at": "2025-09-28 02:03:31"
+  },
+  {
+    "id": 4,
+    "manufacturer_name": "牛乳屋さん",
+    "contact_info": "03-1234-5678",
+    "created_at": "2025-09-30 01:53:13"
+  },
+  {
+    "id": 5,
+    "manufacturer_name": "牛乳屋さん",
+    "contact_info": "03-1234-5678",
+    "created_at": "2025-10-10 05:15:24"
+  }
+]

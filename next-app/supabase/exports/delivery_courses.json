@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "custom_id": "001",
+    "course_name": "コースA",
+    "description": "金沢市中心部",
+    "created_at": "2025-09-28 02:03:30"
+  },
+  {
+    "id": 2,
+    "custom_id": "002",
+    "course_name": "コースB",
+    "description": "金沢市東部",
+    "created_at": "2025-09-28 02:03:30"
+  },
+  {
+    "id": 3,
+    "custom_id": "003",
+    "course_name": "コースC",
+    "description": "金沢市西部",
+    "created_at": "2025-09-28 02:03:30"
+  },
+  {
+    "id": 4,
+    "custom_id": "004",
+    "course_name": "コースD",
+    "description": "月曜・木曜配達",
+    "created_at": "2025-09-30 01:53:14"
+  },
+  {
+    "id": 5,
+    "custom_id": "005",
+    "course_name": "コースE",
+    "description": "火曜・金曜配達",
+    "created_at": "2025-09-30 01:53:14"
+  },
+  {
+    "id": 6,
+    "custom_id": "006",
+    "course_name": "コースF",
+    "description": "水曜・土曜配達",
+    "created_at": "2025-09-30 01:53:14"
+  }
+]

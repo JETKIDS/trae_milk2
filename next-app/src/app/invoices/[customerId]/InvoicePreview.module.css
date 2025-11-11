@@ -1,0 +1,120 @@
+.previewWrapper {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.previewCard {
+  width: min(960px, 100%);
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.previewHeader h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  color: #0f172a;
+}
+
+.previewSub {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.companyInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+  color: #334155;
+  min-width: 220px;
+}
+
+.companyInfo strong {
+  font-size: 1.05rem;
+  color: #111827;
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.summaryBlock {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.summaryLabel {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.summaryValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.calendarSection h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.calendarTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.calendarTable th,
+.calendarTable td {
+  border: 1px solid #e2e8f0;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+}
+
+.calendarTable thead {
+  background: #f1f5f9;
+}
+
+.calendarEmptyCell {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .previewCard {
+    padding: 1.5rem;
+  }
+
+  .previewHeader {
+    flex-direction: column;
+  }
+
+  .summaryRow {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
