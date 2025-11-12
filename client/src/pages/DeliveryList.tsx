@@ -247,7 +247,7 @@ const PeriodDeliveryListTab: React.FC = () => {
       // 顧客別の全パターン
       const byCustomer = new Map<number, any[]>();
       patterns.forEach((p: any) => {
-        const arr = byCustomer.get(p.customer_id) || [];
+        const arr = byCustomer.get(p.customer_id) || ([] as any[]);
         arr.push(p);
         byCustomer.set(p.customer_id, arr);
       });
@@ -416,11 +416,11 @@ const PeriodDeliveryListTab: React.FC = () => {
       changes.forEach((c: any) => {
         const key = `${c.change_date}-${c.customer_id}`;
         if (c.change_type === 'add') {
-          const arr = addMap.get(key) || [];
+          const arr = addMap.get(key) || ([] as any[]);
           arr.push(c);
           addMap.set(key, arr);
         } else if (c.change_type === 'modify') {
-          const arr = modifyMap.get(key) || [];
+          const arr = modifyMap.get(key) || ([] as any[]);
           arr.push(c);
           modifyMap.set(key, arr);
         }
@@ -1591,7 +1591,7 @@ const ProductSummaryTab: React.FC = () => {
     const map = new Map<string, { manufacturer_name: string; rows: any[]; subtotal_quantity: number; subtotal_amount: number }>();
     (summaryRows || []).forEach((r: any) => {
       const key = r.manufacturer_name || '不明メーカー';
-      const existing = map.get(key) || { manufacturer_name: key, rows: [], subtotal_quantity: 0, subtotal_amount: 0 };
+      const existing = map.get(key) || { manufacturer_name: key, rows: [] as any[], subtotal_quantity: 0, subtotal_amount: 0 };
       existing.rows.push(r);
       existing.subtotal_quantity += Number(r.total_quantity || 0);
       existing.subtotal_amount += Number(r.total_amount || 0);
@@ -1640,7 +1640,7 @@ const ProductSummaryTab: React.FC = () => {
           const courseManufacturerGroupsMap = new Map<string, { manufacturer_name: string; rows: any[]; subtotal_quantity: number; subtotal_amount: number }>();
           courseRows.forEach((r: any) => {
             const key = r.manufacturer_name || '不明メーカー';
-            const existing = courseManufacturerGroupsMap.get(key) || { manufacturer_name: key, rows: [], subtotal_quantity: 0, subtotal_amount: 0 };
+            const existing = courseManufacturerGroupsMap.get(key) || { manufacturer_name: key, rows: [] as any[], subtotal_quantity: 0, subtotal_amount: 0 };
             existing.rows.push(r);
             existing.subtotal_quantity += Number(r.total_quantity || 0);
             existing.subtotal_amount += Number(r.total_amount || 0);
@@ -1902,7 +1902,7 @@ const ProductSummaryTab: React.FC = () => {
                 const courseManufacturerGroupsMap = new Map<string, { manufacturer_name: string; rows: any[]; subtotal_quantity: number; subtotal_amount: number }>();
                 courseRows.forEach((r: any) => {
                   const key = r.manufacturer_name || '不明メーカー';
-                  const existing = courseManufacturerGroupsMap.get(key) || { manufacturer_name: key, rows: [], subtotal_quantity: 0, subtotal_amount: 0 };
+                  const existing = courseManufacturerGroupsMap.get(key) || { manufacturer_name: key, rows: [] as any[], subtotal_quantity: 0, subtotal_amount: 0 };
                   existing.rows.push(r);
                   existing.subtotal_quantity += Number(r.total_quantity || 0);
                   existing.subtotal_amount += Number(r.total_amount || 0);

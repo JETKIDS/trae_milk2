@@ -17,9 +17,12 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   if (config.url) {
     // 先頭のスラッシュは除去（axiosは先頭`/`を渡すと baseURL を無視するため）
-    const trimmed = config.url.replace(/^\/+/, '');
-    // 二重`/api` の防止: baseURL が `/api` 系の場合、URLに含まれる先頭`api/`を削除
-    const normalized = trimmed.replace(/^api\//, '');
+    let normalized = config.url.replace(/^\/+/, '');
+    // baseURL が `/api`（または `/api/` 終端）を含む場合のみ、先頭の `api/` を削除して重複を防ぐ
+    const baseIsApiPrefixed = baseOrigin === '/api' || /\/api\/?$/.test(baseOrigin);
+    if (baseIsApiPrefixed) {
+      normalized = normalized.replace(/^api\//, '');
+    }
     config.url = normalized;
   }
   return config;

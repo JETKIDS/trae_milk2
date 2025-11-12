@@ -118,3 +118,7 @@ node_modules
 # Archived projects and resources
 archive/
 archive/**
+next-app/
+next-app/**
+next-app.archived/
+next-app.archived/**
