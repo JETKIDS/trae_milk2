@@ -484,6 +484,36 @@ router.get('/manufacturers', (req, res) => {
   db.close();
 });
 
+// メーカー登録
+router.post('/manufacturers', (req, res) => {
+  const db = getDB();
+  const { manufacturer_name, contact_info } = req.body || {};
+
+  if (!manufacturer_name || !manufacturer_name.trim()) {
+    res.status(400).json({ error: 'メーカー名は必須です' });
+    db.close();
+    return;
+  }
+
+  const name = manufacturer_name.trim();
+  const contact = (contact_info && String(contact_info).trim()) || null;
+
+  const query = 'INSERT INTO manufacturers (manufacturer_name, contact_info) VALUES (?, ?)';
+  db.run(query, [name, contact], function(err) {
+    if (err) {
+      if ((err.message || '').includes('UNIQUE constraint failed')) {
+        res.status(400).json({ error: '同名のメーカーが既に存在します' });
+      } else {
+        res.status(500).json({ error: err.message });
+      }
+      db.close();
+      return;
+    }
+    res.json({ id: this.lastID, message: 'メーカーが正常に登録されました' });
+    db.close();
+  });
+});
+
 // メーカー削除
 router.delete('/manufacturers/:id', (req, res) => {
   const db = getDB();

@@ -179,6 +179,7 @@ const CustomerList: React.FC = () => {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenCustomerForm}
+          data-testid="btn-open-add-customer"
         >
           新規顧客登録
         </Button>

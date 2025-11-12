@@ -427,6 +427,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
               }}
               fullWidth 
               InputLabelProps={{ shrink: true }}
+              data-testid="input-month-bulk"
             />
             <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
               請求参照: {invoiceYear}年{String(invoiceMonth).padStart(2, '0')}月（前月分）
@@ -434,7 +435,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
           </Grid>
 
           <Grid item xs={12} sm={readOnly ? 6 : 8}>
-            <ToggleButtonGroup exclusive value={viewMode} onChange={(_, v) => v && (setViewMode(v), setLoaded(false))} size="small">
+            <ToggleButtonGroup exclusive value={viewMode} onChange={(_, v) => v && (setViewMode(v), setLoaded(false))} size="small" data-testid="group-view-mode">
               <ToggleButton value="allCourses">全コース</ToggleButton>
               <ToggleButton value="perCourse">コース毎</ToggleButton>
             </ToggleButtonGroup>
@@ -442,7 +443,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
 
           {viewMode === 'perCourse' && (
             <Grid item xs={12} sm={8}>
-              <Select fullWidth displayEmpty value={courseId} onChange={onChangeCourse}>
+              <Select fullWidth displayEmpty value={courseId} onChange={onChangeCourse} data-testid="select-course-bulk">
                 <MenuItem value="__ALL__">全コース</MenuItem>
                 <MenuItem value=""><em>コースを選択…</em></MenuItem>
                 {courses.map(co => (
@@ -458,6 +459,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
                 variant="contained"
                 onClick={handleLoadData}
                 disabled={loading || (viewMode === 'perCourse' && typeof courseId !== 'number' && courseId !== '__ALL__')}
+                data-testid="btn-load-bulk"
               >
                 読み込み
               </Button>
@@ -488,6 +490,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
                       color="primary"
                       onClick={handleAutoPayment} 
                       disabled={registering || selectedCustomersCount === 0 || (viewMode === 'perCourse' && !courseId)}
+                      data-testid="btn-auto-payment"
                     >
                       自動入金
                     </Button>
@@ -495,6 +498,7 @@ export default function BulkCollection({ method = 'collection', readOnly = false
                       variant="outlined" 
                       onClick={register} 
                       disabled={registering || (totalSelected === 0 && selectedRemainingTotal === 0) || (viewMode === 'perCourse' && !courseId)}
+                      data-testid="btn-register-manual"
                     >
                       手動入金登録
                     </Button>

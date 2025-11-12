@@ -17,6 +17,10 @@ import {
   TextField,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { Add as AddIcon, Save as SaveIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import apiClient from '../utils/apiClient';
@@ -100,6 +104,9 @@ const MasterManagement: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [manufacturerDialogOpen, setManufacturerDialogOpen] = useState(false);
+  const [manufacturerForm, setManufacturerForm] = useState<{ manufacturer_name: string; contact_info: string }>({ manufacturer_name: '', contact_info: '' });
+  const [savingManufacturer, setSavingManufacturer] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     id: 1,
     company_name: '',
@@ -275,6 +282,39 @@ const MasterManagement: React.FC = () => {
     } catch (error) {
       console.error('メーカー一覧更新に失敗しました:', error);
       setSnackbar({ open: true, message: 'メーカー一覧の更新に失敗しました', severity: 'error' });
+    }
+  };
+
+  const handleOpenManufacturerDialog = () => {
+    setManufacturerForm({ manufacturer_name: '', contact_info: '' });
+    setManufacturerDialogOpen(true);
+  };
+
+  const handleCloseManufacturerDialog = () => {
+    setManufacturerDialogOpen(false);
+  };
+
+  const handleSaveManufacturer = async () => {
+    if (savingManufacturer) return;
+    const name = manufacturerForm.manufacturer_name.trim();
+    if (!name) {
+      setSnackbar({ open: true, message: 'メーカー名は必須です', severity: 'error' });
+      return;
+    }
+    try {
+      setSavingManufacturer(true);
+      await apiClient.post('/api/masters/manufacturers', {
+        manufacturer_name: name,
+        contact_info: manufacturerForm.contact_info.trim() || null,
+      });
+      setSnackbar({ open: true, message: 'メーカーを登録しました', severity: 'success' });
+      setManufacturerDialogOpen(false);
+      await refreshManufacturers();
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || 'メーカー登録に失敗しました';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setSavingManufacturer(false);
     }
   };
 
@@ -465,7 +505,14 @@ const MasterManagement: React.FC = () => {
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">メーカー</Typography>
-              <Button size="small" startIcon={<AddIcon />}>追加</Button>
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={handleOpenManufacturerDialog}
+                data-testid="btn-open-add-manufacturer"
+              >
+                追加
+              </Button>
             </Box>
             <TableContainer>
               <Table size="small">
@@ -496,6 +543,41 @@ const MasterManagement: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+
+            <Dialog open={manufacturerDialogOpen} onClose={handleCloseManufacturerDialog} fullWidth maxWidth="sm">
+              <DialogTitle>メーカー登録</DialogTitle>
+              <DialogContent>
+                <Box sx={{ mt: 1 }}>
+                  <TextField
+                    fullWidth
+                    label="メーカー名"
+                    value={manufacturerForm.manufacturer_name}
+                    onChange={(e) => setManufacturerForm((f) => ({ ...f, manufacturer_name: e.target.value }))}
+                    margin="normal"
+                    inputProps={{ 'data-testid': 'input-manufacturer-name' }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="連絡先"
+                    value={manufacturerForm.contact_info}
+                    onChange={(e) => setManufacturerForm((f) => ({ ...f, contact_info: e.target.value }))}
+                    margin="normal"
+                    inputProps={{ 'data-testid': 'input-manufacturer-contact' }}
+                  />
+                </Box>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={handleCloseManufacturerDialog}>キャンセル</Button>
+                <Button
+                  onClick={handleSaveManufacturer}
+                  variant="contained"
+                  disabled={savingManufacturer}
+                  data-testid="btn-save-manufacturer"
+                >
+                  登録
+                </Button>
+              </DialogActions>
+            </Dialog>
           </CardContent>
         </Card>
       </TabPanel>

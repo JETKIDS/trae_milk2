@@ -294,8 +294,8 @@ const saveMethodChange = async () => {
                   <Typography variant="body2" sx={{ mx: 0.5 }}>→</Typography>
                   <Chip size="small" color="primary" label={`入金: ${currentYear}年${currentMonth}月`} />
                 </Stack>
-                <Typography variant="body2" sx={{ mt: 1 }}>前月請求額（{prevYear}年{prevMonth}月）: ¥{(prevInvoiceAmount || 0).toLocaleString()}</Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>当月入金額（{currentYear}年{currentMonth}月）: ¥{(currentPaymentAmount || 0).toLocaleString()}</Typography>
+                <Typography variant="body2" sx={{ mt: 1 }} data-testid="text-prev-invoice-amount">前月請求額（{prevYear}年{prevMonth}月）: ¥{(prevInvoiceAmount || 0).toLocaleString()}</Typography>
+                <Typography variant="body2" sx={{ mt: 1 }} data-testid="text-current-payment-amount">当月入金額（{currentYear}年{currentMonth}月）: ¥{(currentPaymentAmount || 0).toLocaleString()}</Typography>
                 <Box sx={{ mt: 1 }}>
                   <Typography variant="body2" sx={{ mb: 0.5 }}>当月入金額（{currentYear}年{currentMonth}月）</Typography>
                   <TextField
@@ -305,6 +305,7 @@ const saveMethodChange = async () => {
                     value={manualAmount}
                     onChange={e => setManualAmount(e.target.value)}
                     fullWidth
+                    data-testid="input-current-payment-amount"
                     sx={{
                       '& .MuiInputBase-root': {
                         height: 32,
@@ -316,8 +317,8 @@ const saveMethodChange = async () => {
                     }}
                   />
                   <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                    <Button size="small" variant="outlined" onClick={() => setManualAmount(String(autoFillAmount))}>自動</Button>
-                    <Button size="small" variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment?.(Number(manualAmount), 'manual', Number(prevYear), Number(prevMonth))}>入金保存</Button>
+                    <Button size="small" variant="outlined" onClick={() => setManualAmount(String(autoFillAmount))} data-testid="btn-auto-fill-amount">自動</Button>
+                    <Button size="small" variant="contained" disabled={!canSave} onClick={() => onSavePrevPayment?.(Number(manualAmount), 'manual', Number(prevYear), Number(prevMonth))} data-testid="btn-save-payment">入金保存</Button>
                   </Stack>
                 </Box>
                 {(() => {
@@ -325,7 +326,7 @@ const saveMethodChange = async () => {
                   const currPay = Number(currentPaymentAmount || 0);
                   const carry = (prevAmt - currPay) || 0;
                   return (
-                    <Typography variant="body2" sx={{ mt: 1 }}>
+                    <Typography variant="body2" sx={{ mt: 1 }} data-testid="text-carryover-amount">
                       繰越額: ¥{carry.toLocaleString()}（前月請求 ¥{prevAmt.toLocaleString()} − 当月入金 ¥{currPay.toLocaleString()} = ¥{carry.toLocaleString()}）
                     </Typography>
                   );
@@ -340,8 +341,8 @@ const saveMethodChange = async () => {
           {/* 月次確定・取消 */}
           <Divider sx={{ my: 2 }} />
           <Stack direction="row" spacing={1}>
-            <Button variant="contained" color="primary" onClick={onConfirmInvoice} disabled={invoiceConfirmed}>月次請求確定</Button>
-            <Button variant="outlined" color="secondary" onClick={onUnconfirmInvoice} disabled={!invoiceConfirmed}>取消</Button>
+            <Button variant="contained" color="primary" onClick={onConfirmInvoice} disabled={invoiceConfirmed} data-testid="btn-confirm-invoice">月次請求確定</Button>
+            <Button variant="outlined" color="secondary" onClick={onUnconfirmInvoice} disabled={!invoiceConfirmed} data-testid="btn-unconfirm-invoice">取消</Button>
           </Stack>
           {/* 履歴・編集 */}
           <Divider sx={{ my: 2 }} />

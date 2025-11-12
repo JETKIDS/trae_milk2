@@ -148,6 +148,7 @@ export default function PaymentDetails() {
             onChange={(e) => setMonthStr(e.target.value)}
             fullWidth
             InputLabelProps={{ shrink: true }}
+            data-testid="input-month-payments"
           />
         </Grid>
         <Grid item xs={12} sm={4}>
@@ -177,16 +178,16 @@ export default function PaymentDetails() {
         </Grid>
         <Grid item xs={12} sm={5}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
-            <ToggleButtonGroup exclusive value={listType} onChange={(_, v) => v && setListType(v)} size="small">
+            <ToggleButtonGroup exclusive value={listType} onChange={(_, v) => v && setListType(v)} size="small" data-testid="toggle-paid-unpaid">
               <ToggleButton value="paid">入金一覧</ToggleButton>
               <ToggleButton value="unpaid">未入金一覧</ToggleButton>
             </ToggleButtonGroup>
-            <ToggleButtonGroup exclusive value={methodFilter} onChange={(_, v) => v && setMethodFilter(v)} size="small">
+            <ToggleButtonGroup exclusive value={methodFilter} onChange={(_, v) => v && setMethodFilter(v)} size="small" data-testid="group-method-filter">
               <ToggleButton value="all">全て</ToggleButton>
               <ToggleButton value="collection">集金客</ToggleButton>
               <ToggleButton value="debit">引き落し客</ToggleButton>
             </ToggleButtonGroup>
-            <Button variant="outlined" onClick={load} disabled={loading}>再読込</Button>
+            <Button variant="outlined" onClick={load} disabled={loading} data-testid="btn-reload-payments">再読込</Button>
           </Stack>
         </Grid>
       </Grid>
@@ -222,6 +223,7 @@ export default function PaymentDetails() {
                   <Box
                     component="button"
                     onClick={() => openCustomerStandalone(r.id)}
+                    data-testid="btn-open-customer-detail"
                     style={{
                       background: 'none',
                       border: 'none',

@@ -298,6 +298,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
                 onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
                 error={!!errors.product_name}
                 helperText={errors.product_name}
+                inputProps={{ 'data-testid': 'input-product-name' }}
               />
             </Grid>
             
@@ -318,6 +319,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
                   value={formData.manufacturer_id || ''}
                   onChange={(e) => setFormData({ ...formData, manufacturer_id: Number(e.target.value) })}
                   label="メーカー"
+                  data-testid="select-manufacturer"
                 >
                   <MenuItem value={0}>メーカーを選択してください</MenuItem>
                   {manufacturers && manufacturers.length > 0 && manufacturers.map((manufacturer) => (
@@ -392,6 +394,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
                 InputProps={{
                   endAdornment: <InputAdornment position="end">円</InputAdornment>,
                 }}
+                inputProps={{ 'data-testid': 'input-unit-price' }}
                 error={!!errors.unit_price}
                 helperText={errors.unit_price}
               />
@@ -509,7 +512,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSave, produc
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>キャンセル</Button>
-        <Button onClick={handleSubmit} variant="contained">
+        <Button onClick={handleSubmit} variant="contained" data-testid="btn-submit-product">
           {product ? '更新' : '登録'}
         </Button>
       </DialogActions>

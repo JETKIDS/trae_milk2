@@ -144,11 +144,20 @@ const MonthlySummary: React.FC<MonthlySummaryProps> = ({
               <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
                 {currentDate.format('YYYY年M月')}分
               </Typography>
+              <Typography
+                variant="body2"
+                color={invoiceConfirmed ? 'success.main' : 'textSecondary'}
+                sx={{ mt: 1 }}
+                data-testid="status-invoice-confirmation"
+              >
+                {invoiceConfirmed ? '確定済み' : '未確定'}
+              </Typography>
               <Box sx={{ mt: 2, display: 'flex', gap: 1, flexDirection: 'column' }}>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={onInvoicePreview}
+                  data-testid="btn-invoice-preview"
                 >
                   請求書プレビュー
                 </Button>
@@ -156,6 +165,7 @@ const MonthlySummary: React.FC<MonthlySummaryProps> = ({
                   variant="outlined" 
                   color="primary" 
                   onClick={onConfirmInvoice}
+                  data-testid="btn-confirm-invoice"
                 >
                   月次請求確定
                 </Button>
@@ -164,12 +174,14 @@ const MonthlySummary: React.FC<MonthlySummaryProps> = ({
                   color="secondary" 
                   onClick={onOpenCollectionDialog} 
                   disabled={!invoiceConfirmed}
+                  data-testid="btn-open-collection"
                 >
                   集金を登録
                 </Button>
                 <Button 
                   variant="outlined" 
                   onClick={onOpenPaymentHistory}
+                  data-testid="btn-open-payment-history"
                 >
                   入金履歴
                 </Button>

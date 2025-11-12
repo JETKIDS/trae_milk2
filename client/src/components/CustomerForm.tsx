@@ -285,6 +285,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
             onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
             error={!!errors.customer_name}
             helperText={errors.customer_name}
+            inputProps={{ 'data-testid': 'input-customer-name' }}
           />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -298,26 +299,28 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
             />
           </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                required
-                label="住所"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                error={!!errors.address}
-                helperText={errors.address}
-              />
+            <TextField
+              fullWidth
+              required
+              label="住所"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              error={!!errors.address}
+              helperText={errors.address}
+              inputProps={{ 'data-testid': 'input-customer-address' }}
+            />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                required
-                label="電話番号"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                error={!!errors.phone}
-                helperText={errors.phone}
-              />
+            <TextField
+              fullWidth
+              required
+              label="電話番号"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              error={!!errors.phone}
+              helperText={errors.phone}
+              inputProps={{ 'data-testid': 'input-customer-phone' }}
+            />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
@@ -335,6 +338,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
                   value={formData.course_id || ''}
                   onChange={(e) => handleCourseChange(Number(e.target.value))}
                   label="配達コース"
+                  data-testid="select-course"
                 >
                   <MenuItem value={0} disabled>
                     コースを選択してください
@@ -391,6 +395,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
           onClick={handleSubmit}
           variant="contained"
           disabled={loading}
+          data-testid="btn-submit-customer"
         >
           {loading ? '保存中...' : (isEdit ? '更新' : '登録')}
         </Button>

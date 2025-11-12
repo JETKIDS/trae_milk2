@@ -156,6 +156,7 @@ const MonthlyManagement: React.FC = () => {
                   label="コース"
                   value={selectedCourseId}
                   onChange={(e) => setSelectedCourseId(typeof e.target.value === 'number' ? e.target.value : Number(e.target.value))}
+                  data-testid="select-course-monthly"
                 >
                   {loadingCourses && <MenuItem value=""><CircularProgress size={20} /> 読み込み中...</MenuItem>}
                   {!loadingCourses && courses.map((c) => (
@@ -174,6 +175,7 @@ const MonthlyManagement: React.FC = () => {
                 fullWidth
                 value={year}
                 onChange={(e) => setYear(parseInt(e.target.value || '0', 10))}
+                inputProps={{ 'data-testid': 'input-year-monthly' }}
               />
             </Grid>
             <Grid item xs={6} md={2}>
@@ -184,6 +186,7 @@ const MonthlyManagement: React.FC = () => {
                   label="月"
                   value={month}
                   onChange={(e) => setMonth(typeof e.target.value === 'number' ? e.target.value : Number(e.target.value))}
+                  data-testid="select-month-monthly"
                 >
                   {monthOptions.map((m) => (
                     <MenuItem key={m} value={m}>{m}</MenuItem>
@@ -192,8 +195,8 @@ const MonthlyManagement: React.FC = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
-              <Button variant="contained" color="primary" sx={{ mr: 1 }} onClick={handleConfirmBatch} disabled={!selectedCourseId}>月次確定</Button>
-              <Button variant="outlined" color="secondary" onClick={handleUnconfirmBatch} disabled={!selectedCourseId}>確定解除</Button>
+              <Button variant="contained" color="primary" sx={{ mr: 1 }} onClick={handleConfirmBatch} disabled={!selectedCourseId} data-testid="btn-confirm-batch">月次確定</Button>
+              <Button variant="outlined" color="secondary" onClick={handleUnconfirmBatch} disabled={!selectedCourseId} data-testid="btn-unconfirm-batch">確定解除</Button>
             </Grid>
           </Grid>
 
@@ -208,7 +211,7 @@ const MonthlyManagement: React.FC = () => {
                 <CircularProgress size={20} sx={{ mr: 1 }} /> 読み込み中...
               </Box>
             ) : (
-              <Typography variant="body2">
+              <Typography variant="body2" data-testid="label-confirmed-count">
                 確定済み: {confirmedCount} 件 / 合計顧客: {statusRows.length} 件
               </Typography>
             )}

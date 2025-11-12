@@ -130,21 +130,58 @@ function initSchema() {
 function resetData() {
   return new Promise((resolve, reject) => {
     const db = getDB();
-    const tables = ['operation_logs','temporary_changes','delivery_patterns','customers','products','manufacturers','delivery_courses','ar_invoices'];
+    // 参照関係を考慮した削除順（子→親）
+    const tables = [
+      'operation_logs',
+      'temporary_changes',
+      'delivery_patterns',
+      'ar_payments',
+      'invoices',
+      'ar_ledger',
+      'ar_invoices',
+      'customer_settings',
+      'customers',
+      'products',
+      'manufacturers',
+      'delivery_courses'
+    ];
     let remaining = tables.length;
     db.serialize(() => {
+      // 外部キー制約を一時的に無効化してクリーン削除（テスト用）
+      db.run('PRAGMA foreign_keys = OFF');
       tables.forEach((t) => {
-        db.run(`DELETE FROM ${t}`, [], (err) => {
-          if (err) {
+        // テーブルが存在する場合のみ削除を実施
+        db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, [t], (chkErr, row) => {
+          if (chkErr) {
+            db.run('PRAGMA foreign_keys = ON');
             db.close();
-            reject(err);
+            reject(chkErr);
             return;
           }
-          remaining -= 1;
-          if (remaining === 0) {
-            db.close();
-            resolve();
+          if (!row) {
+            // 存在しない場合はスキップ
+            remaining -= 1;
+            if (remaining === 0) {
+              db.run('PRAGMA foreign_keys = ON');
+              db.close();
+              resolve();
+            }
+            return;
           }
+          db.run(`DELETE FROM ${t}`, [], (err) => {
+            if (err) {
+              db.run('PRAGMA foreign_keys = ON');
+              db.close();
+              reject(err);
+              return;
+            }
+            remaining -= 1;
+            if (remaining === 0) {
+              db.run('PRAGMA foreign_keys = ON');
+              db.close();
+              resolve();
+            }
+          });
         });
       });
     });
@@ -154,25 +191,37 @@ function resetData() {
 function seedBasicData() {
   return new Promise((resolve, reject) => {
     const db = getDB();
-    let remaining = 4;
-    db.serialize(() => {
-      db.run(`INSERT OR REPLACE INTO delivery_courses (id, custom_id, course_name) VALUES (10, 'C-10', 'テストコース')`, [], done);
-      db.run(`INSERT OR REPLACE INTO manufacturers (id, manufacturer_name) VALUES (1, 'テストメーカー')`, [], done);
-      db.run(`INSERT OR REPLACE INTO products (id, custom_id, product_name, manufacturer_id, unit_price, purchase_price, unit) VALUES (1, 'P-1', 'テスト牛乳', 1, 180, 100, '180ml')`, [], done);
-      db.run(`INSERT OR REPLACE INTO customers (id, custom_id, customer_name, course_id, contract_start_date, delivery_order) VALUES (100, 'CU-100', 'テスト顧客', 10, '2025-01-01', 1)`, [], done);
+    // products.purchase_price の存在を確認してから挿入内容を決定
+    db.all("PRAGMA table_info(products)", [], (perr, pcols) => {
+      if (perr) {
+        db.close();
+        return reject(perr);
+      }
+      const hasPurchasePrice = Array.isArray(pcols) && pcols.some(c => c.name === 'purchase_price');
+      const productInsertSql = hasPurchasePrice
+        ? `INSERT OR REPLACE INTO products (id, custom_id, product_name, manufacturer_id, unit_price, purchase_price, unit) VALUES (1, 'P-1', 'テスト牛乳', 1, 180, 100, '180ml')`
+        : `INSERT OR REPLACE INTO products (id, custom_id, product_name, manufacturer_id, unit_price, unit) VALUES (1, 'P-1', 'テスト牛乳', 1, 180, '180ml')`;
+
+      let remaining = 4;
+      db.serialize(() => {
+        db.run(`INSERT OR REPLACE INTO delivery_courses (id, custom_id, course_name) VALUES (10, 'C-10', 'テストコース')`, [], done);
+        db.run(`INSERT OR REPLACE INTO manufacturers (id, manufacturer_name) VALUES (1, 'テストメーカー')`, [], done);
+        db.run(productInsertSql, [], done);
+        db.run(`INSERT OR REPLACE INTO customers (id, custom_id, customer_name, course_id, contract_start_date, delivery_order) VALUES (100, 'CU-100', 'テスト顧客', 10, '2025-01-01', 1)`, [], done);
+      });
+      function done(err) {
+        if (err) {
+          db.close();
+          reject(err);
+          return;
+        }
+        remaining -= 1;
+        if (remaining === 0) {
+          db.close();
+          resolve();
+        }
+      }
     });
-    function done(err) {
-      if (err) {
-        db.close();
-        reject(err);
-        return;
-      }
-      remaining -= 1;
-      if (remaining === 0) {
-        db.close();
-        resolve();
-      }
-    }
   });
 }
 

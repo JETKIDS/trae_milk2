@@ -223,13 +223,13 @@ export const CustomerCalendarPanel: React.FC<Props> = ({
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isStandalone ? 1 : 2 }}>
           <Typography variant={isStandalone ? 'subtitle1' : 'h6'}>配達カレンダー</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: isStandalone ? 0.5 : 1 }}>
-            <IconButton onClick={handlePrevMonth} size={isStandalone ? 'small' : undefined}>
+            <IconButton onClick={handlePrevMonth} size={isStandalone ? 'small' : undefined} data-testid="btn-prev-month">
               <ArrowBackIcon />
             </IconButton>
             <Typography variant={isStandalone ? 'subtitle1' : 'h6'} sx={{ minWidth: isStandalone ? 110 : 120, textAlign: 'center' }}>
               {currentDate.format('YYYY年M月')}
             </Typography>
-            <IconButton onClick={handleNextMonth} size={isStandalone ? 'small' : undefined}>
+            <IconButton onClick={handleNextMonth} size={isStandalone ? 'small' : undefined} data-testid="btn-next-month">
               <ArrowForwardIcon />
             </IconButton>
           </Box>

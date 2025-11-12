@@ -325,7 +325,7 @@ const BillingOperations: React.FC = () => {
                     <MenuItem value="zengin">全銀（CSV）</MenuItem>
                     <MenuItem value="zengin_fixed">全銀（固定長）</MenuItem>
                   </Select>
-                  <Button variant="contained" onClick={handleGenerateCsv} disabled={generatingCsv}>
+                  <Button variant="contained" onClick={handleGenerateCsv} disabled={generatingCsv} data-testid="btn-generate-csv">
                     {generatingCsv ? '生成中...' : (csvFormat === 'zengin_fixed' ? '固定長ファイルを生成してダウンロード' : 'CSVを生成してダウンロード')}
                   </Button>
                 </Stack>
@@ -337,10 +337,10 @@ const BillingOperations: React.FC = () => {
               </Stack>
 
               <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-                <Button variant="outlined" onClick={handleLoadPreview} disabled={loadingPreview}>
+                <Button variant="outlined" onClick={handleLoadPreview} disabled={loadingPreview} data-testid="btn-load-preview">
                   {loadingPreview ? '読み込み中...' : 'プレビューを読み込む'}
                 </Button>
-                <Button variant="outlined" onClick={handleLoadParse} disabled={loadingParse}>
+                <Button variant="outlined" onClick={handleLoadParse} disabled={loadingParse} data-testid="btn-load-parse">
                   {loadingParse ? '解析中...' : '解析を実行'}
                 </Button>
               </Stack>

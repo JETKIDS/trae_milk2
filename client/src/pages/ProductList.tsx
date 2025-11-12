@@ -129,6 +129,7 @@ const ProductList: React.FC = () => {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenProductForm}
+          data-testid="btn-open-add-product"
         >
           新規商品登録
         </Button>
