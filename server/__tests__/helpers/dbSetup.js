@@ -24,11 +24,22 @@ function initSchema() {
       product_name TEXT NOT NULL,
       manufacturer_id INTEGER,
       unit_price DECIMAL(10,2) NOT NULL,
+      purchase_price DECIMAL(10,2),
       unit TEXT DEFAULT 'ml',
       description TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (manufacturer_id) REFERENCES manufacturers(id)
     )`);
+
+    // productsテーブルの不足カラム補完
+    db.all("PRAGMA table_info(products)", [], (perr, pcols) => {
+      if (!perr) {
+        const pnames = new Set((pcols || []).map(c => c.name));
+        if (!pnames.has('purchase_price')) {
+          db.run('ALTER TABLE products ADD COLUMN purchase_price DECIMAL(10,2)');
+        }
+      }
+    });
 
     db.run(`CREATE TABLE IF NOT EXISTS customers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,9 +52,20 @@ function initSchema() {
       staff_id INTEGER,
       contract_start_date DATE,
       notes TEXT,
+      delivery_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (course_id) REFERENCES delivery_courses(id)
     )`);
+
+    // 既存DBに対しても不足カラムを補完
+    db.all("PRAGMA table_info(customers)", [], (cerr, cols) => {
+      if (!cerr) {
+        const names = new Set((cols || []).map(c => c.name));
+        if (!names.has('delivery_order')) {
+          db.run('ALTER TABLE customers ADD COLUMN delivery_order INTEGER DEFAULT 0');
+        }
+      }
+    });
 
     db.run(`CREATE TABLE IF NOT EXISTS delivery_patterns (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,6 +110,19 @@ function initSchema() {
       confirmed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(customer_id, year, month)
     )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS customer_settings (
+      customer_id INTEGER PRIMARY KEY,
+      billing_method TEXT CHECK (billing_method IN ('collection','debit')),
+      rounding_enabled INTEGER DEFAULT 1,
+      bank_code TEXT,
+      branch_code TEXT,
+      account_type INTEGER CHECK (account_type IN (1,2)),
+      account_number TEXT,
+      account_holder_katakana TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES customers(id)
+    )`);
   });
   db.close();
 }
@@ -123,8 +158,8 @@ function seedBasicData() {
     db.serialize(() => {
       db.run(`INSERT OR REPLACE INTO delivery_courses (id, custom_id, course_name) VALUES (10, 'C-10', 'テストコース')`, [], done);
       db.run(`INSERT OR REPLACE INTO manufacturers (id, manufacturer_name) VALUES (1, 'テストメーカー')`, [], done);
-      db.run(`INSERT OR REPLACE INTO products (id, custom_id, product_name, manufacturer_id, unit_price, unit) VALUES (1, 'P-1', 'テスト牛乳', 1, 180, '180ml')`, [], done);
-      db.run(`INSERT OR REPLACE INTO customers (id, custom_id, customer_name, course_id, contract_start_date) VALUES (100, 'CU-100', 'テスト顧客', 10, '2025-01-01')`, [], done);
+      db.run(`INSERT OR REPLACE INTO products (id, custom_id, product_name, manufacturer_id, unit_price, purchase_price, unit) VALUES (1, 'P-1', 'テスト牛乳', 1, 180, 100, '180ml')`, [], done);
+      db.run(`INSERT OR REPLACE INTO customers (id, custom_id, customer_name, course_id, contract_start_date, delivery_order) VALUES (100, 'CU-100', 'テスト顧客', 10, '2025-01-01', 1)`, [], done);
     });
     function done(err) {
       if (err) {

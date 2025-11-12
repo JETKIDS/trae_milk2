@@ -3,6 +3,22 @@ const router = express.Router();
 const { getDB } = require('../connection');
 const moment = require('moment');
 
+// DBスキーマ補助: 指定テーブルにカラムが存在するか確認
+async function hasColumn(db, tableName, columnName) {
+  return new Promise((resolve) => {
+    db.all(`PRAGMA table_info(${tableName})`, [], (err, rows) => {
+      if (err || !rows) return resolve(false);
+      resolve(rows.some(r => String(r.name) === String(columnName)));
+    });
+  });
+}
+
+// purchase_price が存在しない環境でも動作するように式を返す
+async function getPurchasePriceExpr(db) {
+  const exists = await hasColumn(db, 'products', 'purchase_price');
+  return exists ? 'p.purchase_price' : '0';
+}
+
 // generateMonthlyCalendar関数をコピー（customers.jsから）
 function generateMonthlyCalendar(year, month, patterns, temporaryChanges = []) {
   const safeParse = (val) => {
@@ -170,7 +186,7 @@ function generateMonthlyCalendar(year, month, patterns, temporaryChanges = []) {
 }
 
 // 月次売上・粗利を計算
-async function computeMonthlySalesAndProfit(db, year, month) {
+async function computeMonthlySalesAndProfit(db, year, month, purchasePriceExpr) {
   return new Promise((resolve, reject) => {
     db.all('SELECT id FROM customers', [], async (err, customers) => {
       if (err) return reject(err);
@@ -181,7 +197,7 @@ async function computeMonthlySalesAndProfit(db, year, month) {
       for (const customer of customers) {
         try {
           const patternsQuery = `
-            SELECT dp.*, p.product_name, p.unit, p.purchase_price, m.manufacturer_name
+            SELECT dp.*, p.product_name, p.unit, ${purchasePriceExpr} AS purchase_price, m.manufacturer_name
             FROM delivery_patterns dp
             JOIN products p ON dp.product_id = p.id
             LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
@@ -193,7 +209,7 @@ async function computeMonthlySalesAndProfit(db, year, month) {
               tc.*, 
               p.product_name, 
               p.unit_price AS product_unit_price,
-              p.purchase_price,
+              ${purchasePriceExpr} AS purchase_price,
               p.unit, 
               m.manufacturer_name
             FROM temporary_changes tc
@@ -237,7 +253,7 @@ async function computeMonthlySalesAndProfit(db, year, month) {
 }
 
 // 指定月内の一部期間のみ集計（rangeStart, rangeEnd は 'YYYY-MM-DD'）
-async function computeMonthlySalesAndProfitInRange(db, year, month, rangeStart, rangeEnd) {
+async function computeMonthlySalesAndProfitInRange(db, year, month, rangeStart, rangeEnd, purchasePriceExpr) {
   return new Promise((resolve, reject) => {
     db.all('SELECT id FROM customers', [], async (err, customers) => {
       if (err) return reject(err);
@@ -253,7 +269,7 @@ async function computeMonthlySalesAndProfitInRange(db, year, month, rangeStart, 
       for (const customer of customers) {
         try {
           const patternsQuery = `
-            SELECT dp.*, p.product_name, p.unit, p.purchase_price, m.manufacturer_name
+            SELECT dp.*, p.product_name, p.unit, ${purchasePriceExpr} AS purchase_price, m.manufacturer_name
             FROM delivery_patterns dp
             JOIN products p ON dp.product_id = p.id
             LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
@@ -265,7 +281,7 @@ async function computeMonthlySalesAndProfitInRange(db, year, month, rangeStart, 
               tc.*, 
               p.product_name,
               p.unit_price AS product_unit_price,
-              p.purchase_price,
+              ${purchasePriceExpr} AS purchase_price,
               p.unit,
               m.manufacturer_name
             FROM temporary_changes tc
@@ -318,11 +334,11 @@ router.get('/sales', async (req, res) => {
   const { startDate, endDate } = req.query;
   
   if (!startDate || !endDate) {
-    db.close();
     return res.status(400).json({ error: 'startDate と endDate を指定してください' });
   }
   
   try {
+    const purchasePriceExpr = await getPurchasePriceExpr(db);
     const start = moment(startDate);
     const end = moment(endDate);
     const monthlyData = [];
@@ -338,7 +354,7 @@ router.get('/sales', async (req, res) => {
       const monthEnd = moment(current).endOf('month');
       const rs = moment.max(start, monthStart).format('YYYY-MM-DD');
       const re = moment.min(end, monthEnd).format('YYYY-MM-DD');
-      const result = await computeMonthlySalesAndProfitInRange(db, year, month, rs, re);
+      const result = await computeMonthlySalesAndProfitInRange(db, year, month, rs, re, purchasePriceExpr);
       const monthCost = Math.max(0, (result.sales || 0) - (result.grossProfit || 0));
       
       monthlyData.push({
@@ -365,7 +381,7 @@ router.get('/sales', async (req, res) => {
     console.error('売上データ取得エラー:', error);
     res.status(500).json({ error: error.message });
   } finally {
-    db.close();
+    // DBはリクエスト内で自動的に破棄されるため明示クローズしない
   }
 });
 
@@ -375,11 +391,11 @@ router.get('/product-sales', async (req, res) => {
   const { startDate, endDate } = req.query;
   
   if (!startDate || !endDate) {
-    db.close();
     return res.status(400).json({ error: 'startDate と endDate を指定してください' });
   }
   
   try {
+    const purchasePriceExpr = await getPurchasePriceExpr(db);
     const start = moment(startDate);
     const end = moment(endDate);
     const productMap = new Map();
@@ -398,7 +414,7 @@ router.get('/product-sales', async (req, res) => {
       
       for (const customer of customers) {
         const patternsQuery = `
-          SELECT dp.*, p.product_name, p.id as product_id, p.unit, p.purchase_price
+          SELECT dp.*, p.product_name, p.id as product_id, p.unit, ${purchasePriceExpr} AS purchase_price
           FROM delivery_patterns dp
           JOIN products p ON dp.product_id = p.id
           WHERE dp.customer_id = ? AND dp.is_active = 1
@@ -410,7 +426,7 @@ router.get('/product-sales', async (req, res) => {
             p.product_name,
             p.id as product_id,
             p.unit_price AS product_unit_price,
-            p.purchase_price,
+            ${purchasePriceExpr} AS purchase_price,
             p.unit
           FROM temporary_changes tc
           JOIN products p ON tc.product_id = p.id
@@ -476,7 +492,7 @@ router.get('/product-sales', async (req, res) => {
     console.error('商品別売上データ取得エラー:', error);
     res.status(500).json({ error: error.message });
   } finally {
-    db.close();
+    // 明示クローズしない
   }
 });
 
@@ -486,11 +502,11 @@ router.get('/course-sales', async (req, res) => {
   const { startDate, endDate } = req.query;
   
   if (!startDate || !endDate) {
-    db.close();
     return res.status(400).json({ error: 'startDate と endDate を指定してください' });
   }
   
   try {
+    const purchasePriceExpr = await getPurchasePriceExpr(db);
     const start = moment(startDate);
     const end = moment(endDate);
     const courseMap = new Map();
@@ -534,7 +550,7 @@ router.get('/course-sales', async (req, res) => {
         }
         
         const patternsQuery = `
-          SELECT dp.*, p.product_name, p.id as product_id, p.unit, p.purchase_price
+          SELECT dp.*, p.product_name, p.id as product_id, p.unit, ${purchasePriceExpr} AS purchase_price
           FROM delivery_patterns dp
           JOIN products p ON dp.product_id = p.id
           WHERE dp.customer_id = ? AND dp.is_active = 1
@@ -546,7 +562,7 @@ router.get('/course-sales', async (req, res) => {
             p.product_name,
             p.id as product_id,
             p.unit_price AS product_unit_price,
-            p.purchase_price,
+            ${purchasePriceExpr} AS purchase_price,
             p.unit
           FROM temporary_changes tc
           JOIN products p ON tc.product_id = p.id
@@ -607,7 +623,7 @@ router.get('/course-sales', async (req, res) => {
     console.error('コース別売上データ取得エラー:', error);
     res.status(500).json({ error: error.message });
   } finally {
-    db.close();
+    // 明示クローズしない
   }
 });
 
@@ -617,7 +633,6 @@ router.get('/new-customers', async (req, res) => {
   const { month } = req.query;
   
   if (!month) {
-    db.close();
     return res.status(400).json({ error: 'month を指定してください（YYYY-MM形式）' });
   }
   
@@ -639,7 +654,6 @@ router.get('/new-customers', async (req, res) => {
       ORDER BY c.contract_start_date ASC, c.custom_id ASC
     `, [startDate, endDate], (err, rows) => {
       if (err) {
-        db.close();
         return res.status(500).json({ error: err.message });
       }
       
@@ -650,10 +664,8 @@ router.get('/new-customers', async (req, res) => {
         courseName: r.course_name,
         contractStartDate: r.contract_start_date
       })));
-      db.close();
     });
   } catch (error) {
-    db.close();
     res.status(500).json({ error: error.message });
   }
 });
@@ -664,7 +676,6 @@ router.get('/cancelled-customers', async (req, res) => {
   const { month } = req.query;
   
   if (!month) {
-    db.close();
     return res.status(400).json({ error: 'month を指定してください（YYYY-MM形式）' });
   }
   
@@ -697,7 +708,6 @@ router.get('/cancelled-customers', async (req, res) => {
       ORDER BY contract_end_date ASC, c.custom_id ASC
     `, [startDate, endDate, endDate], (err, rows) => {
       if (err) {
-        db.close();
         return res.status(500).json({ error: err.message });
       }
       
@@ -708,10 +718,8 @@ router.get('/cancelled-customers', async (req, res) => {
         courseName: r.course_name,
         contractEndDate: r.contract_end_date
       })));
-      db.close();
     });
   } catch (error) {
-    db.close();
     res.status(500).json({ error: error.message });
   }
 });
@@ -722,11 +730,11 @@ router.get('/product-customers', async (req, res) => {
   const { productId } = req.query;
   
   if (!productId) {
-    db.close();
     return res.status(400).json({ error: 'productId を指定してください' });
   }
   
   try {
+    const purchasePriceExpr = await getPurchasePriceExpr(db);
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
     
@@ -753,7 +761,7 @@ router.get('/product-customers', async (req, res) => {
       const results = [];
       for (const customer of customers) {
         const patternsQuery = `
-          SELECT dp.*, p.product_name, p.unit, p.purchase_price
+          SELECT dp.*, p.product_name, p.unit, ${purchasePriceExpr} AS purchase_price
           FROM delivery_patterns dp
           JOIN products p ON dp.product_id = p.id
           WHERE dp.customer_id = ? AND dp.product_id = ? AND dp.is_active = 1
@@ -764,7 +772,7 @@ router.get('/product-customers', async (req, res) => {
             tc.*, 
             p.product_name,
             p.unit_price AS product_unit_price,
-            p.purchase_price,
+            ${purchasePriceExpr} AS purchase_price,
             p.unit
           FROM temporary_changes tc
           JOIN products p ON tc.product_id = p.id
@@ -805,10 +813,8 @@ router.get('/product-customers', async (req, res) => {
       }
       
       res.json(results);
-      db.close();
     });
   } catch (error) {
-    db.close();
     res.status(500).json({ error: error.message });
   }
 });
@@ -819,11 +825,11 @@ router.get('/kpi', async (req, res) => {
   const { month } = req.query;
   
   if (!month) {
-    db.close();
     return res.status(400).json({ error: 'month を指定してください（YYYY-MM形式）' });
   }
   
   try {
+    const purchasePriceExpr = await getPurchasePriceExpr(db);
     const [year, monthNum] = month.split('-').map(Number);
     const prevMonth = moment(`${year}-${String(monthNum).padStart(2, '0')}-01`).subtract(1, 'month');
     const prevYear = prevMonth.year();
@@ -835,10 +841,10 @@ router.get('/kpi', async (req, res) => {
     const prevMonthEnd = moment(prevMonthStart).endOf('month').format('YYYY-MM-DD');
     
     // 当月の売上・粗利
-    const currentSales = await computeMonthlySalesAndProfit(db, year, monthNum);
+    const currentSales = await computeMonthlySalesAndProfit(db, year, monthNum, purchasePriceExpr);
     
     // 前月の売上・粗利
-    const prevSales = await computeMonthlySalesAndProfit(db, prevYear, prevMonthNum);
+    const prevSales = await computeMonthlySalesAndProfit(db, prevYear, prevMonthNum, purchasePriceExpr);
     
     // 当月の顧客数（在籍）: 当月中に配達商品（有効パターン）が存在する顧客数で定義
     const currentCustomers = await new Promise((resolve, reject) => {
@@ -934,7 +940,7 @@ router.get('/kpi', async (req, res) => {
     console.error('KPI取得エラー:', error);
     res.status(500).json({ error: error.message });
   } finally {
-    db.close();
+    // 明示クローズしない
   }
 });
 

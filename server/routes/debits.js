@@ -431,7 +431,7 @@ router.get('/generate', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   } finally {
-    try { db && db.close(); } catch {}
+    // 明示クローズしない（非同期処理中のハンドルクローズによるSQLITE_MISUSEを回避）
   }
 });
 

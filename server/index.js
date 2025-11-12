@@ -56,14 +56,16 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: message });
 });
 
-// 初期化処理（非同期）
-initializeLedgerSchema()
-  .then(() => {
-    console.log('✅ Ledger tables initialized');
-  })
-  .catch((err) => {
-    console.error('❌ Ledger tables initialization failed', err);
-  });
+// 初期化処理（非同期）: テスト環境ではスキップしてログを抑止
+if (process.env.NODE_ENV !== 'test') {
+  initializeLedgerSchema()
+    .then(() => {
+      console.log('✅ Ledger tables initialized');
+    })
+    .catch((err) => {
+      console.error('❌ Ledger tables initialization failed', err);
+    });
+}
 
 // サーバー起動（テスト環境ではポートを開かない）
 if (process.env.NODE_ENV !== 'test') {
