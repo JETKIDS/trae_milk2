@@ -27,7 +27,9 @@ export default function BulkCollection({ method = 'collection', readOnly = false
   const [month, setMonth] = useState(now.getMonth() + 1);
   const { year: invoiceYear, month: invoiceMonth } = useMemo(() => getPrevYearMonth(year, month), [year, month]);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [courseId, setCourseId] = useState<number | ''>('');
+  // コース選択値は数値ID、未選択（空文字）、全コース（'__ALL__'）のいずれか
+  type CourseSelectValue = number | '' | '__ALL__';
+  const [courseId, setCourseId] = useState<CourseSelectValue>('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [amounts, setAmounts] = useState<Record<number, number>>({}); // 手入力（任意）

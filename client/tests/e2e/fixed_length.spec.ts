@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import fs from 'fs/promises';
+import * as fs from 'fs/promises';
 
 // 固定長出力（全銀固定長）のスモーク：
 // - 画面からフォーマット選択（全銀固定長）
