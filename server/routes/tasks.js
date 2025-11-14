@@ -243,7 +243,7 @@ router.delete('/templates/daily/:id', (req, res) => {
 
 router.get('/templates/monthly', (req, res) => {
   const db = getDB();
-  db.all('SELECT * FROM monthly_task_templates ORDER BY COALESCE(is_last_day,0) DESC, COALESCE(day_of_month, 0) ASC, COALESCE(order_index, created_at) ASC', [], (err, rows) => {
+  db.all('SELECT * FROM monthly_task_templates ORDER BY COALESCE(is_last_day,0) ASC, COALESCE(day_of_month, 0) ASC, COALESCE(order_index, created_at) ASC', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });

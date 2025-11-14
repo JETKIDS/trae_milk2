@@ -222,10 +222,10 @@ const TasksManagement: React.FC = () => {
                       <FormControl size="small" sx={{ minWidth: 160 }}>
                         <InputLabel id="monthday-label">日付</InputLabel>
                         <Select labelId="monthday-label" label="日付" value={tplMonthDay} onChange={(e) => setTplMonthDay(Number(e.target.value))}>
-                          <MenuItem value={0}>末日</MenuItem>
                           {Array.from({ length: 31 }).map((_, i) => (
                             <MenuItem key={i+1} value={i+1}>{i+1}日</MenuItem>
                           ))}
+                          <MenuItem value={0}>末日</MenuItem>
                         </Select>
                       </FormControl>
                       <TextField fullWidth size="small" placeholder="タイトル" value={tplMonthlyTitle} onChange={(e) => setTplMonthlyTitle(e.target.value)} />
