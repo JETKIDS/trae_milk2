@@ -19,6 +19,7 @@ import {
   RequestQuote as BillingIcon,
   Analytics as AnalyticsIcon,
   Transform as TransformIcon,
+  Checklist as ChecklistIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -31,6 +32,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { text: 'ダッシュボード', icon: <DashboardIcon />, path: '/' },
+  { text: 'タスク管理', icon: <ChecklistIcon />, path: '/tasks' },
   { text: '顧客管理', icon: <PeopleIcon />, path: '/customers' },
   { text: '配達帳票出力', icon: <DeliveryIcon />, path: '/delivery' },
   { text: '請求業務', icon: <BillingIcon />, path: '/billing' },

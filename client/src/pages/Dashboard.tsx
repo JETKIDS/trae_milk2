@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Grid, Card, CardContent, Box, Button, List, ListItem, ListItemText, Checkbox, TextField, IconButton, Divider } from '@mui/material';
-import { Add, Delete } from '@mui/icons-material';
+import { Typography, Grid, Card, CardContent, Box, Button } from '@mui/material';
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../utils/apiClient';
@@ -56,6 +55,15 @@ const Dashboard: React.FC = () => {
   const [monthlyTasks, setMonthlyTasks] = useState<TaskItem[]>([]);
   const [newDailyTitle, setNewDailyTitle] = useState('');
   const [newMonthlyTitle, setNewMonthlyTitle] = useState('');
+  const [newDailyDueTime, setNewDailyDueTime] = useState('');
+  const [dailyTemplates, setDailyTemplates] = useState<any[]>([]);
+  const [monthlyTemplates, setMonthlyTemplates] = useState<any[]>([]);
+  const [tplWeekday, setTplWeekday] = useState<number>(new Date().getDay());
+  const [tplDailyTitle, setTplDailyTitle] = useState('');
+  const [tplDailyDueTime, setTplDailyDueTime] = useState('');
+  const [tplMonthDay, setTplMonthDay] = useState<number>(13);
+  const [tplMonthlyTitle, setTplMonthlyTitle] = useState('');
+  const [tplMonthlyDueTime, setTplMonthlyDueTime] = useState('');
 
   useEffect(() => {
     const fetchStats = async (): Promise<void> => {
@@ -95,6 +103,8 @@ const Dashboard: React.FC = () => {
     fetchKPI();
     fetchDailyTasks();
     fetchMonthlyTasks();
+    fetchDailyTemplates();
+    fetchMonthlyTemplates();
   }, []);
 
   const formatCurrency = (value: number) => {
@@ -133,8 +143,11 @@ const Dashboard: React.FC = () => {
     const title = newDailyTitle.trim();
     if (!title) return;
     try {
-      await apiClient.post('/api/tasks', { type: 'daily', title, date: todayStr });
+      const payload: any = { type: 'daily', title, date: todayStr };
+      if (newDailyDueTime) payload.due_time = newDailyDueTime;
+      await apiClient.post('/api/tasks', payload);
       setNewDailyTitle('');
+      setNewDailyDueTime('');
       fetchDailyTasks();
     } catch (e) {
       console.error('日別タスクの追加に失敗しました:', e);
@@ -151,6 +164,49 @@ const Dashboard: React.FC = () => {
     } catch (e) {
       console.error('月別タスクの追加に失敗しました:', e);
     }
+  };
+
+  const fetchDailyTemplates = async () => {
+    try {
+      const res = await apiClient.get('/api/tasks/templates/daily');
+      setDailyTemplates(res.data || []);
+    } catch {}
+  };
+  const fetchMonthlyTemplates = async () => {
+    try {
+      const res = await apiClient.get('/api/tasks/templates/monthly');
+      setMonthlyTemplates(res.data || []);
+    } catch {}
+  };
+  const addDailyTemplate = async () => {
+    const t = tplDailyTitle.trim();
+    if (!t) return;
+    try {
+      await apiClient.post('/api/tasks/templates/daily', { weekday: tplWeekday, title: t, due_time: tplDailyDueTime || undefined });
+      setTplDailyTitle('');
+      setTplDailyDueTime('');
+      fetchDailyTemplates();
+      fetchDailyTasks();
+    } catch {}
+  };
+  const addMonthlyTemplate = async () => {
+    const t = tplMonthlyTitle.trim();
+    if (!t) return;
+    try {
+      const payload: any = { title: t, due_time: tplMonthlyDueTime || undefined };
+      if (tplMonthDay === 0) payload.is_last_day = true; else payload.day_of_month = tplMonthDay;
+      await apiClient.post('/api/tasks/templates/monthly', payload);
+      setTplMonthlyTitle('');
+      setTplMonthlyDueTime('');
+      fetchMonthlyTemplates();
+      fetchMonthlyTasks();
+    } catch {}
+  };
+  const deleteDailyTemplate = async (id: number) => {
+    try { await apiClient.delete(`/api/tasks/templates/daily/${id}`); fetchDailyTemplates(); } catch {}
+  };
+  const deleteMonthlyTemplate = async (id: number) => {
+    try { await apiClient.delete(`/api/tasks/templates/monthly/${id}`); fetchMonthlyTemplates(); } catch {}
   };
 
   const toggleTaskCompleted = async (task: TaskItem) => {
@@ -190,7 +246,8 @@ const Dashboard: React.FC = () => {
         ダッシュボード
       </Typography>
       
-      <Grid container spacing={3}>
+
+      <Grid container spacing={3} sx={{ mt: 3 }}>
         {statCards.map((card: StatCard, index: number) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
             <Card>
@@ -337,96 +394,10 @@ const Dashboard: React.FC = () => {
         </Box>
       </Box>
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                日別タスク（{todayStr}）
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="タスクを追加（例：前日まとめ）"
-                  value={newDailyTitle}
-                  onChange={(e) => setNewDailyTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') addDailyTask(); }}
-                />
-                <IconButton color="primary" onClick={addDailyTask} aria-label="add-daily">
-                  <Add />
-                </IconButton>
-              </Box>
-              <Divider sx={{ mb: 1 }} />
-              <List>
-                {dailyTasks.map((t) => (
-                  <ListItem key={t.id} secondaryAction={
-                    <IconButton edge="end" aria-label="delete" onClick={() => deleteTask(t)}>
-                      <Delete />
-                    </IconButton>
-                  }>
-                    <Checkbox checked={t.completed} onChange={() => toggleTaskCompleted(t)} />
-                    <ListItemText
-                      primary={t.title}
-                      secondary={t.dueTime ? `締切 ${t.dueTime}` : undefined}
-                      primaryTypographyProps={{ sx: { textDecoration: t.completed ? 'line-through' : 'none', color: t.completed ? 'text.secondary' : 'text.primary' } }}
-                    />
-                  </ListItem>
-                ))}
-                {dailyTasks.length === 0 && (
-                  <ListItem>
-                    <ListItemText primary="タスクはまだありません" />
-                  </ListItem>
-                )}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
+      
 
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                月別タスク（{currentMonthStr}）
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="タスクを追加（例：支払い）"
-                  value={newMonthlyTitle}
-                  onChange={(e) => setNewMonthlyTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') addMonthlyTask(); }}
-                />
-                <IconButton color="primary" onClick={addMonthlyTask} aria-label="add-monthly">
-                  <Add />
-                </IconButton>
-              </Box>
-              <Divider sx={{ mb: 1 }} />
-              <List>
-                {monthlyTasks.map((t) => (
-                  <ListItem key={t.id} secondaryAction={
-                    <IconButton edge="end" aria-label="delete" onClick={() => deleteTask(t)}>
-                      <Delete />
-                    </IconButton>
-                  }>
-                    <Checkbox checked={t.completed} onChange={() => toggleTaskCompleted(t)} />
-                    <ListItemText
-                      primary={t.title}
-                      primaryTypographyProps={{ sx: { textDecoration: t.completed ? 'line-through' : 'none', color: t.completed ? 'text.secondary' : 'text.primary' } }}
-                    />
-                  </ListItem>
-                ))}
-                {monthlyTasks.length === 0 && (
-                  <ListItem>
-                    <ListItemText primary="タスクはまだありません" />
-                  </ListItem>
-                )}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+
+      
     </Box>
   );
 };

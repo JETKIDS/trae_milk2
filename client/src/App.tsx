@@ -1,13 +1,16 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Box, Toolbar } from '@mui/material';
+import { Box, Toolbar, IconButton, Badge, Tooltip } from '@mui/material';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import apiClient from './utils/apiClient';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const TasksManagement = lazy(() => import('./pages/TasksManagement'));
 const CustomerList = lazy(() => import('./pages/CustomerList'));
 const CustomerDetail = lazy(() => import('./pages/CustomerDetail'));
 const DeliveryList = lazy(() => import('./pages/DeliveryList'));
@@ -107,6 +110,20 @@ const theme = createTheme({
 
 function App() {
   const isStandalone = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('view') === 'standalone';
+  const [notif, setNotif] = useState({ daily: 0, monthlyToday: 0 });
+  useEffect(() => {
+    let mounted = true;
+    const fetchCounts = async () => {
+      try {
+        const res = await apiClient.get('/api/tasks/incomplete-summary');
+        if (!mounted) return;
+        setNotif({ daily: res.data?.dailyIncomplete || 0, monthlyToday: res.data?.monthlyIncompleteToday || 0 });
+      } catch {}
+    };
+    fetchCounts();
+    const id = setInterval(fetchCounts, 30000);
+    return () => { mounted = false; clearInterval(id); };
+  }, []);
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -128,9 +145,19 @@ function App() {
                 }}
               >
                 { !isStandalone && <Toolbar /> }
+                <Box sx={{ position: 'fixed', top: 12, right: 16, zIndex: 1300 }}>
+                  <Tooltip title={`未完 日:${notif.daily} 件 / 月(当日):${notif.monthlyToday} 件`}>
+                    <IconButton color="primary" onClick={() => { window.location.href = '/tasks'; }}>
+                      <Badge color="error" badgeContent={(notif.daily + notif.monthlyToday) || 0}>
+                        <NotificationsNoneIcon />
+                      </Badge>
+                    </IconButton>
+                  </Tooltip>
+                </Box>
                 <Suspense fallback={<div style={{ padding: 16 }}>読み込み中...</div>}>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
+                    <Route path="/tasks" element={<TasksManagement />} />
                     <Route path="/customers" element={<CustomerList />} />
                     <Route path="/customers/:id" element={<CustomerDetail />} />
                     <Route path="/invoice-preview/:id" element={<InvoicePreview />} />

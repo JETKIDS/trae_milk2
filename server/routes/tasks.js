@@ -30,6 +30,127 @@ const { getDB } = require('../connection');
   });
 })();
 
+(function ensureTemplateTables() {
+  const db = getDB();
+  const ddl = `
+    CREATE TABLE IF NOT EXISTS daily_task_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      weekday INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      note TEXT,
+      due_time TEXT,
+      order_index INTEGER,
+      active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_daily_templates_weekday ON daily_task_templates(weekday);
+    CREATE TABLE IF NOT EXISTS monthly_task_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      day_of_month INTEGER,
+      is_last_day INTEGER DEFAULT 0,
+      title TEXT NOT NULL,
+      note TEXT,
+      due_time TEXT,
+      order_index INTEGER,
+      active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_monthly_templates_day ON monthly_task_templates(day_of_month);
+    CREATE TABLE IF NOT EXISTS company_holidays (
+      date TEXT PRIMARY KEY,
+      name TEXT
+    );
+  `;
+  db.exec(ddl, (err) => {
+    try { db.close(); } catch {}
+    if (err) {}
+  });
+})();
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function ymd(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+function ym(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`; }
+
+async function generateDailyIfMissing(db, dateStr) {
+  const d = new Date(dateStr);
+  const weekday = d.getDay();
+  const templates = await new Promise((resolve, reject) => {
+    db.all('SELECT * FROM daily_task_templates WHERE active = 1 AND weekday = ?', [weekday], (err, rows) => {
+      if (err) return reject(err);
+      resolve(rows || []);
+    });
+  });
+  for (const t of templates) {
+    const exists = await new Promise((resolve) => {
+      db.get('SELECT id FROM tasks WHERE type = "daily" AND date = ? AND title = ?', [dateStr, t.title], (err, row) => {
+        if (err) return resolve(true);
+        resolve(!!row);
+      });
+    });
+    if (!exists) {
+      const monthStr = ym(d);
+      await new Promise((resolve, reject) => {
+        db.run(
+          'INSERT INTO tasks (type, title, note, date, month, due_time, completed, order_index, created_at, updated_at) VALUES ("daily", ?, ?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+          [t.title, t.note || null, dateStr, monthStr, t.due_time || null, t.order_index || null],
+          (err) => { if (err) return reject(err); resolve(); }
+        );
+      });
+    }
+  }
+}
+
+async function generateMonthlyIfMissing(db, monthStr) {
+  const [year, m] = monthStr.split('-').map(Number);
+  const lastDay = new Date(year, m, 0).getDate();
+  const templates = await new Promise((resolve, reject) => {
+    db.all('SELECT * FROM monthly_task_templates WHERE active = 1', [], (err, rows) => {
+      if (err) return reject(err);
+      resolve(rows || []);
+    });
+  });
+  async function isHoliday(dateStr) {
+    return new Promise((resolve) => {
+      db.get('SELECT 1 FROM company_holidays WHERE date = ?', [dateStr], (err, row) => {
+        resolve(!!row);
+      });
+    });
+  }
+  async function adjustToBusinessDay(dateStr) {
+    let d = new Date(dateStr);
+    while (true) {
+      const wd = d.getDay();
+      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const hol = await isHoliday(ds);
+      if (wd !== 0 && wd !== 6 && !hol) return ds;
+      d.setDate(d.getDate() - 1);
+    }
+  }
+  for (const t of templates) {
+    const day = t.is_last_day ? lastDay : Number(t.day_of_month);
+    if (!day || day < 1 || day > lastDay) continue;
+    const dateStrRaw = `${monthStr}-${pad2(day)}`;
+    const dateStr = await adjustToBusinessDay(dateStrRaw);
+    const exists = await new Promise((resolve) => {
+      db.get('SELECT id FROM tasks WHERE type = "monthly" AND month = ? AND date = ? AND title = ?', [monthStr, dateStr, t.title], (err, row) => {
+        if (err) return resolve(true);
+        resolve(!!row);
+      });
+    });
+    if (!exists) {
+      await new Promise((resolve, reject) => {
+        db.run(
+          'INSERT INTO tasks (type, title, note, date, month, due_time, completed, order_index, created_at, updated_at) VALUES ("monthly", ?, ?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+          [t.title, t.note || null, dateStr, monthStr, t.due_time || null, t.order_index || null],
+          (err) => { if (err) return reject(err); resolve(); }
+        );
+      });
+    }
+  }
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -50,13 +171,15 @@ router.get('/', (req, res) => {
     if (!date) {
       return res.status(400).json({ error: 'date を指定してください（YYYY-MM-DD）' });
     }
+    generateDailyIfMissing(db, date).then(() => {}).catch(() => {});
     sql = `SELECT * FROM tasks WHERE type = 'daily' AND date = ? ORDER BY COALESCE(order_index, created_at) ASC, id ASC`;
     params = [date];
   } else {
     if (!month) {
       return res.status(400).json({ error: 'month を指定してください（YYYY-MM）' });
     }
-    sql = `SELECT * FROM tasks WHERE type = 'monthly' AND month = ? ORDER BY COALESCE(order_index, created_at) ASC, id ASC`;
+    generateMonthlyIfMissing(db, month).then(() => {}).catch(() => {});
+    sql = `SELECT * FROM tasks WHERE type = 'monthly' AND month = ? ORDER BY COALESCE(date, created_at) ASC, COALESCE(order_index, created_at) ASC, id ASC`;
     params = [month];
   }
   db.all(sql, params, (err, rows) => {
@@ -76,6 +199,76 @@ router.get('/', (req, res) => {
       createdAt: r.created_at,
       updatedAt: r.updated_at,
     })));
+  });
+});
+
+router.get('/incomplete-summary', (req, res) => {
+  const db = getDB();
+  const { date, month } = req.query;
+  const today = date || ymd(new Date());
+  const mon = month || ym(new Date());
+  db.get('SELECT COUNT(*) AS cnt FROM tasks WHERE type = "daily" AND date = ? AND completed = 0', [today], (e1, r1) => {
+    db.get('SELECT COUNT(*) AS cnt FROM tasks WHERE type = "monthly" AND date = ? AND completed = 0', [today], (e2, r2) => {
+      res.json({ dailyIncomplete: r1?.cnt || 0, monthlyIncompleteToday: r2?.cnt || 0 });
+    });
+  });
+});
+
+router.get('/templates/daily', (req, res) => {
+  const db = getDB();
+  db.all('SELECT * FROM daily_task_templates ORDER BY weekday ASC, COALESCE(order_index, created_at) ASC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+router.post('/templates/daily', (req, res) => {
+  const db = getDB();
+  const { weekday, title, due_time, note, order_index } = req.body || {};
+  if (typeof weekday !== 'number' || weekday < 0 || weekday > 6) return res.status(400).json({ error: 'weekday は 0-6 で指定してください' });
+  if (!title) return res.status(400).json({ error: 'title は必須です' });
+  db.run('INSERT INTO daily_task_templates (weekday, title, note, due_time, order_index, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [weekday, title.trim(), note || null, due_time || null, order_index || null], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.status(201).json({ id: this.lastID });
+  });
+});
+
+router.delete('/templates/daily/:id', (req, res) => {
+  const db = getDB();
+  db.run('DELETE FROM daily_task_templates WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: this.changes > 0 });
+  });
+});
+
+router.get('/templates/monthly', (req, res) => {
+  const db = getDB();
+  db.all('SELECT * FROM monthly_task_templates ORDER BY COALESCE(is_last_day,0) DESC, COALESCE(day_of_month, 0) ASC, COALESCE(order_index, created_at) ASC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+router.post('/templates/monthly', (req, res) => {
+  const db = getDB();
+  const { day_of_month, is_last_day, title, due_time, note, order_index } = req.body || {};
+  if (!title) return res.status(400).json({ error: 'title は必須です' });
+  const isLast = is_last_day ? 1 : 0;
+  if (!isLast) {
+    const dom = Number(day_of_month);
+    if (!dom || dom < 1 || dom > 31) return res.status(400).json({ error: 'day_of_month は 1-31 で指定してください' });
+  }
+  db.run('INSERT INTO monthly_task_templates (day_of_month, is_last_day, title, note, due_time, order_index, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [isLast ? null : Number(day_of_month), isLast, title.trim(), note || null, due_time || null, order_index || null], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.status(201).json({ id: this.lastID });
+  });
+});
+
+router.delete('/templates/monthly/:id', (req, res) => {
+  const db = getDB();
+  db.run('DELETE FROM monthly_task_templates WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: this.changes > 0 });
   });
 });
 
