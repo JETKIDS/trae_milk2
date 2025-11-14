@@ -33,6 +33,7 @@ app.use('/api/bulk-update', require('./routes/bulkUpdate'));
 app.use('/api/analyses', require('./routes/analyses'));
 // 口座振替（全銀協）ファイルプレビュー
 app.use('/api/debits', require('./routes/debits'));
+app.use('/api/tasks', require('./routes/tasks'));
 
 // ヘルスチェック
 app.get('/api/health', (req, res) => {

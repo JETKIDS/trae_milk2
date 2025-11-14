@@ -109,6 +109,22 @@ db.serialize(() => {
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  db.run(`CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL CHECK(type IN ('daily','monthly')),
+    title TEXT NOT NULL,
+    note TEXT,
+    date TEXT, -- YYYY-MM-DD（日別）
+    month TEXT, -- YYYY-MM（月別）
+    due_time TEXT, -- HH:mm（日別オプション）
+    completed INTEGER DEFAULT 0,
+    order_index INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_tasks_daily ON tasks(type, date)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_tasks_monthly ON tasks(type, month)`);
+
   // サンプルデータ挿入
   console.log('サンプルデータを挿入しています...');
 

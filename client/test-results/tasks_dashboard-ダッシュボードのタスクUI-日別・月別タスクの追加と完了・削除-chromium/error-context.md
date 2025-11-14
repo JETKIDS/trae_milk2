@@ -1,0 +1,210 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: 牛乳配達管理システム
+      - paragraph [ref=e8]: "店舗名: ニコニコ牛乳"
+  - list [ref=e12]:
+    - listitem [ref=e13]:
+      - button "ダッシュボード" [ref=e14] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: ダッシュボード
+    - listitem [ref=e20]:
+      - button "顧客管理" [ref=e21] [cursor=pointer]:
+        - img [ref=e23]
+        - generic [ref=e26]: 顧客管理
+    - listitem [ref=e27]:
+      - button "配達帳票出力" [ref=e28] [cursor=pointer]:
+        - img [ref=e30]
+        - generic [ref=e33]: 配達帳票出力
+    - listitem [ref=e34]:
+      - button "請求業務" [ref=e35] [cursor=pointer]:
+        - img [ref=e37]
+        - generic [ref=e40]: 請求業務
+    - listitem [ref=e41]:
+      - button "商品管理" [ref=e42] [cursor=pointer]:
+        - img [ref=e44]
+        - generic [ref=e47]: 商品管理
+    - listitem [ref=e48]:
+      - button "コース管理" [ref=e49] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e54]: コース管理
+    - listitem [ref=e55]:
+      - button "各種分析リスト" [ref=e56] [cursor=pointer]:
+        - img [ref=e58]
+        - generic [ref=e61]: 各種分析リスト
+    - listitem [ref=e62]:
+      - button "全体変更" [ref=e63] [cursor=pointer]:
+        - img [ref=e65]
+        - generic [ref=e68]: 全体変更
+    - listitem [ref=e69]:
+      - button "マスタ管理" [ref=e70] [cursor=pointer]:
+        - img [ref=e72]
+        - generic [ref=e75]: マスタ管理
+  - main [ref=e76]:
+    - generic [ref=e78]:
+      - heading "ダッシュボード" [level=1] [ref=e79]
+      - generic [ref=e80]:
+        - generic [ref=e83]:
+          - paragraph [ref=e84]: 総顧客数
+          - generic [ref=e85]: "99"
+        - generic [ref=e88]:
+          - paragraph [ref=e89]: 商品数
+          - generic [ref=e90]: "43"
+        - generic [ref=e93]:
+          - paragraph [ref=e94]: コース数
+          - generic [ref=e95]: "6"
+        - generic [ref=e98]:
+          - paragraph [ref=e99]: スタッフ数
+          - generic [ref=e100]: "3"
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - heading "今月の経営指標 (2025-11)" [level=6] [ref=e103]
+          - button "詳細を見る" [ref=e104] [cursor=pointer]: 詳細を見る
+        - generic [ref=e105]:
+          - generic [ref=e108]:
+            - paragraph [ref=e109]: 今月の売上
+            - heading "￥775,875" [level=5] [ref=e110]
+            - generic [ref=e111]:
+              - img [ref=e112]
+              - paragraph [ref=e114]: "-5.0%"
+          - generic [ref=e117]:
+            - paragraph [ref=e118]: 今月の粗利
+            - heading "￥773,691" [level=5] [ref=e119]
+            - paragraph [ref=e120]: "粗利率: 99.7%"
+          - generic [ref=e123]:
+            - paragraph [ref=e124]: 新規顧客数
+            - heading "35件" [level=5] [ref=e125]
+          - generic [ref=e128]:
+            - paragraph [ref=e129]: 解約客数
+            - heading "0件" [level=5] [ref=e130]
+          - generic [ref=e133]:
+            - paragraph [ref=e134]: 顧客単価
+            - heading "￥11,937" [level=5] [ref=e135]
+          - generic [ref=e138]:
+            - paragraph [ref=e139]: 在籍顧客数
+            - heading "65件" [level=5] [ref=e140]
+      - generic [ref=e141]:
+        - heading "システム概要" [level=6] [ref=e142]
+        - paragraph [ref=e143]: 牛乳配達顧客管理システムへようこそ。このシステムでは以下の機能をご利用いただけます：
+        - list [ref=e144]:
+          - listitem [ref=e145]: 顧客情報の管理
+          - listitem [ref=e146]: 商品・配達パターンの設定
+          - listitem [ref=e147]: 月次配達カレンダーの表示
+          - listitem [ref=e148]: 請求書の生成
+          - listitem [ref=e149]: 配達コース・スタッフの管理
+      - generic [ref=e150]:
+        - generic [ref=e153]:
+          - heading "日別タスク（2025-11-14）" [level=6] [ref=e154]
+          - generic [ref=e155]:
+            - generic [ref=e157]:
+              - textbox "タスクを追加（例：前日まとめ）" [ref=e158]
+              - group
+            - button "add-daily" [ref=e159] [cursor=pointer]:
+              - img [ref=e160]
+          - separator [ref=e162]
+          - list [ref=e163]:
+            - listitem [ref=e164]:
+              - generic [ref=e165] [cursor=pointer]:
+                - checkbox [checked] [ref=e166]
+                - img [ref=e167]
+              - generic [ref=e170]: 前日まとめ
+              - button "delete" [ref=e172] [cursor=pointer]:
+                - img [ref=e173]
+            - listitem [ref=e175]:
+              - generic [ref=e176] [cursor=pointer]:
+                - checkbox [ref=e177]
+                - img [ref=e178]
+              - generic [ref=e181]: 前日まとめ
+              - button "delete" [ref=e183] [cursor=pointer]:
+                - img [ref=e184]
+            - listitem [ref=e186]:
+              - generic [ref=e187] [cursor=pointer]:
+                - checkbox [ref=e188]
+                - img [ref=e189]
+              - generic [ref=e192]: 前日まとめ
+              - button "delete" [ref=e194] [cursor=pointer]:
+                - img [ref=e195]
+            - listitem [ref=e197]:
+              - generic [ref=e198] [cursor=pointer]:
+                - checkbox [checked] [ref=e199]
+                - img [ref=e200]
+              - generic [ref=e203]: 前日まとめ
+              - button "delete" [ref=e205] [cursor=pointer]:
+                - img [ref=e206]
+            - listitem [ref=e208]:
+              - generic [ref=e209] [cursor=pointer]:
+                - checkbox [checked] [ref=e210]
+                - img [ref=e211]
+              - generic [ref=e214]: 前日まとめ
+              - button "delete" [ref=e216] [cursor=pointer]:
+                - img [ref=e217]
+            - listitem [ref=e219]:
+              - generic [ref=e220] [cursor=pointer]:
+                - checkbox [checked] [ref=e221]
+                - img [ref=e222]
+              - generic [ref=e225]: 前日まとめ
+              - button "delete" [ref=e227] [cursor=pointer]:
+                - img [ref=e228]
+            - listitem [ref=e230]:
+              - generic [ref=e231] [cursor=pointer]:
+                - checkbox [checked] [ref=e232]
+                - img [ref=e233]
+              - generic [ref=e236]: 前日まとめ
+              - button "delete" [ref=e238] [cursor=pointer]:
+                - img [ref=e239]
+            - listitem [ref=e241]:
+              - generic [ref=e242] [cursor=pointer]:
+                - checkbox [ref=e243]
+                - img [ref=e244]
+              - generic [ref=e247]: 前日まとめ
+              - button "delete" [ref=e249] [cursor=pointer]:
+                - img [ref=e250]
+            - listitem [ref=e252]:
+              - generic [ref=e253] [cursor=pointer]:
+                - checkbox [ref=e254]
+                - img [ref=e255]
+              - generic [ref=e258]: 前日まとめ
+              - button "delete" [ref=e260] [cursor=pointer]:
+                - img [ref=e261]
+            - listitem [ref=e263]:
+              - generic [ref=e264] [cursor=pointer]:
+                - checkbox [checked] [ref=e265]
+                - img [ref=e266]
+              - generic [ref=e269]: E2E-前日まとめ
+              - button "delete" [ref=e271] [cursor=pointer]:
+                - img [ref=e272]
+        - generic [ref=e276]:
+          - heading "月別タスク（2025-11）" [level=6] [ref=e277]
+          - generic [ref=e278]:
+            - generic [ref=e280]:
+              - textbox "タスクを追加（例：支払い）" [ref=e281]
+              - group
+            - button "add-monthly" [ref=e282] [cursor=pointer]:
+              - img [ref=e283]
+          - separator [ref=e285]
+          - list [ref=e286]:
+            - listitem [ref=e287]:
+              - generic [ref=e288] [cursor=pointer]:
+                - checkbox [ref=e289]
+                - img [ref=e290]
+              - generic [ref=e293]: 支払い
+              - button "delete" [ref=e295] [cursor=pointer]:
+                - img [ref=e296]
+            - listitem [ref=e298]:
+              - generic [ref=e299] [cursor=pointer]:
+                - checkbox [ref=e300]
+                - img [ref=e301]
+              - generic [ref=e304]: 支払い
+              - button "delete" [ref=e306] [cursor=pointer]:
+                - img [ref=e307]
+            - listitem [ref=e309]:
+              - generic [ref=e310] [cursor=pointer]:
+                - checkbox [checked] [ref=e311]
+                - img [ref=e312]
+              - generic [ref=e315]: E2E-支払い
+              - button "delete" [ref=e317] [cursor=pointer]:
+                - img [ref=e318]
+```
